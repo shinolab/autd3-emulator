@@ -2,13 +2,13 @@ use autd3::{
     prelude::{Drive, EmitIntensity, Phase, Silencer, Vector3, AUTD3, ULTRASOUND_PERIOD},
     Controller,
 };
-use autd3_link_calc::Calc;
+use autd3_link_emulator::Emulator;
 use polars::df;
 
 #[tokio::test]
 async fn gain() -> anyhow::Result<()> {
     let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
-        .open(Calc::builder())
+        .open(Emulator::builder())
         .await?;
 
     let df = autd.gain();
@@ -56,7 +56,7 @@ async fn gain() -> anyhow::Result<()> {
 #[tokio::test]
 async fn modulation() -> anyhow::Result<()> {
     let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
-        .open(Calc::builder())
+        .open(Emulator::builder())
         .await?;
 
     let t = (0..65535 * 2)

@@ -6,7 +6,7 @@ pub use record::{DeviceRecord, Record, TransducerRecord};
 
 use autd3_driver::{defined::ULTRASOUND_PERIOD, ethercat::DcSysTime, firmware::fpga::Drive};
 
-use crate::{error::CalcError, Calc};
+use crate::{error::EmulatorError, Emulator};
 
 pub(crate) struct RawTransducerRecord {
     pub drive: Vec<Drive>,
@@ -23,14 +23,14 @@ pub(crate) struct RawRecord {
     pub current: DcSysTime,
 }
 
-impl Calc {
-    pub fn start_recording(&mut self) -> Result<(), CalcError> {
+impl Emulator {
+    pub fn start_recording(&mut self) -> Result<(), EmulatorError> {
         self.start_record_at(DcSysTime::ZERO)
     }
 
-    pub fn start_record_at(&mut self, start_time: DcSysTime) -> Result<(), CalcError> {
+    pub fn start_record_at(&mut self, start_time: DcSysTime) -> Result<(), EmulatorError> {
         if self.record.is_some() {
-            return Err(CalcError::RecordingAlreadyStarted);
+            return Err(EmulatorError::RecordingAlreadyStarted);
         }
         self.record = Some(RawRecord {
             records: self
@@ -53,9 +53,9 @@ impl Calc {
         Ok(())
     }
 
-    pub fn finish_recording(&mut self) -> Result<Record, CalcError> {
+    pub fn finish_recording(&mut self) -> Result<Record, EmulatorError> {
         if self.record.is_none() {
-            return Err(CalcError::RecodingNotStarted);
+            return Err(EmulatorError::RecodingNotStarted);
         }
         let RawRecord {
             records,
@@ -83,10 +83,10 @@ impl Calc {
         })
     }
 
-    pub fn tick(&mut self, tick: Duration) -> Result<(), CalcError> {
+    pub fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError> {
         if let Some(record) = &mut self.record {
             if tick.is_zero() || tick.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
-                return Err(CalcError::InvalidTick);
+                return Err(EmulatorError::InvalidTick);
             }
             let mut t = record.current;
             let end = t + tick;
@@ -112,7 +112,7 @@ impl Calc {
             record.current = end;
             Ok(())
         } else {
-            Err(CalcError::RecodingNotStarted)
+            Err(EmulatorError::RecodingNotStarted)
         }
     }
 }

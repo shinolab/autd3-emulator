@@ -1,6 +1,6 @@
 use autd3::{derive::Datagram, prelude::*, Controller};
 use autd3_driver::firmware::fpga::FPGA_MAIN_CLK_FREQ;
-use autd3_link_calc::Calc;
+use autd3_link_emulator::Emulator;
 use polars::prelude::*;
 
 #[rstest::rstest]
@@ -9,7 +9,7 @@ use polars::prelude::*;
 #[tokio::test]
 async fn record_pulse_width(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
     let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
-        .open(Calc::builder())
+        .open(Emulator::builder())
         .await?;
 
     autd.send(silencer).await?;
@@ -48,7 +48,7 @@ async fn record_pulse_width(#[case] silencer: impl Datagram) -> anyhow::Result<(
 #[tokio::test]
 async fn record_output_voltage() -> anyhow::Result<()> {
     let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
-        .open(Calc::builder())
+        .open(Emulator::builder())
         .await?;
 
     autd.send(Silencer::disable()).await?;
@@ -103,7 +103,7 @@ async fn record_output_voltage() -> anyhow::Result<()> {
 #[tokio::test]
 async fn record_output_ultrasound() -> anyhow::Result<()> {
     let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
-        .open(Calc::builder())
+        .open(Emulator::builder())
         .await?;
 
     autd.send(Silencer::disable()).await?;
