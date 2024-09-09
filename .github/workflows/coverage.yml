@@ -28,7 +28,7 @@ jobs:
       - run: |
             cargo build
             cargo test
-            grcov . -s . --binary-path ./target/debug --llvm --branch --ignore-not-existing -o ./coverage -t lcov --excl-line "GRCOV_EXCL_LINE|#\[derive|#\[error|unreachable!|unimplemented!|tracing::(debug|trace|info|warn|error)!\([\s\S]*\);" --ignore "**/tests/*" --ignore "examples/**/*.rs" --excl-start GRCOV_EXCL_START --excl-stop GRCOV_EXCL_STOP
+            grcov . -s . --binary-path ./target/debug --llvm --branch --ignore-not-existing -o ./coverage -t lcov --excl-line 'GRCOV_EXCL_LINE|#\[derive|#\[error|unreachable!|unimplemented!|tracing::(debug|trace|info|warn|error)!\([\s\S]*\);' --ignore '**/tests/*' --ignore 'examples/**/*.rs' --excl-start GRCOV_EXCL_START --excl-stop GRCOV_EXCL_STOP
       - uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
