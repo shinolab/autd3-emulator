@@ -1,22 +1,17 @@
 name: 'build tools setup action'
 inputs:
-  os:
-    description: 'os'
-    required: true
+  components:
+    description: 'components'
+    required: false
     default: ''
 runs:
   using: "composite"
-  steps:  
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      if: inputs.os == 'windows-latest'
-      with:
-        python-version: "3.12"
-
+  steps:
     - name: Setup Rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         toolchain: stable
+        components: ${{ inputs.components }}
 
     - name: setup cache
       uses: swatinem/rust-cache@v2
