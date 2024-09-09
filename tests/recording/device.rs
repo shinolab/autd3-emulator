@@ -1,12 +1,12 @@
 use autd3::{gain, prelude::*, Controller};
 use autd3_driver::firmware::fpga::FPGA_MAIN_CLK_FREQ;
-use autd3_link_calc::Calc;
+use autd3_link_emulator::Emulator;
 use polars::prelude::*;
 
 #[tokio::test]
 async fn record_drive() -> anyhow::Result<()> {
     let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
-        .open(Calc::builder())
+        .open(Emulator::builder())
         .await?;
 
     let expect = autd.geometry()[0].iter().fold(
@@ -43,7 +43,7 @@ async fn record_drive() -> anyhow::Result<()> {
 #[tokio::test]
 async fn record_modulation() -> anyhow::Result<()> {
     let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
-        .open(Calc::builder())
+        .open(Emulator::builder())
         .await?;
 
     autd.start_recording()?;
@@ -70,7 +70,7 @@ async fn record_modulation() -> anyhow::Result<()> {
 #[tokio::test]
 async fn record_pulse_width() -> anyhow::Result<()> {
     let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
-        .open(Calc::builder())
+        .open(Emulator::builder())
         .await?;
 
     let to_pulse_width = |a, b| {
@@ -122,7 +122,7 @@ async fn record_pulse_width() -> anyhow::Result<()> {
 #[tokio::test]
 async fn record_output_voltage() -> anyhow::Result<()> {
     let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
-        .open(Calc::builder())
+        .open(Emulator::builder())
         .await?;
 
     autd.send(Silencer::disable()).await?;
@@ -181,7 +181,7 @@ async fn record_output_voltage() -> anyhow::Result<()> {
 #[tokio::test]
 async fn record_output_ultrasound() -> anyhow::Result<()> {
     let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
-        .open(Calc::builder())
+        .open(Emulator::builder())
         .await?;
 
     autd.send(Silencer::disable()).await?;

@@ -14,14 +14,14 @@ use autd3_firmware_emulator::{
     cpu::params::{TAG_CLEAR, TAG_CONFIG_PULSE_WIDTH_ENCODER, TAG_SILENCER},
     CPUEmulator,
 };
-use error::CalcError;
+use error::EmulatorError;
 use recording::RawRecord;
 use sub::SubDevice;
 
 use derive_more::Deref;
 
 #[derive(Deref)]
-pub struct Calc {
+pub struct Emulator {
     last_geometry_version: usize,
     is_open: bool,
     #[deref]
@@ -31,7 +31,7 @@ pub struct Calc {
 }
 
 #[derive(Builder)]
-pub struct CalcBuilder {
+pub struct EmulatorBuilder {
     #[get]
     #[set]
     timeout: std::time::Duration,
@@ -46,11 +46,11 @@ fn clone_device(dev: &Device) -> Device {
 }
 
 #[cfg_attr(feature = "async-trait", autd3_driver::async_trait)]
-impl LinkBuilder for CalcBuilder {
-    type L = Calc;
+impl LinkBuilder for EmulatorBuilder {
+    type L = Emulator;
 
     async fn open(self, geometry: &Geometry) -> Result<Self::L, AUTDInternalError> {
-        Ok(Calc {
+        Ok(Emulator {
             last_geometry_version: geometry.version(),
             is_open: true,
             sub_devices: geometry
@@ -68,7 +68,7 @@ impl LinkBuilder for CalcBuilder {
 }
 
 #[cfg_attr(feature = "async-trait", autd3_driver::async_trait)]
-impl Link for Calc {
+impl Link for Emulator {
     async fn close(&mut self) -> Result<(), AUTDInternalError> {
         self.is_open = false;
         Ok(())
@@ -79,7 +79,7 @@ impl Link for Calc {
             let check_tag = |tag: u8| -> Result<(), AUTDInternalError> {
                 match tag {
                     TAG_CONFIG_PULSE_WIDTH_ENCODER | TAG_SILENCER | TAG_CLEAR => {
-                        Err(CalcError::InvalidOperationWhenRecording.into())
+                        Err(EmulatorError::InvalidOperationWhenRecording.into())
                     }
                     _ => Ok(()),
                 }
@@ -135,9 +135,9 @@ impl Link for Calc {
     }
 }
 
-impl Calc {
-    pub const fn builder() -> CalcBuilder {
-        CalcBuilder {
+impl Emulator {
+    pub const fn builder() -> EmulatorBuilder {
+        EmulatorBuilder {
             timeout: std::time::Duration::ZERO,
         }
     }

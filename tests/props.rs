@@ -2,7 +2,7 @@ use autd3::{
     prelude::{Drive, EmitIntensity, Phase, Vector3, AUTD3},
     Controller,
 };
-use autd3_link_calc::Calc;
+use autd3_link_emulator::Emulator;
 
 #[tokio::test]
 async fn gain() -> anyhow::Result<()> {
@@ -10,7 +10,7 @@ async fn gain() -> anyhow::Result<()> {
         AUTD3::new(Vector3::zeros()),
         AUTD3::new(Vector3::new(10., 20., 30.)),
     ])
-    .open(Calc::builder())
+    .open(Emulator::builder())
     .await?;
 
     let df = autd.gain();

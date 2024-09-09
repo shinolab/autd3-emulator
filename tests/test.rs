@@ -4,12 +4,12 @@ use autd3::{
     prelude::{Vector3, AUTD3},
     Controller,
 };
-use autd3_link_calc::Calc;
+use autd3_link_emulator::Emulator;
 
 #[tokio::test]
 async fn update() -> anyhow::Result<()> {
     let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
-        .open(Calc::builder())
+        .open(Emulator::builder())
         .await?;
 
     autd.geometry_mut()[0].translate(Vector3::new(10., 0., 0.));

@@ -1,8 +1,8 @@
 use polars::prelude::*;
 
-use crate::Calc;
+use crate::Emulator;
 
-impl Calc {
+impl Emulator {
     pub fn gain(&self) -> DataFrame {
         let temp = self.sub_devices[0].gain();
         self.sub_devices

@@ -2,7 +2,7 @@ use autd3_driver::{defined::ULTRASOUND_PERIOD, error::AUTDInternalError};
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone, PartialEq)]
-pub enum CalcError {
+pub enum EmulatorError {
     #[error("Recording is already started")]
     RecordingAlreadyStarted,
     #[error("Recording is not started")]
@@ -13,8 +13,8 @@ pub enum CalcError {
     InvalidOperationWhenRecording,
 }
 
-impl From<CalcError> for AUTDInternalError {
-    fn from(value: CalcError) -> Self {
+impl From<EmulatorError> for AUTDInternalError {
+    fn from(value: EmulatorError) -> Self {
         AUTDInternalError::LinkError(value.to_string())
     }
 }
