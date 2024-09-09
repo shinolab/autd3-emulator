@@ -7,6 +7,24 @@ use autd3::{prelude::*, Controller};
 use autd3_link_emulator::{error::EmulatorError, Emulator};
 
 #[tokio::test]
+async fn recording_alredy_started() -> anyhow::Result<()> {
+    let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
+        .open(Emulator::builder())
+        .await?;
+
+    autd.start_recording()?;
+    assert_eq!(
+        EmulatorError::RecordingAlreadyStarted,
+        autd.start_recording().unwrap_err()
+    );
+    let _ = autd.finish_recording()?;
+
+    autd.close().await?;
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn recording_not_started() -> anyhow::Result<()> {
     let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
         .open(Emulator::builder())
