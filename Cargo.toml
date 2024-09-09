@@ -1,0 +1,28 @@
+[package]
+name = "autd3-link-emulator"
+description = "Link for calculating sound field, emulation of firmware, etc"
+readme = "README.md"
+keywords = ["autd"]
+version = "28.0.0-alpha.1"
+authors = ["shun suzuki <suzuki@hapis.k.u-tokyo.ac.jp>"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/shinolab/autd3-link-emulator"
+
+[dependencies]
+autd3-driver = "28.0.0-alpha.1"
+autd3-firmware-emulator = "28.0.0-alpha.1"
+derive_more = { version = "1.0.0", features = ["deref"] }
+polars = { version = "0.42.0", features = ["dtype-u8"] }
+thiserror = "1.0.63"
+
+[dev-dependencies]
+anyhow = "1.0.87"
+approx = "0.5.1"
+autd3 = "28.0.0-alpha.1"
+rstest = "0.22.0"
+tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
+
+[features]
+default = []
+async-trait = ["autd3-driver/async-trait"]
