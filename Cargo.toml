@@ -13,7 +13,7 @@ repository = "https://github.com/shinolab/autd3-link-emulator"
 autd3-driver = "28.0.0-alpha.1"
 autd3-firmware-emulator = "28.0.0-alpha.1"
 derive_more = { version = "1.0.0", features = ["deref"] }
-polars = { version = "0.42.0", features = ["dtype-u8"] }
+polars = { version = "0.43.1", features = ["dtype-u8"] }
 thiserror = "1.0.63"
 
 [dev-dependencies]
