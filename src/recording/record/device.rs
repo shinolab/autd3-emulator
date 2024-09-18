@@ -88,28 +88,30 @@ impl<'a> DeviceRecord<'a> {
         let p = times
             .iter()
             .map(|&t| {
-                let init = {
-                    let tp = self[0].tr.position();
-                    let output_ultrasound = self[0]._output_ultrasound();
-                    self[0]._sound_field_at(
-                        point,
-                        tp,
-                        t,
-                        option.sound_speed,
-                        output_ultrasound.as_slice(),
-                    )
-                };
-                let p = self.iter().skip(1).fold(init, |acc, tr| {
-                    let tp = tr.tr.position();
-                    let output_ultrasound = tr._output_ultrasound();
-                    acc + tr._sound_field_at(
-                        point,
-                        tp,
-                        t,
-                        option.sound_speed,
-                        output_ultrasound.as_slice(),
-                    )
-                });
+                let p = self.iter().skip(1).fold(
+                    {
+                        let tp = self[0].tr.position();
+                        let dist = (point - tp).norm();
+                        let output_ultrasound = self[0]._output_ultrasound();
+                        self[0]._sound_field_at(
+                            dist,
+                            t,
+                            option.sound_speed,
+                            output_ultrasound.as_slice(),
+                        )
+                    },
+                    |acc, tr| {
+                        let tp = tr.tr.position();
+                        let dist = (point - tp).norm();
+                        let output_ultrasound = tr._output_ultrasound();
+                        acc + tr._sound_field_at(
+                            dist,
+                            t,
+                            option.sound_speed,
+                            output_ultrasound.as_slice(),
+                        )
+                    },
+                );
                 pb.inc(1);
                 p
             })
@@ -129,8 +131,13 @@ impl<'a> DeviceRecord<'a> {
                 "z[mm]" => &z)
         .unwrap();
 
-        let p = itertools::izip!(x, y, z)
-            .map(|(x, y, z)| Vector3::new(x, y, z))
+        let dists = self
+            .iter()
+            .map(|tr| {
+                itertools::izip!(&x, &y, &z)
+                    .map(|(&x, &y, &z)| (Vector3::new(x, y, z) - tr.tr.position()).norm())
+                    .collect::<Vec<_>>()
+            })
             .collect::<Vec<_>>();
 
         let times = option
@@ -142,18 +149,16 @@ impl<'a> DeviceRecord<'a> {
         let pb = option.pb(times.len());
         times.into_iter().for_each(|t| {
             let p = self.iter().skip(1).fold(
-                self[0]._sound_field(&p, t, option.sound_speed),
+                self[0]._sound_field(&dists[0], t, option.sound_speed),
                 |acc, tr| {
-                    let p = tr._sound_field(&p, t, option.sound_speed);
-                    let acc = acc
-                        .into_iter()
+                    let p = tr._sound_field(&dists[tr.tr.idx()], t, option.sound_speed);
+                    acc.into_iter()
                         .zip(p.into_iter())
                         .map(|(a, b)| a + b)
-                        .collect();
-                    acc
+                        .collect()
                 },
             );
-            df.hstack_mut(&[Series::new(&format!("p[Pa]@{}", t), &p)])
+            df.hstack_mut(&[Series::new(format!("p[Pa]@{}", t).into(), &p)])
                 .unwrap();
             pb.inc(1);
         });
