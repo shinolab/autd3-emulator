@@ -177,17 +177,13 @@ impl<'a> TransducerRecord<'a> {
     #[inline(always)]
     pub(crate) fn _sound_field_at(
         &self,
-        p: &Vector3,
-        tp: &Vector3,
+        dist: f32,
         t: f32,
         sound_speed: f32,
         output_ultrasound: &[f32],
     ) -> f32 {
         const P0: f32 =
             autd3_driver::defined::T4010A1_AMPLITUDE * 1.41421356237 / (4. * std::f32::consts::PI);
-
-        let diff = p - tp;
-        let dist = diff.norm();
 
         let t_out = t - dist / sound_speed;
         let idx = t_out / Self::TS;
@@ -213,16 +209,11 @@ impl<'a> TransducerRecord<'a> {
             .unwrap_or(self.output_times());
         let output_ultrasound = self._output_ultrasound();
         let tp = self.tr.position();
+        let dist = (point - tp).norm();
         let p = times
             .iter()
             .map(|&t| {
-                self._sound_field_at(
-                    &point,
-                    tp,
-                    t,
-                    option.sound_speed,
-                    output_ultrasound.as_slice(),
-                )
+                self._sound_field_at(dist, t, option.sound_speed, output_ultrasound.as_slice())
             })
             .collect::<Vec<_>>();
         df!(
@@ -232,11 +223,10 @@ impl<'a> TransducerRecord<'a> {
         .unwrap()
     }
 
-    pub(crate) fn _sound_field(&self, p: &[Vector3], t: f32, sound_speed: f32) -> Vec<f32> {
+    pub(crate) fn _sound_field(&self, dist: &[f32], t: f32, sound_speed: f32) -> Vec<f32> {
         let output_ultrasound = self._output_ultrasound();
-        let tp = self.tr.position();
-        p.iter()
-            .map(|p| self._sound_field_at(p, tp, t, sound_speed, output_ultrasound.as_slice()))
+        dist.iter()
+            .map(|&d| self._sound_field_at(d, t, sound_speed, output_ultrasound.as_slice()))
             .collect()
     }
 
@@ -248,7 +238,7 @@ impl<'a> TransducerRecord<'a> {
                 "z[mm]" => &z)
         .unwrap();
         let p = itertools::izip!(x, y, z)
-            .map(|(x, y, z)| Vector3::new(x, y, z))
+            .map(|(x, y, z)| (Vector3::new(x, y, z) - self.tr.position()).norm())
             .collect::<Vec<_>>();
         let times = option
             .time
@@ -256,7 +246,7 @@ impl<'a> TransducerRecord<'a> {
             .unwrap_or(self.output_times());
         times.into_iter().for_each(|t| {
             let p = self._sound_field(&p, t, option.sound_speed);
-            df.hstack_mut(&[Series::new(&format!("p[Pa]@{}", t), &p)])
+            df.hstack_mut(&[Series::new(format!("p[Pa]@{}", t).into(), &p)])
                 .unwrap();
         });
         df

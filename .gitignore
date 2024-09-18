@@ -2,6 +2,8 @@
 /Cargo.lock
 
 *.csv
+*.ipc
+*.parquet
 
 coverage/
 lcov.info
