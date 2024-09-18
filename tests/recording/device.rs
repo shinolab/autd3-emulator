@@ -16,8 +16,8 @@ async fn record_drive() -> anyhow::Result<()> {
         .unwrap(),
         |acc, tr| {
             let i = tr.idx() as u8;
-            let phase = Series::new(&format!("phase_{}", i), &[0, i, i]);
-            let intensity = Series::new(&format!("intensity_{}", i), &[i, 0xFF, 0xFF]);
+            let phase = Series::new(format!("phase_{}", i).into(), &[0, i, i]);
+            let intensity = Series::new(format!("intensity_{}", i).into(), &[i, 0xFF, 0xFF]);
             acc.hstack(&[phase, intensity]).unwrap()
         },
     );
@@ -85,7 +85,7 @@ async fn record_pulse_width() -> anyhow::Result<()> {
         |acc, tr| {
             let i = tr.idx() as u8;
             let pulse_width = Series::new(
-                &format!("pulsewidth_{}", i),
+                format!("pulsewidth_{}", i).into(),
                 &[
                     to_pulse_width(100, i),
                     to_pulse_width(200, i),
