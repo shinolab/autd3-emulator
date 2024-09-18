@@ -1,7 +1,9 @@
+mod field;
 mod record;
 
-use std::time::Duration;
+use std::{cell::RefCell, time::Duration};
 
+pub use field::{Range, RecordOption, TimeRange};
 pub use record::{DeviceRecord, Record, TransducerRecord};
 
 use autd3_driver::{defined::ULTRASOUND_PERIOD, ethercat::DcSysTime, firmware::fpga::Drive};
@@ -70,10 +72,13 @@ impl Emulator {
                     records: rd
                         .records
                         .into_iter()
-                        .map(|tr| TransducerRecord {
-                            drive: tr.drive,
-                            modulation: tr.modulation,
+                        .zip(sd.device.iter())
+                        .map(|(r, tr)| TransducerRecord {
+                            drive: r.drive,
+                            modulation: r.modulation,
                             fpga: sd.cpu.fpga(),
+                            tr,
+                            output_ultrasound_cache: RefCell::new(Vec::new()),
                         })
                         .collect(),
                 })

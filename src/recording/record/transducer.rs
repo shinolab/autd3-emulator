@@ -1,3 +1,5 @@
+use std::cell::{Ref, RefCell};
+
 use autd3_firmware_emulator::FPGAEmulator;
 use polars::prelude::*;
 
@@ -6,16 +8,23 @@ use autd3_driver::{
     derive::Builder,
     firmware::fpga::Drive,
     firmware::fpga::SilencerTarget,
+    geometry::Vector3,
 };
 
 use derive_more::Debug;
+
+use crate::recording::{field::RecordOption, Range};
 
 #[derive(Builder, Debug)]
 pub struct TransducerRecord<'a> {
     pub(crate) drive: Vec<Drive>,
     pub(crate) modulation: Vec<u8>,
     #[debug(skip)]
+    pub(crate) output_ultrasound_cache: RefCell<Vec<f32>>,
+    #[debug(skip)]
     pub(crate) fpga: &'a FPGAEmulator,
+    #[debug(skip)]
+    pub(crate) tr: &'a autd3_driver::geometry::Transducer,
 }
 
 impl<'a> TransducerRecord<'a> {
@@ -57,6 +66,7 @@ impl<'a> TransducerRecord<'a> {
         .unwrap()
     }
 
+    #[inline(always)]
     fn pulse_width_after_silencer(&self) -> Vec<u8> {
         match self.fpga.silencer_target() {
             SilencerTarget::Intensity => {
@@ -94,6 +104,7 @@ impl<'a> TransducerRecord<'a> {
         .unwrap()
     }
 
+    #[inline(always)]
     fn _output_voltage(&self) -> Vec<f32> {
         const V: f32 = 12.0;
         self.pulse_width_after_silencer()
@@ -122,11 +133,16 @@ impl<'a> TransducerRecord<'a> {
             .collect::<Vec<_>>()
     }
 
-    pub fn output_voltage(&self) -> DataFrame {
-        let time = (0..self.modulation.len())
+    #[inline(always)]
+    pub(crate) fn output_times(&self) -> Vec<f32> {
+        (0..self.modulation.len())
             .map(|i| i as u32 * ULTRASOUND_PERIOD)
             .flat_map(|t| (0..=255u8).map(move |i| t.as_secs_f32() + i as f32 * Self::TS))
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+    }
+
+    pub fn output_voltage(&self) -> DataFrame {
+        let time = self.output_times();
         let v = self._output_voltage();
         df!(
             "time[s]" => &time,
@@ -135,18 +151,115 @@ impl<'a> TransducerRecord<'a> {
         .unwrap()
     }
 
+    #[inline(always)]
+    pub(crate) fn _output_ultrasound(&self) -> Ref<'_, Vec<f32>> {
+        if self.output_ultrasound_cache.borrow().is_empty() {
+            self.output_ultrasound_cache.replace(
+                T4010A1BVDModel {
+                    v: self._output_voltage(),
+                }
+                .rk4(),
+            );
+        }
+        self.output_ultrasound_cache.borrow()
+    }
+
     pub fn output_ultrasound(&self) -> DataFrame {
-        let time = (0..self.modulation.len())
-            .map(|i| i as u32 * ULTRASOUND_PERIOD)
-            .flat_map(|t| (0..=255u8).map(move |i| t.as_secs_f32() + i as f32 * Self::TS))
-            .collect::<Vec<_>>();
+        let time = self.output_times();
+        let p = self._output_ultrasound();
         df!(
             "time[s]" => &time,
-            "p[a.u.]" => &T4010A1BVDModel {
-                v: self._output_voltage(),
-            }.rk4()
+            "p[a.u.]" => p.as_slice()
         )
         .unwrap()
+    }
+
+    #[inline(always)]
+    pub(crate) fn _sound_field_at(
+        &self,
+        p: &Vector3,
+        tp: &Vector3,
+        t: f32,
+        sound_speed: f32,
+        output_ultrasound: &[f32],
+    ) -> f32 {
+        const P0: f32 =
+            autd3_driver::defined::T4010A1_AMPLITUDE * 1.41421356237 / (4. * std::f32::consts::PI);
+
+        let diff = p - tp;
+        let dist = diff.norm();
+
+        let t_out = t - dist / sound_speed;
+        let idx = t_out / Self::TS;
+        let a = idx.floor() as isize;
+        // TODO: more precise interpolation
+        P0 / dist
+            * match a {
+                a if a < 0 => 0.,
+                a if a == output_ultrasound.len() as isize - 1 => output_ultrasound[a as usize],
+                a if a > output_ultrasound.len() as isize - 1 => 0.,
+                a => {
+                    let alpha = idx - a as f32;
+                    output_ultrasound[a as usize] * (1. - alpha)
+                        + output_ultrasound[(a + 1) as usize] * alpha
+                }
+            }
+    }
+
+    pub fn sound_field_at(&self, point: Vector3, option: RecordOption) -> DataFrame {
+        let times = option
+            .time
+            .map(|t| t.times().collect())
+            .unwrap_or(self.output_times());
+        let output_ultrasound = self._output_ultrasound();
+        let tp = self.tr.position();
+        let p = times
+            .iter()
+            .map(|&t| {
+                self._sound_field_at(
+                    &point,
+                    tp,
+                    t,
+                    option.sound_speed,
+                    output_ultrasound.as_slice(),
+                )
+            })
+            .collect::<Vec<_>>();
+        df!(
+            "time[s]" => &times,
+            &format!("p[Pa]@({},{},{})", point.x, point.y, point.z) => &p
+        )
+        .unwrap()
+    }
+
+    pub(crate) fn _sound_field(&self, p: &[Vector3], t: f32, sound_speed: f32) -> Vec<f32> {
+        let output_ultrasound = self._output_ultrasound();
+        let tp = self.tr.position();
+        p.iter()
+            .map(|p| self._sound_field_at(p, tp, t, sound_speed, output_ultrasound.as_slice()))
+            .collect()
+    }
+
+    pub fn sound_field(&self, range: Range, option: RecordOption) -> DataFrame {
+        let (x, y, z) = range.points();
+        let mut df = df!(
+                "x[mm]" => &x,
+                "y[mm]" => &y,
+                "z[mm]" => &z)
+        .unwrap();
+        let p = itertools::izip!(x, y, z)
+            .map(|(x, y, z)| Vector3::new(x, y, z))
+            .collect::<Vec<_>>();
+        let times = option
+            .time
+            .map(|t| t.times().collect())
+            .unwrap_or(self.output_times());
+        times.into_iter().for_each(|t| {
+            let p = self._sound_field(&p, t, option.sound_speed);
+            df.hstack_mut(&[Series::new(&format!("p[Pa]@{}", t), &p)])
+                .unwrap();
+        });
+        df
     }
 }
 

@@ -1,4 +1,7 @@
+use autd3_driver::geometry::Vector3;
 use polars::prelude::*;
+
+use crate::recording::{Range, RecordOption};
 
 use super::TransducerRecord;
 
@@ -69,6 +72,90 @@ impl<'a> DeviceRecord<'a> {
             let mut d = d.take_columns();
             let v = d.pop().unwrap();
             df.hstack_mut(&[v]).unwrap();
+        });
+        df
+    }
+
+    pub fn sound_field_at(&self, point: &Vector3, option: RecordOption) -> DataFrame {
+        let times = option
+            .time
+            .as_ref()
+            .map(|t| t.times().collect())
+            .unwrap_or(self[0].output_times());
+
+        let pb = option.pb(times.len());
+
+        let p = times
+            .iter()
+            .map(|&t| {
+                let init = {
+                    let tp = self[0].tr.position();
+                    let output_ultrasound = self[0]._output_ultrasound();
+                    self[0]._sound_field_at(
+                        point,
+                        tp,
+                        t,
+                        option.sound_speed,
+                        output_ultrasound.as_slice(),
+                    )
+                };
+                let p = self.iter().skip(1).fold(init, |acc, tr| {
+                    let tp = tr.tr.position();
+                    let output_ultrasound = tr._output_ultrasound();
+                    acc + tr._sound_field_at(
+                        point,
+                        tp,
+                        t,
+                        option.sound_speed,
+                        output_ultrasound.as_slice(),
+                    )
+                });
+                pb.inc(1);
+                p
+            })
+            .collect::<Vec<_>>();
+        df!(
+            "time[s]" => &times,
+            &format!("p[Pa]@({},{},{})", point.x,point. y, point.z) => &p
+        )
+        .unwrap()
+    }
+
+    pub fn sound_field(&self, range: Range, option: RecordOption) -> DataFrame {
+        let (x, y, z) = range.points();
+        let mut df = df!(
+                "x[mm]" => &x,
+                "y[mm]" => &y,
+                "z[mm]" => &z)
+        .unwrap();
+
+        let p = itertools::izip!(x, y, z)
+            .map(|(x, y, z)| Vector3::new(x, y, z))
+            .collect::<Vec<_>>();
+
+        let times = option
+            .time
+            .as_ref()
+            .map(|t| t.times().collect())
+            .unwrap_or(self[0].output_times());
+
+        let pb = option.pb(times.len());
+        times.into_iter().for_each(|t| {
+            let p = self.iter().skip(1).fold(
+                self[0]._sound_field(&p, t, option.sound_speed),
+                |acc, tr| {
+                    let p = tr._sound_field(&p, t, option.sound_speed);
+                    let acc = acc
+                        .into_iter()
+                        .zip(p.into_iter())
+                        .map(|(a, b)| a + b)
+                        .collect();
+                    acc
+                },
+            );
+            df.hstack_mut(&[Series::new(&format!("p[Pa]@{}", t), &p)])
+                .unwrap();
+            pb.inc(1);
         });
         df
     }
