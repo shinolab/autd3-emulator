@@ -64,7 +64,7 @@ impl T4010A1BVDModel {
     const Cp: f32 = 2700e-9; // mF
     const Rd: f32 = 150e-3; // kΩ
     const h: f32 = TransducerRecord::TS;
-    const NORMALIZE: f32 = 1. / 17.412328720092773;
+    const NORMALIZE: f32 = 0.057430573;
 
     pub(crate) fn rk4(&mut self, input: f32) -> f32 {
         let state = &self.state;

@@ -3,10 +3,7 @@ use std::time::Duration;
 use autd3_driver::geometry::Vector3;
 use polars::prelude::*;
 
-use crate::{
-    error::EmulatorError,
-    recording::{Range, RecordOption},
-};
+use crate::{error::EmulatorError, recording::RecordOption};
 
 use super::{transducer, TransducerRecord};
 
@@ -80,10 +77,10 @@ impl<'a> DeviceRecord<'a> {
     pub fn sound_pressure(
         &self,
         point: &Vector3,
-        time: std::ops::RangeInclusive<Duration>,
+        time: std::ops::Range<Duration>,
         option: RecordOption,
     ) -> Result<DataFrame, EmulatorError> {
-        let duration = time.end().saturating_sub(*time.start());
+        let duration = time.end.saturating_sub(time.start);
         let time = TransducerRecord::_time(time, option.time_step);
 
         let pb = option.pb(self.len());
@@ -94,10 +91,7 @@ impl<'a> DeviceRecord<'a> {
                 let p = tr
                     ._sound_pressure(point, &time, duration, option.sound_speed)
                     .unwrap();
-                acc.into_iter()
-                    .zip(p.into_iter())
-                    .map(|(a, b)| a + b)
-                    .collect()
+                acc.into_iter().zip(p).map(|(a, b)| a + b).collect()
             },
         );
         pb.inc(1);

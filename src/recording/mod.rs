@@ -108,7 +108,7 @@ impl Emulator {
                     sd.cpu.update_with_sys_time(t);
                     let m = sd.cpu.fpga().modulation();
                     let d = sd.cpu.fpga().drives();
-                    sd.device.iter().zip(d.into_iter()).for_each(|(tr, d)| {
+                    sd.device.iter().zip(d).for_each(|(tr, d)| {
                         let tr_record = &mut record.records[tr.dev_idx()].records[tr.idx()];
                         tr_record.pulse_width.push(match tr_record.silencer_target {
                             SilencerTarget::Intensity => {
