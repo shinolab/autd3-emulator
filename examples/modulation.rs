@@ -3,7 +3,7 @@ use std::time::Duration;
 use anyhow::Result;
 
 use autd3::prelude::*;
-use autd3_link_emulator::Emulator;
+use autd3_link_emulator::{recording::RecordOption, Emulator};
 
 use textplots::{Chart, Plot, Shape};
 
@@ -77,6 +77,40 @@ async fn main() -> Result<()> {
             ))
             .display();
     };
+
+    // plot sound pressure at focus under 200Hz sin modulation with silencer
+    {
+        let focus = autd.geometry().center() + Vector3::new(0., 0., 150. * mm);
+
+        autd.send(Silencer::default()).await?;
+        autd.start_recording()?;
+        autd.send((Sine::new(200. * Hz), Focus::new(focus))).await?;
+        autd.tick(Duration::from_millis(20))?;
+        let record = autd.finish_recording()?;
+
+        println!("Calculating sound pressure at focus under 200Hz sin modulation with silencer...");
+        let df = record[0].sound_pressure(
+            &focus,
+            Duration::ZERO..Duration::from_millis(20),
+            RecordOption {
+                time_step: Duration::from_micros(1),
+                print_progress: true,
+                ..Default::default()
+            },
+        )?;
+
+        let t = df["time[s]"].f32()?;
+        let p = df["p[Pa]@(86.62527,66.713196,150)"].f32()?;
+        println!("sound pressure at focus under 200Hz sin modulation with silencer");
+        Chart::new(180, 40, 0.0, 20.0)
+            .lineplot(&Shape::Lines(
+                &t.into_no_null_iter()
+                    .zip(p.into_no_null_iter())
+                    .map(|(t, p)| (t * 1000., p))
+                    .collect::<Vec<_>>(),
+            ))
+            .display();
+    }
 
     autd.close().await?;
 
