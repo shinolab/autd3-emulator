@@ -9,6 +9,7 @@ use super::TransducerRecord;
 
 impl<'a> TransducerRecord<'a> {
     pub(crate) const TS: f32 = 1. / (ULTRASOUND_FREQ.hz() as f32 * ULTRASOUND_PERIOD_COUNT as f32);
+    pub(crate) const V: f32 = 12.0;
 
     #[inline(always)]
     pub(crate) fn output_times(&self, start: usize, n: usize) -> Vec<f32> {
@@ -31,7 +32,6 @@ impl<'a> TransducerRecord<'a> {
 
     #[inline(always)]
     pub(crate) fn _output_voltage_within(&self, start: usize, n: usize) -> Vec<f32> {
-        const V: f32 = 12.0;
         Self::extend(&self.pulse_width, start, n)
             .zip(Self::extend(&self.phase, start, n))
             .flat_map(|(pw, phase)| {
@@ -41,15 +41,15 @@ impl<'a> TransducerRecord<'a> {
                     #[allow(clippy::collapsible_else_if)]
                     if rise <= fall {
                         if (rise <= i) && (i < fall) {
-                            V
+                            Self::V
                         } else {
-                            -V
+                            -Self::V
                         }
                     } else {
                         if (i < fall) || (rise <= i) {
-                            V
+                            Self::V
                         } else {
-                            -V
+                            -Self::V
                         }
                     }
                 })

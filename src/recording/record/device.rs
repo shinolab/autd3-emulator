@@ -1,9 +1,14 @@
+use std::time::Duration;
+
 use autd3_driver::geometry::Vector3;
 use polars::prelude::*;
 
-use crate::recording::{Range, RecordOption};
+use crate::{
+    error::EmulatorError,
+    recording::{Range, RecordOption},
+};
 
-use super::TransducerRecord;
+use super::{transducer, TransducerRecord};
 
 use derive_more::Deref;
 
@@ -11,6 +16,30 @@ use derive_more::Deref;
 pub struct DeviceRecord<'a> {
     #[deref]
     pub(crate) records: Vec<TransducerRecord<'a>>,
+}
+
+pub struct OutputUltrasound<'a> {
+    pub(crate) inner: Vec<transducer::output_ultrasound::OutputUltrasound<'a>>,
+}
+
+impl<'a> OutputUltrasound<'a> {
+    pub fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
+        let mut df = self.inner[0].next(duration)?;
+        df.rename("p[a.u.]", "p_0[a.u.]".into()).unwrap();
+        self.inner
+            .iter_mut()
+            .enumerate()
+            .skip(1)
+            .for_each(|(i, tr)| {
+                let mut d = tr.next(duration).unwrap();
+                d.rename("p[a.u.]", format!("p_{}[a.u.]", i).into())
+                    .unwrap();
+                let mut d = d.take_columns();
+                let v = d.pop().unwrap();
+                df.hstack_mut(&[v]).unwrap();
+            });
+        Ok(df)
+    }
 }
 
 impl<'a> DeviceRecord<'a> {
@@ -28,33 +57,25 @@ impl<'a> DeviceRecord<'a> {
         df
     }
 
-    // pub fn output_voltage(&self) -> DataFrame {
-    //     let mut df = self[0].output_voltage();
-    //     df.rename("voltage[V]", "voltage_0[V]".into()).unwrap();
-    //     self.iter().enumerate().skip(1).for_each(|(i, tr)| {
-    //         let mut d = tr.output_voltage();
-    //         d.rename("voltage[V]", format!("voltage_{}[V]", i).into())
-    //             .unwrap();
-    //         let mut d = d.take_columns();
-    //         let voltage = d.pop().unwrap();
-    //         df.hstack_mut(&[voltage]).unwrap();
-    //     });
-    //     df
-    // }
+    pub fn output_voltage(&self) -> DataFrame {
+        let mut df = self[0].output_voltage();
+        df.rename("voltage[V]", "voltage_0[V]".into()).unwrap();
+        self.iter().enumerate().skip(1).for_each(|(i, tr)| {
+            let mut d = tr.output_voltage();
+            d.rename("voltage[V]", format!("voltage_{}[V]", i).into())
+                .unwrap();
+            let mut d = d.take_columns();
+            let voltage = d.pop().unwrap();
+            df.hstack_mut(&[voltage]).unwrap();
+        });
+        df
+    }
 
-    // pub fn output_ultrasound(&self) -> DataFrame {
-    //     let mut df = self[0].output_ultrasound();
-    //     df.rename("p[a.u.]", "p_0[a.u.]".into()).unwrap();
-    //     self.iter().enumerate().skip(1).for_each(|(i, tr)| {
-    //         let mut d = tr.output_ultrasound();
-    //         d.rename("p[a.u.]", format!("p_{}[a.u.]", i).into())
-    //             .unwrap();
-    //         let mut d = d.take_columns();
-    //         let v = d.pop().unwrap();
-    //         df.hstack_mut(&[v]).unwrap();
-    //     });
-    //     df
-    // }
+    pub fn output_ultrasound(&'a self) -> OutputUltrasound<'a> {
+        OutputUltrasound {
+            inner: self.iter().map(|tr| tr.output_ultrasound()).collect(),
+        }
+    }
 
     // pub fn sound_field_at(&self, point: &Vector3, option: RecordOption) -> DataFrame {
     //     let times = option
