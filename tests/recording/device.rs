@@ -30,7 +30,7 @@ async fn record_drive() -> anyhow::Result<()> {
             );
             let phase = Series::new(
                 format!("phase_{}", i).into(),
-                &[i as u8, (0x80 + i) as _, (0x80 + i) as _]
+                &[i as u8, (0x01 + i) as _, (0x01 + i) as _]
                     .iter()
                     .copied()
                     .collect::<Vec<_>>(),
@@ -52,7 +52,7 @@ async fn record_drive() -> anyhow::Result<()> {
         gain::Custom::new(|_| {
             |tr| {
                 (
-                    Phase::PI + Phase::new(tr.idx() as _),
+                    Phase::new(0x01) + Phase::new(tr.idx() as _),
                     EmitIntensity::new(tr.idx() as _),
                 )
             }

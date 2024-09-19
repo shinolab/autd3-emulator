@@ -158,7 +158,6 @@ async fn record_output_ultrasound_resume() -> anyhow::Result<()> {
     let mut output_ultrasound = record[0][0].output_ultrasound();
     let mut v1 = output_ultrasound.next(15 * ULTRASOUND_PERIOD)?;
     let v2 = output_ultrasound.next(15 * ULTRASOUND_PERIOD)?;
-    dbg!(&v1, &v2);
     v1.vstack_mut(&v2).unwrap();
 
     assert_eq!(expect, v1);
