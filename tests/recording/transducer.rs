@@ -137,3 +137,33 @@ async fn record_output_ultrasound() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn record_output_ultrasound_resume() -> anyhow::Result<()> {
+    let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
+        .open(Emulator::builder())
+        .await?;
+
+    autd.send(Silencer::disable()).await?;
+    autd.start_recording()?;
+    autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
+        .await?;
+    autd.tick(30 * ULTRASOUND_PERIOD)?;
+    let record = autd.finish_recording()?;
+
+    let expect = record[0][0]
+        .output_ultrasound()
+        .next(30 * ULTRASOUND_PERIOD)?;
+
+    let mut output_ultrasound = record[0][0].output_ultrasound();
+    let mut v1 = output_ultrasound.next(15 * ULTRASOUND_PERIOD)?;
+    let v2 = output_ultrasound.next(15 * ULTRASOUND_PERIOD)?;
+    dbg!(&v1, &v2);
+    v1.vstack_mut(&v2).unwrap();
+
+    assert_eq!(expect, v1);
+
+    autd.close().await?;
+
+    Ok(())
+}
