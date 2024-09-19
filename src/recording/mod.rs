@@ -3,20 +3,27 @@ mod record;
 
 use std::{cell::RefCell, time::Duration};
 
+use autd3_driver::{
+    defined::ULTRASOUND_PERIOD,
+    ethercat::DcSysTime,
+    firmware::fpga::{EmitIntensity, Phase, SilencerTarget},
+};
+use autd3_firmware_emulator::fpga::emulator::SilencerEmulator;
 pub use field::{Range, RecordOption, TimeRange};
 pub use record::{DeviceRecord, Record, TransducerRecord};
-
-use autd3_driver::{defined::ULTRASOUND_PERIOD, ethercat::DcSysTime, firmware::fpga::Drive};
 
 use crate::{error::EmulatorError, Emulator};
 
 pub(crate) struct RawTransducerRecord {
-    pub drive: Vec<Drive>,
-    pub modulation: Vec<u8>,
+    pub pulse_width: Vec<u8>,
+    pub phase: Vec<u8>,
+    pub silencer_phase: SilencerEmulator<Phase>,
+    pub silencer_intensity: SilencerEmulator<EmitIntensity>,
+    pub silencer_target: SilencerTarget,
 }
 
 pub(crate) struct RawDeviceRecord {
-    pub(crate) records: Vec<RawTransducerRecord>,
+    pub records: Vec<RawTransducerRecord>,
 }
 
 pub(crate) struct RawRecord {
@@ -43,8 +50,11 @@ impl Emulator {
                         .device
                         .iter()
                         .map(|_| RawTransducerRecord {
-                            drive: Vec::new(),
-                            modulation: Vec::new(),
+                            pulse_width: Vec::new(),
+                            phase: Vec::new(),
+                            silencer_phase: sd.cpu.fpga().silencer_emulator_phase(0),
+                            silencer_intensity: sd.cpu.fpga().silencer_emulator_intensity(0),
+                            silencer_target: sd.cpu.fpga().silencer_target(),
                         })
                         .collect(),
                 })
@@ -74,9 +84,8 @@ impl Emulator {
                         .into_iter()
                         .zip(sd.device.iter())
                         .map(|(r, tr)| TransducerRecord {
-                            drive: r.drive,
-                            modulation: r.modulation,
-                            fpga: sd.cpu.fpga(),
+                            pulse_width: r.pulse_width,
+                            phase: r.phase,
                             tr,
                             output_ultrasound_cache: RefCell::new(Vec::new()),
                         })
@@ -100,13 +109,23 @@ impl Emulator {
                     sd.cpu.update_with_sys_time(t);
                     let m = sd.cpu.fpga().modulation();
                     let d = sd.cpu.fpga().drives();
-                    sd.device.iter().for_each(|tr| {
-                        record.records[tr.dev_idx()].records[tr.idx()]
-                            .drive
-                            .push(d[tr.idx()]);
-                        record.records[tr.dev_idx()].records[tr.idx()]
-                            .modulation
-                            .push(m);
+                    sd.device.iter().zip(d.into_iter()).for_each(|(tr, d)| {
+                        let tr_record = &mut record.records[tr.dev_idx()].records[tr.idx()];
+                        tr_record.pulse_width.push(match tr_record.silencer_target {
+                            SilencerTarget::Intensity => {
+                                sd.cpu.fpga().pulse_width_encoder_table_at(
+                                    tr_record.silencer_intensity.apply(
+                                        (d.intensity().value() as u16 * m as u16 / 255) as u8,
+                                    ) as _,
+                                )
+                            }
+                            SilencerTarget::PulseWidth => tr_record
+                                .silencer_intensity
+                                .apply(sd.cpu.fpga().to_pulse_width(d.intensity(), m)),
+                        });
+                        tr_record
+                            .phase
+                            .push(tr_record.silencer_phase.apply(d.phase().value()))
                     });
                 });
                 t = t + ULTRASOUND_PERIOD;

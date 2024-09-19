@@ -12,7 +12,7 @@ async fn main() -> Result<()> {
     let mut autd =
         Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
             .open(Emulator::builder())
-            .await?; 
+            .await?;
 
     // raw modulation buffer
     {
@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
         autd.tick(Duration::from_millis(10))?;
         let record = autd.finish_recording()?;
 
-        let df = record[0][0].pulse_width();
+        let df = record[0][0].drive();
         let t = df["time[s]"].f32()?;
         let pulse_width = df["pulsewidth"].u8()?;
         println!("pulse width under 200Hz sine modulation with silencer");
@@ -64,7 +64,7 @@ async fn main() -> Result<()> {
         autd.tick(Duration::from_millis(10))?;
         let record = autd.finish_recording()?;
 
-        let df = record[0][0].pulse_width();
+        let df = record[0][0].drive();
         let t = df["time[s]"].f32()?;
         let pulse_width = df["pulsewidth"].u8()?;
         println!("pulse width under 200Hz sine modulation without silencer");
