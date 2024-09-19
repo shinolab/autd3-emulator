@@ -9,6 +9,8 @@ pub enum EmulatorError {
     RecodingNotStarted,
     #[error("Tick must be multiple of {:?}", ULTRASOUND_PERIOD)]
     InvalidTick,
+    #[error("Duration must be multiple of {:?}", ULTRASOUND_PERIOD)]
+    InvalidDuration,
     #[error("Invalid operation when recording")]
     InvalidOperationWhenRecording,
 }
