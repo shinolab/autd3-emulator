@@ -86,9 +86,11 @@ impl<'a> DeviceRecord<'a> {
         let duration = time.end().saturating_sub(*time.start());
         let time = TransducerRecord::_time(time, option.time_step);
 
+        let pb = option.pb(self.len());
         let p = self.iter().skip(1).fold(
             self[0]._sound_pressure(point, &time, duration, option.sound_speed)?,
             |acc, tr| {
+                pb.inc(1);
                 let p = tr
                     ._sound_pressure(point, &time, duration, option.sound_speed)
                     .unwrap();
@@ -98,6 +100,7 @@ impl<'a> DeviceRecord<'a> {
                     .collect()
             },
         );
+        pb.inc(1);
         Ok(df!(
             "time[s]" => &time,
             &format!("p[Pa]@({},{},{})", point.x,point. y, point.z) => &p
