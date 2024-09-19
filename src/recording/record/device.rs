@@ -77,52 +77,33 @@ impl<'a> DeviceRecord<'a> {
         }
     }
 
-    // pub fn sound_field_at(&self, point: &Vector3, option: RecordOption) -> DataFrame {
-    //     let times = option
-    //         .time
-    //         .as_ref()
-    //         .map(|t| t.times().collect())
-    //         .unwrap_or(self[0].output_times());
+    pub fn sound_pressure(
+        &self,
+        point: &Vector3,
+        time: std::ops::RangeInclusive<Duration>,
+        option: RecordOption,
+    ) -> Result<DataFrame, EmulatorError> {
+        let duration = time.end().saturating_sub(*time.start());
+        let time = TransducerRecord::_time(time, option.time_step);
 
-    //     let pb = option.pb(times.len());
-
-    //     let p = times
-    //         .iter()
-    //         .map(|&t| {
-    //             let p = self.iter().skip(1).fold(
-    //                 {
-    //                     let tp = self[0].tr.position();
-    //                     let dist = (point - tp).norm();
-    //                     let output_ultrasound = self[0]._output_ultrasound();
-    //                     self[0]._sound_field_at(
-    //                         dist,
-    //                         t,
-    //                         option.sound_speed,
-    //                         output_ultrasound.as_slice(),
-    //                     )
-    //                 },
-    //                 |acc, tr| {
-    //                     let tp = tr.tr.position();
-    //                     let dist = (point - tp).norm();
-    //                     let output_ultrasound = tr._output_ultrasound();
-    //                     acc + tr._sound_field_at(
-    //                         dist,
-    //                         t,
-    //                         option.sound_speed,
-    //                         output_ultrasound.as_slice(),
-    //                     )
-    //                 },
-    //             );
-    //             pb.inc(1);
-    //             p
-    //         })
-    //         .collect::<Vec<_>>();
-    //     df!(
-    //         "time[s]" => &times,
-    //         &format!("p[Pa]@({},{},{})", point.x,point. y, point.z) => &p
-    //     )
-    //     .unwrap()
-    // }
+        let p = self.iter().skip(1).fold(
+            self[0]._sound_pressure(point, &time, duration, option.sound_speed)?,
+            |acc, tr| {
+                let p = tr
+                    ._sound_pressure(point, &time, duration, option.sound_speed)
+                    .unwrap();
+                acc.into_iter()
+                    .zip(p.into_iter())
+                    .map(|(a, b)| a + b)
+                    .collect()
+            },
+        );
+        Ok(df!(
+            "time[s]" => &time,
+            &format!("p[Pa]@({},{},{})", point.x,point. y, point.z) => &p
+        )
+        .unwrap())
+    }
 
     // pub fn sound_field(&self, range: Range, option: RecordOption) -> DataFrame {
     //     let (x, y, z) = range.points();

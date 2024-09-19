@@ -1,13 +1,12 @@
 mod range;
-mod time_range;
+use std::time::Duration;
 
 use autd3_driver::defined::mm;
 pub use range::Range;
-pub use time_range::TimeRange;
 
 pub struct RecordOption {
     pub sound_speed: f32,
-    pub time: Option<TimeRange>,
+    pub time_step: Duration,
     pub print_progress: bool,
 }
 
@@ -15,7 +14,7 @@ impl std::default::Default for RecordOption {
     fn default() -> Self {
         Self {
             sound_speed: 340e3 * mm,
-            time: None,
+            time_step: Duration::from_micros(1),
             print_progress: false,
         }
     }

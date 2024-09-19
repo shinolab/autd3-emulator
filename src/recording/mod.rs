@@ -1,7 +1,7 @@
 mod field;
 mod record;
 
-use std::{cell::RefCell, time::Duration};
+use std::time::Duration;
 
 use autd3_driver::{
     defined::ULTRASOUND_PERIOD,
@@ -9,7 +9,7 @@ use autd3_driver::{
     firmware::fpga::{EmitIntensity, Phase, SilencerTarget},
 };
 use autd3_firmware_emulator::fpga::emulator::SilencerEmulator;
-pub use field::{Range, RecordOption, TimeRange};
+pub use field::{Range, RecordOption};
 pub use record::{DeviceRecord, Record, TransducerRecord};
 
 use crate::{error::EmulatorError, Emulator};
@@ -87,7 +87,6 @@ impl Emulator {
                             pulse_width: r.pulse_width,
                             phase: r.phase,
                             tr,
-                            output_ultrasound_cache: RefCell::new(Vec::new()),
                         })
                         .collect(),
                 })

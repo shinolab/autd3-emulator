@@ -10,7 +10,7 @@ from scipy.interpolate import griddata
 
 
 def plot_focus():
-    df = pl.read_csv(Path(__file__).parent.parent / "sound_field_focus.csv")
+    df = pl.read_csv(Path(__file__).parent.parent / "sound_field_around_focus.csv")
     print(df)
     times = [float(c.replace("p[Pa]@", "")) * 1000 for c in df.columns[3:]]
     p = df.get_columns()[3:]
@@ -41,8 +41,10 @@ def plot_focus():
     plt.show()
 
 
-def plot_focus_with_am():
-    df = pl.read_csv(Path(__file__).parent.parent / "sound_field_focus_with_am.csv")
+def plot_at_focus_with_am():
+    df = pl.read_csv(
+        Path(__file__).parent.parent / "sound_pressure_at_focus_with_am.csv"
+    )
     print(df)
     times = df["time[s]"] * 1000
     p = df.get_columns()[1]
@@ -88,6 +90,6 @@ def plot_stm():
 
 
 if __name__ == "__main__":
-    plot_focus()
-    plot_focus_with_am()
-    plot_stm()
+    # plot_focus()
+    plot_at_focus_with_am()
+    # plot_stm()

@@ -1,8 +1,6 @@
 pub(crate) mod output_ultrasound;
 mod output_voltage;
-// mod sound_field;
-
-use std::cell::RefCell;
+mod sound_field;
 
 use polars::prelude::*;
 
@@ -14,8 +12,6 @@ use derive_more::Debug;
 pub struct TransducerRecord<'a> {
     pub(crate) pulse_width: Vec<u8>,
     pub(crate) phase: Vec<u8>,
-    #[debug(skip)]
-    pub(crate) output_ultrasound_cache: RefCell<Vec<f32>>,
     #[debug(skip)]
     pub(crate) tr: &'a autd3_driver::geometry::Transducer,
 }
