@@ -41,22 +41,6 @@ def plot_focus():
     plt.show()
 
 
-def plot_at_focus_with_am():
-    df = pl.read_csv(
-        Path(__file__).parent.parent / "sound_pressure_at_focus_with_am.csv"
-    )
-    print(df)
-    times = df["time[s]"] * 1000
-    p = df.get_columns()[1]
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.plot(times, p)
-
-    ax.set_xlabel("Time [ms]")
-    plt.show()
-
-
 def plot_stm():
     df = pl.read_csv(Path(__file__).parent.parent / "sound_field_stm.csv")
     print(df)
@@ -90,6 +74,5 @@ def plot_stm():
 
 
 if __name__ == "__main__":
-    # plot_focus()
-    plot_at_focus_with_am()
-    # plot_stm()
+    plot_focus()
+    plot_stm()
