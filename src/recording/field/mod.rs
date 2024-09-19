@@ -21,6 +21,7 @@ impl std::default::Default for RecordOption {
 }
 
 impl RecordOption {
+    // GRCOV_EXCL_START
     pub(crate) fn pb(&self, n: usize) -> indicatif::ProgressBar {
         let pb = indicatif::ProgressBar::new(n as _);
         if self.print_progress {
@@ -41,4 +42,5 @@ impl RecordOption {
         }
         pb
     }
+    // GRCOV_EXCL_STOP
 }

@@ -2,25 +2,18 @@ use std::time::Duration;
 
 use autd3_driver::{defined::ULTRASOUND_PERIOD, geometry::Vector3};
 
-use polars::prelude::{df, DataFrame, Series};
+use polars::prelude::{df, DataFrame};
 
-use crate::{
-    error::EmulatorError,
-    recording::{Range, RecordOption},
-};
+use crate::{error::EmulatorError, recording::RecordOption};
 
 use super::TransducerRecord;
 
 impl<'a> TransducerRecord<'a> {
     #[inline(always)]
-    pub(crate) fn _time(
-        duration: std::ops::RangeInclusive<Duration>,
-        time_step: Duration,
-    ) -> Vec<f32> {
-        let n = ((duration.end().as_nanos() - duration.start().as_nanos()) / time_step.as_nanos())
-            as usize
-            + 1;
-        let start = duration.start().as_secs_f32();
+    pub(crate) fn _time(duration: std::ops::Range<Duration>, time_step: Duration) -> Vec<f32> {
+        let n =
+            ((duration.end.as_nanos() - duration.start.as_nanos()) / time_step.as_nanos()) as usize;
+        let start = duration.start.as_secs_f32();
         let step = time_step.as_secs_f32();
         (0..n).map(move |i| start + step * i as f32).collect()
     }
@@ -33,8 +26,8 @@ impl<'a> TransducerRecord<'a> {
         sound_speed: f32,
         output_ultrasound: &[f32],
     ) -> f32 {
-        const P0: f32 =
-            autd3_driver::defined::T4010A1_AMPLITUDE * 1.41421356237 / (4. * std::f32::consts::PI);
+        const P0: f32 = autd3_driver::defined::T4010A1_AMPLITUDE * std::f32::consts::SQRT_2
+            / (4. * std::f32::consts::PI);
 
         let t_out = t - dist / sound_speed;
         let idx = t_out / Self::TS;
@@ -76,10 +69,10 @@ impl<'a> TransducerRecord<'a> {
     pub fn sound_pressure(
         &self,
         point: &Vector3,
-        time: std::ops::RangeInclusive<Duration>,
+        time: std::ops::Range<Duration>,
         option: RecordOption,
     ) -> Result<DataFrame, EmulatorError> {
-        let duration = time.end().saturating_sub(*time.start());
+        let duration = time.end.saturating_sub(time.start);
         let time = Self::_time(time, option.time_step);
         let p = self._sound_pressure(point, &time, duration, option.sound_speed)?;
         Ok(df!(

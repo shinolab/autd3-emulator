@@ -3,10 +3,7 @@ use std::time::Duration;
 use anyhow::Result;
 
 use autd3::prelude::*;
-use autd3_link_emulator::{
-    recording::{Range, RecordOption},
-    Emulator,
-};
+use autd3_link_emulator::{recording::RecordOption, Emulator};
 use polars::{io::SerWriter, prelude::CsvWriter};
 
 #[tokio::main]
@@ -59,7 +56,7 @@ async fn main() -> Result<()> {
         println!("Calculating sound pressure at focus under 200Hz sin modulation with silencer...");
         let mut df = record[0].sound_pressure(
             &focus,
-            Duration::ZERO..=Duration::from_millis(20),
+            Duration::ZERO..Duration::from_millis(20),
             RecordOption {
                 time_step: Duration::from_micros(1),
                 print_progress: true,
