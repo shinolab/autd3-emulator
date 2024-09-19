@@ -18,7 +18,8 @@ impl<'a> TransducerRecord<'a> {
         time_step: Duration,
     ) -> Vec<f32> {
         let n = ((duration.end().as_nanos() - duration.start().as_nanos()) / time_step.as_nanos())
-            as usize;
+            as usize
+            + 1;
         let start = duration.start().as_secs_f32();
         let step = time_step.as_secs_f32();
         (0..n).map(move |i| start + step * i as f32).collect()
