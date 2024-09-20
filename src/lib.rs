@@ -2,6 +2,7 @@ pub mod error;
 mod props;
 pub mod recording;
 mod sub;
+mod utils;
 
 use autd3_driver::{
     derive::*,

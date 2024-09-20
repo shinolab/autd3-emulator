@@ -13,6 +13,7 @@ use crate::{
 
 use super::DeviceRecord;
 
+#[derive(Debug)]
 pub struct SoundField<'a> {
     pub(crate) cursor: isize,
     option: RecordOption,
@@ -30,21 +31,6 @@ pub struct SoundField<'a> {
 }
 
 impl<'a> SoundField<'a> {
-    #[inline(always)]
-    pub(crate) fn _time(
-        duration: std::ops::Range<Duration>,
-        time_step: Duration,
-    ) -> Result<Vec<f32>, EmulatorError> {
-        if duration.end.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
-            return Err(EmulatorError::InvalidDuration);
-        }
-        let n = (duration.end.saturating_sub(duration.start).as_nanos() / time_step.as_nanos())
-            as usize;
-        let start = duration.start.as_secs_f32();
-        let step = time_step.as_secs_f32();
-        Ok((0..n).map(move |i| start + step * i as f32).collect())
-    }
-
     pub fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
         if duration.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
             return Err(EmulatorError::InvalidDuration);
@@ -83,9 +69,6 @@ impl<'a> SoundField<'a> {
             };
             let num_frames = end_frame - cur_frame;
 
-            let start_time = (cur_frame as u32 * ULTRASOUND_PERIOD).as_secs_f32();
-            let offset = (self.cursor - self.cache_size) * ULTRASOUND_PERIOD_COUNT as isize;
-
             let dists = itertools::izip!(self.x.iter(), self.y.iter(), self.z.iter())
                 .map(|(&x, &y, &z)| Vector3::new(x, y, z))
                 .map(|p| {
@@ -96,30 +79,35 @@ impl<'a> SoundField<'a> {
                 })
                 .collect::<Vec<_>>();
 
-            (0..num_frames * self.num_points_in_frame)
-                .map(|i| start_time + (i as u32 * time_step).as_secs_f32())
-                .for_each(|t| {
-                    let p = dists
-                        .iter()
-                        .map(|d| {
-                            d.iter()
-                                .zip(self.output_ultrasound_cache.iter())
-                                .map(|(dist, output_ultrasound)| {
-                                    let t_out = t - dist / sound_speed;
-                                    let idx = t_out / TransducerRecord::TS;
-                                    let a = idx.floor() as isize;
-                                    let alpha = idx - a as f32;
-                                    let a = (a - offset) as usize;
-                                    TransducerRecord::P0 / dist
-                                        * (output_ultrasound[a] * (1. - alpha)
-                                            + output_ultrasound[a + 1] * alpha)
+            let offset = (self.cursor - self.cache_size) * ULTRASOUND_PERIOD_COUNT as isize;
+            (0..num_frames)
+                .map(|i| ((cur_frame + i) as u32 * ULTRASOUND_PERIOD).as_secs_f32())
+                .for_each(|start_time| {
+                    (0..self.num_points_in_frame)
+                        .map(|i| start_time + (i as u32 * time_step).as_secs_f32())
+                        .for_each(|t| {
+                            let p = dists
+                                .iter()
+                                .map(|d| {
+                                    d.iter()
+                                        .zip(self.output_ultrasound_cache.iter())
+                                        .map(|(dist, output_ultrasound)| {
+                                            let t_out = t - dist / sound_speed;
+                                            let idx = t_out / TransducerRecord::TS;
+                                            let a = idx.floor() as isize;
+                                            let alpha = idx - a as f32;
+                                            let a = (a - offset) as usize;
+                                            TransducerRecord::P0 / dist
+                                                * (output_ultrasound[a] * (1. - alpha)
+                                                    + output_ultrasound[a + 1] * alpha)
+                                        })
+                                        .sum::<f32>()
                                 })
-                                .sum::<f32>()
-                        })
-                        .collect::<Vec<_>>();
-                    pb.inc(1);
-                    df.hstack_mut(&[Series::new(format!("p[Pa]@{}", t).into(), &p)])
-                        .unwrap();
+                                .collect::<Vec<_>>();
+                            pb.inc(1);
+                            df.hstack_mut(&[Series::new(format!("p[Pa]@{}", t).into(), &p)])
+                                .unwrap();
+                        });
                 });
 
             if self.rem_frame == 0 {
@@ -160,25 +148,8 @@ impl<'a> DeviceRecord<'a> {
 
         let (x, y, z) = range.points();
 
-        let min_dist = (0..3)
-            .map(|i| {
-                itertools::iproduct!(
-                    [self.aabb.min[i], self.aabb.max[i]],
-                    [range.aabb().min[i], range.aabb().max[i]]
-                )
-                .map(|(a, b)| (a - b).abs())
-                .min_by(|a, b| a.partial_cmp(b).unwrap())
-                .unwrap()
-            })
-            .min_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
-        let max_dist = itertools::iproduct!(
-            [self.aabb.min, self.aabb.max],
-            [range.aabb().min, range.aabb().max]
-        )
-        .map(|(a, b)| (a - b).norm())
-        .max_by(|a, b| a.partial_cmp(b).unwrap())
-        .unwrap();
+        let min_dist = crate::utils::aabb::aabb_min_dist(&self.aabb, &range.aabb());
+        let max_dist = crate::utils::aabb::aabb_max_dist(&self.aabb, &range.aabb());
 
         let cursor =
             (max_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32()).ceil() as usize;

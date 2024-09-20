@@ -28,6 +28,8 @@ rstest = "0.22.0"
 textplots = "0.8.6"
 tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 polars = { version = "0.43.1", features = ["dtype-u8", "csv"] }
+nalgebra = "0.33.0"
+rand = "0.8.5"
 
 [features]
 default = []

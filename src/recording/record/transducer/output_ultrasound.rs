@@ -7,6 +7,7 @@ use crate::error::EmulatorError;
 
 use super::TransducerRecord;
 
+#[derive(Debug)]
 pub struct OutputUltrasound<'a> {
     pub(crate) cursor: usize,
     pub(crate) record: &'a TransducerRecord<'a>,
@@ -51,6 +52,7 @@ impl<'a> TransducerRecord<'a> {
     }
 }
 
+#[derive(Debug)]
 struct T4010A1BVDModel {
     state: (f32, f32, f32),
     last_v: f32,
