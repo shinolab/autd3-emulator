@@ -89,6 +89,7 @@ impl Emulator {
                             tr,
                         })
                         .collect(),
+                    aabb: *sd.device.aabb(),
                 })
                 .collect(),
             start,

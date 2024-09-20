@@ -1,4 +1,7 @@
+use autd3_driver::geometry::Vector3;
 use unzip3::Unzip3;
+
+use bvh::aabb::Aabb;
 
 #[derive(Clone, Debug)]
 pub struct Range {
@@ -83,6 +86,12 @@ impl Range {
                 (x, y, z)
             }
         }
+    }
+
+    pub(crate) fn aabb(&self) -> Aabb<f32, 3> {
+        let min = Vector3::new(*self.x.start(), *self.y.start(), *self.z.start()).into();
+        let max = Vector3::new(*self.x.end(), *self.y.end(), *self.z.end()).into();
+        Aabb { min, max }
     }
 }
 

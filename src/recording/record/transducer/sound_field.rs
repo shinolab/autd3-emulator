@@ -9,6 +9,9 @@ use crate::{error::EmulatorError, recording::RecordOption};
 use super::TransducerRecord;
 
 impl<'a> TransducerRecord<'a> {
+    pub(crate) const P0: f32 = autd3_driver::defined::T4010A1_AMPLITUDE * std::f32::consts::SQRT_2
+        / (4. * std::f32::consts::PI);
+
     #[inline(always)]
     pub(crate) fn _time(duration: std::ops::Range<Duration>, time_step: Duration) -> Vec<f32> {
         let n =
@@ -26,14 +29,11 @@ impl<'a> TransducerRecord<'a> {
         sound_speed: f32,
         output_ultrasound: &[f32],
     ) -> f32 {
-        const P0: f32 = autd3_driver::defined::T4010A1_AMPLITUDE * std::f32::consts::SQRT_2
-            / (4. * std::f32::consts::PI);
-
         let t_out = t - dist / sound_speed;
         let idx = t_out / Self::TS;
         let a = idx.floor() as isize;
         // TODO: more precise interpolation
-        P0 / dist
+        Self::P0 / dist
             * match a {
                 a if a < 0 => 0.,
                 a if a == output_ultrasound.len() as isize - 1 => output_ultrasound[a as usize],
@@ -57,7 +57,7 @@ impl<'a> TransducerRecord<'a> {
             return Err(EmulatorError::InvalidDuration);
         }
         let n = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
-        let output_ultrasound = self.output_ultrasound()._next(n)?;
+        let output_ultrasound = self.output_ultrasound()._next(n);
         let tp = self.tr.position();
         let dist = (point - tp).norm();
         Ok(time
@@ -81,33 +81,4 @@ impl<'a> TransducerRecord<'a> {
         )
         .unwrap())
     }
-
-    // pub(crate) fn _sound_field(&self, dist: &[f32], t: f32, sound_speed: f32) -> Vec<f32> {
-    //     let output_ultrasound = self._output_ultrasound();
-    //     dist.iter()
-    //         .map(|&d| self._sound_field_at(d, t, sound_speed, output_ultrasound.as_slice()))
-    //         .collect()
-    // }
-
-    // pub fn sound_field(&self, range: Range, option: RecordOption) -> DataFrame {
-    //     let (x, y, z) = range.points();
-    //     let mut df = df!(
-    //             "x[mm]" => &x,
-    //             "y[mm]" => &y,
-    //             "z[mm]" => &z)
-    //     .unwrap();
-    //     let p = itertools::izip!(x, y, z)
-    //         .map(|(x, y, z)| (Vector3::new(x, y, z) - self.tr.position()).norm())
-    //         .collect::<Vec<_>>();
-    //     let times = option
-    //         .time
-    //         .map(|t| t.times().collect())
-    //         .unwrap_or(self.output_times());
-    //     times.into_iter().for_each(|t| {
-    //         let p = self._sound_field(&p, t, option.sound_speed);
-    //         df.hstack_mut(&[Series::new(format!("p[Pa]@{}", t).into(), &p)])
-    //             .unwrap();
-    //     });
-    //     df
-    // }
 }

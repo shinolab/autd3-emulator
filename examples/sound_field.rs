@@ -40,7 +40,7 @@ async fn main() -> Result<()> {
                 print_progress: true,
                 ..Default::default()
             },
-        );
+        )?;
         let mut df = sound_field.next(Duration::from_millis(1))?;
 
         CsvWriter::new(std::fs::File::create("sound_field_around_focus.csv")?)
@@ -49,46 +49,44 @@ async fn main() -> Result<()> {
         println!("Focus sound field data is saved as sound_field_around_focus.csv");
     }
 
-    // // plot STM
-    // {
-    //     autd.send(Silencer::default()).await?;
-    //     autd.start_recording()?;
-    //     autd.send((
-    //         Static::with_intensity(0xFF),
-    //         FociSTM::new(
-    //             SamplingConfig::new(1. * kHz)?,
-    //             (0..10).map(|i| {
-    //                 let theta = 2. * PI * i as f32 / 10.;
-    //                 focus + Vector3::new(theta.cos(), theta.sin(), 0.) * 20. * mm
-    //             }),
-    //         )?,
-    //     ))
-    //     .await?;
-    //     autd.tick(Duration::from_millis(20))?;
-    //     let record = autd.finish_recording()?;
+    // plot STM
+    {
+        autd.send(Silencer::default()).await?;
+        autd.start_recording()?;
+        autd.send((
+            Static::with_intensity(0xFF),
+            FociSTM::new(
+                SamplingConfig::new(1. * kHz)?,
+                (0..4).map(|i| {
+                    let theta = 2. * PI * i as f32 / 4.;
+                    focus + Vector3::new(theta.cos(), theta.sin(), 0.) * 20. * mm
+                }),
+            )?,
+        ))
+        .await?;
+        autd.tick(Duration::from_millis(5))?;
+        let record = autd.finish_recording()?;
 
-    //     println!("Calculating sound field with STM...");
-    //     let mut df = record[0].sound_field(
-    //         Range {
-    //             x: focus.x - 30.0..=focus.x + 30.0,
-    //             y: focus.y - 30.0..=focus.y + 30.0,
-    //             z: focus.z..=focus.z,
-    //             resolution: 2.,
-    //         },
-    //         RecordOption {
-    //             time: Some(TimeRange {
-    //                 duration: Duration::ZERO..=Duration::from_millis(20),
-    //                 time_step_s: Duration::from_micros(2).as_secs_f32(),
-    //             }),
-    //             print_progress: true,
-    //             ..Default::default()
-    //         },
-    //     );
-    //     CsvWriter::new(std::fs::File::create("sound_field_stm.csv")?)
-    //         .include_header(true)
-    //         .finish(&mut df)?;
-    //     println!("STM sound field data is saved as sound_field_stm.csv");
-    // }
+        println!("Calculating sound field with STM...");
+        let mut sound_field = record[0].sound_field(
+            Range {
+                x: focus.x - 30.0..=focus.x + 30.0,
+                y: focus.y - 30.0..=focus.y + 30.0,
+                z: focus.z..=focus.z,
+                resolution: 2.,
+            },
+            RecordOption {
+                time_step: ULTRASOUND_PERIOD / 10,
+                print_progress: true,
+                ..Default::default()
+            },
+        )?;
+        let mut df = sound_field.next(Duration::from_millis(5))?;
+        CsvWriter::new(std::fs::File::create("sound_field_stm.csv")?)
+            .include_header(true)
+            .finish(&mut df)?;
+        println!("STM sound field data is saved as sound_field_stm.csv");
+    }
 
     autd.close().await?;
 
