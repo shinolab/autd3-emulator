@@ -14,13 +14,13 @@ pub struct OutputUltrasound<'a> {
 }
 
 impl<'a> OutputUltrasound<'a> {
-    pub(crate) fn _next(&mut self, n: usize) -> Result<Vec<f32>, EmulatorError> {
+    pub(crate) fn _next(&mut self, n: usize) -> Vec<f32> {
         let output_volage = self.record._output_voltage_within(self.cursor, n);
         self.cursor += n;
-        Ok(output_volage
+        output_volage
             .into_iter()
             .map(|v| self.model.rk4(v))
-            .collect())
+            .collect()
     }
 
     pub fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
@@ -29,7 +29,7 @@ impl<'a> OutputUltrasound<'a> {
         }
         let n = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
         let time = self.record.output_times(self.cursor, n);
-        let p = self._next(n)?;
+        let p = self._next(n);
         Ok(df!(
             "time[s]" => &time,
             "p[a.u.]" => &p

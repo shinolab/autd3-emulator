@@ -18,6 +18,7 @@ indicatif = "0.17.8"
 itertools = "0.13.0"
 thiserror = "1.0.63"
 unzip3 = "1.0.0"
+bvh = { version = "0.10.0", default-features = false }
 
 [dev-dependencies]
 anyhow = "1.0.87"

@@ -11,6 +11,8 @@ pub enum EmulatorError {
     InvalidTick,
     #[error("Duration must be multiple of {:?}", ULTRASOUND_PERIOD)]
     InvalidDuration,
+    #[error("Time step must divide {:?}", ULTRASOUND_PERIOD)]
+    InvalidTimeStep,
     #[error("Invalid operation when recording")]
     InvalidOperationWhenRecording,
 }
