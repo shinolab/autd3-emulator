@@ -4,6 +4,7 @@ use std::time::Duration;
 use autd3_driver::defined::mm;
 pub use range::Range;
 
+#[derive(Debug, Clone, Copy)]
 pub struct RecordOption {
     pub sound_speed: f32,
     pub time_step: Duration,

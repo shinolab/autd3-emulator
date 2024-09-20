@@ -19,7 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-build
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
       - run: |
-          cargo build
-          cargo test
+          cargo nextest run
           cargo clippy -- -D warnings
