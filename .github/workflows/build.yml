@@ -25,3 +25,4 @@ jobs:
       - run: |
           cargo nextest run
           cargo clippy -- -D warnings
+        shell: bash
