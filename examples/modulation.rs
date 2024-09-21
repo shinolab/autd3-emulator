@@ -9,7 +9,7 @@ use autd3_link_emulator::{
 };
 
 use polars::prelude::AnyValue;
-use textplots::{AxisBuilder, Chart, Plot, Shape};
+use textplots::{Chart, Plot, Shape};
 
 #[tokio::main]
 async fn main() -> Result<()> {

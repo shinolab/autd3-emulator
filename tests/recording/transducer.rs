@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use autd3::{derive::Datagram, prelude::*, Controller};
 use autd3_driver::firmware::fpga::FPGA_MAIN_CLK_FREQ;
-use autd3_link_emulator::{recording::RecordOption, Emulator};
+use autd3_link_emulator::Emulator;
 use polars::prelude::df;
 
 #[rstest::rstest]
