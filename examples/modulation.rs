@@ -3,9 +3,13 @@ use std::time::Duration;
 use anyhow::Result;
 
 use autd3::prelude::*;
-use autd3_link_emulator::{recording::RecordOption, Emulator};
+use autd3_link_emulator::{
+    recording::{Range, RecordOption},
+    Emulator,
+};
 
-use textplots::{Chart, Plot, Shape};
+use polars::prelude::AnyValue;
+use textplots::{AxisBuilder, Chart, Plot, Shape};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -89,9 +93,13 @@ async fn main() -> Result<()> {
         let record = autd.finish_recording()?;
 
         println!("Calculating sound pressure at focus under 200Hz sin modulation with silencer...");
-        let df = record[0].sound_pressure(
-            &focus,
-            Duration::ZERO..Duration::from_millis(20),
+        let mut sound_field = record[0].sound_field(
+            Range {
+                x: focus.x..=focus.x,
+                y: focus.y..=focus.y,
+                z: focus.z..=focus.z,
+                resolution: 1.0 * mm,
+            },
             RecordOption {
                 time_step: Duration::from_micros(1),
                 print_progress: true,
@@ -99,15 +107,26 @@ async fn main() -> Result<()> {
             },
         )?;
 
-        let t = df["time[s]"].f32()?;
-        let p = df["p[Pa]@(86.62527,66.713196,150)"].f32()?;
+        let df = sound_field.next(Duration::from_millis(20))?;
+
+        let t = df
+            .get_column_names()
+            .into_iter()
+            .skip(3)
+            .map(|n| n.as_str().replace("p[Pa]@", "").parse::<f32>().unwrap());
+        let p = df
+            .get_row(0)?
+            .0
+            .into_iter()
+            .skip(3)
+            .map(|v| match v.into() {
+                AnyValue::Float32(v) => v,
+                _ => panic!(),
+            });
         println!("sound pressure at focus under 200Hz sin modulation with silencer");
         Chart::new(180, 40, 0.0, 20.0)
             .lineplot(&Shape::Lines(
-                &t.into_no_null_iter()
-                    .zip(p.into_no_null_iter())
-                    .map(|(t, p)| (t * 1000., p))
-                    .collect::<Vec<_>>(),
+                &t.zip(p).map(|(t, p)| (t * 1000., p)).collect::<Vec<_>>(),
             ))
             .display();
     }

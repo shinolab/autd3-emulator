@@ -31,6 +31,9 @@ pub struct SoundField<'a> {
 }
 
 impl<'a> SoundField<'a> {
+    pub(crate) const P0: f32 = autd3_driver::defined::T4010A1_AMPLITUDE * std::f32::consts::SQRT_2
+        / (4. * std::f32::consts::PI);
+
     pub fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
         if duration.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
             return Err(EmulatorError::InvalidDuration);
@@ -97,7 +100,7 @@ impl<'a> SoundField<'a> {
                                             let a = idx.floor() as isize;
                                             let alpha = idx - a as f32;
                                             let a = (a - offset) as usize;
-                                            TransducerRecord::P0 / dist
+                                            Self::P0 / dist
                                                 * (output_ultrasound[a] * (1. - alpha)
                                                     + output_ultrasound[a + 1] * alpha)
                                         })

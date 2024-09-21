@@ -1,7 +1,6 @@
 mod output_ultrasound;
 mod output_voltage;
 mod sound_field;
-mod sound_pressure;
 
 use polars::prelude::*;
 
