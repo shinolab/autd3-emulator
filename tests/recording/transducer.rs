@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use autd3::{derive::Datagram, prelude::*, Controller};
 use autd3_driver::firmware::fpga::FPGA_MAIN_CLK_FREQ;
-use autd3_link_emulator::{recording::RecordOption, Emulator};
+use autd3_link_emulator::Emulator;
 use polars::prelude::df;
 
 #[rstest::rstest]
@@ -179,64 +179,6 @@ async fn record_output_ultrasound_resume() -> anyhow::Result<()> {
     v1.vstack_mut(&v2).unwrap();
 
     assert_eq!(expect, v1);
-
-    autd.close().await?;
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn record_sound_field() -> anyhow::Result<()> {
-    let mut autd = Controller::builder([AUTD3::new(Vector3::zeros())])
-        .open(Emulator::builder())
-        .await?;
-
-    autd.send(Silencer::disable()).await?;
-    autd.start_recording()?;
-    autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
-        .await?;
-    autd.tick(2 * ULTRASOUND_PERIOD)?;
-    let record = autd.finish_recording()?;
-
-    let point = Vector3::new(0., 0., 150. * mm);
-    let df = record[0][0].sound_pressure(
-        &point,
-        Duration::ZERO..30 * ULTRASOUND_PERIOD,
-        RecordOption {
-            time_step: Duration::from_micros(1),
-            ..Default::default()
-        },
-    )?;
-
-    df["time[s]"]
-        .f32()?
-        .into_no_null_iter()
-        .enumerate()
-        .for_each(|(i, t)| {
-            approx::assert_abs_diff_eq!(i as f32 * Duration::from_micros(1).as_secs_f32(), t)
-        });
-
-    // TODO
-    // assert_eq!(
-    //     vec![],
-    //     df["p[Pa]@(0,0,150)"]
-    //         .f32()?
-    //         .into_no_null_iter()
-    //         .collect::<Vec<_>>()
-    // );
-    assert_eq!(
-        30 * ULTRASOUND_PERIOD.as_micros() as usize,
-        df["p[Pa]@(0,0,150)"].f32()?.iter().count()
-    );
-
-    assert_eq!(
-        Err(autd3_link_emulator::error::EmulatorError::InvalidDuration),
-        record[0][0].sound_pressure(
-            &point,
-            Duration::ZERO..Duration::from_micros(1),
-            RecordOption::default(),
-        )
-    );
 
     autd.close().await?;
 

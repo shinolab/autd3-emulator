@@ -1,6 +1,5 @@
 pub(crate) mod output_ultrasound;
 mod output_voltage;
-mod sound_field;
 
 use polars::prelude::*;
 
