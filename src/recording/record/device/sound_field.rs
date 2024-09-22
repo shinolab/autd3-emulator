@@ -43,15 +43,20 @@ impl<'a> SoundField<'a> {
         let sound_speed = self.option.sound_speed;
         let num_frames = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
 
-        let mut df = df!(
-            "x[mm]" => &self.x,
-            "y[mm]" => &self.y,
-            "z[mm]" => &self.z,
-        )
-        .unwrap();
-
         let mut cur_frame = self.last_frame;
         let pb = self.option.pb(num_frames * self.num_points_in_frame);
+
+        let dists = itertools::izip!(self.x.iter(), self.y.iter(), self.z.iter())
+            .map(|(&x, &y, &z)| Vector3::new(x, y, z))
+            .map(|p| {
+                self.transducer_positions
+                    .iter()
+                    .map(|tp| (p - tp).norm())
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+
+        let mut columns = Vec::new();
 
         loop {
             if cur_frame == self.last_frame + num_frames {
@@ -72,23 +77,14 @@ impl<'a> SoundField<'a> {
             };
             let num_frames = end_frame - cur_frame;
 
-            let dists = itertools::izip!(self.x.iter(), self.y.iter(), self.z.iter())
-                .map(|(&x, &y, &z)| Vector3::new(x, y, z))
-                .map(|p| {
-                    self.transducer_positions
-                        .iter()
-                        .map(|tp| (p - tp).norm())
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>();
-
             let offset = (self.cursor - self.cache_size) * ULTRASOUND_PERIOD_COUNT as isize;
+            let mut cache = vec![vec![0.0f32; dists.len()]; self.num_points_in_frame];
             (0..num_frames)
                 .map(|i| ((cur_frame + i) as u32 * ULTRASOUND_PERIOD).as_secs_f32())
                 .for_each(|start_time| {
                     (0..self.num_points_in_frame)
                         .map(|i| start_time + (i as u32 * time_step).as_secs_f32())
-                        .for_each(|t| {
+                        .map(|t| {
                             let p = dists
                                 .iter()
                                 .map(|d| {
@@ -108,9 +104,22 @@ impl<'a> SoundField<'a> {
                                 })
                                 .collect::<Vec<_>>();
                             pb.inc(1);
-                            df.hstack_mut(&[Series::new(format!("p[Pa]@{}", t).into(), &p)])
-                                .unwrap();
-                        });
+                            p
+                        })
+                        .collect_into_vec(&mut cache);
+                    (0..self.num_points_in_frame).for_each(|i| {
+                        columns.push(
+                            Series::new(
+                                format!(
+                                    "p[Pa]@{}",
+                                    start_time + (i as u32 * time_step).as_secs_f32()
+                                )
+                                .into(),
+                                &cache[i],
+                            )
+                            .into(),
+                        );
+                    });
                 });
 
             if self.rem_frame == 0 {
@@ -132,6 +141,14 @@ impl<'a> SoundField<'a> {
 
             cur_frame = end_frame;
         }
+
+        let mut df = df!(
+            "x[mm]" => &self.x,
+            "y[mm]" => &self.y,
+            "z[mm]" => &self.z,
+        )
+        .unwrap();
+        df.hstack_mut(&columns).unwrap();
 
         self.last_frame = cur_frame;
 
