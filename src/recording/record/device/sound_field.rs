@@ -110,17 +110,14 @@ impl<'a> SoundField<'a> {
                         })
                         .collect_into_vec(&mut cache);
                     (0..self.num_points_in_frame).for_each(|i| {
-                        columns.push(
-                            Series::new(
-                                format!(
-                                    "p[Pa]@{}",
-                                    start_time + (i as u32 * time_step).as_secs_f32()
-                                )
-                                .into(),
-                                &cache[i],
+                        columns.push(Series::new(
+                            format!(
+                                "p[Pa]@{}",
+                                start_time + (i as u32 * time_step).as_secs_f32()
                             )
                             .into(),
-                        );
+                            &cache[i],
+                        ));
                     });
                 });
 
