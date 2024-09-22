@@ -10,6 +10,7 @@ use crate::{
     error::EmulatorError,
     recording::{record::transducer, Range, RecordOption, TransducerRecord},
 };
+use rayon::prelude::*;
 
 use super::DeviceRecord;
 
@@ -83,6 +84,7 @@ impl<'a> SoundField<'a> {
                 .map(|i| ((cur_frame + i) as u32 * ULTRASOUND_PERIOD).as_secs_f32())
                 .for_each(|start_time| {
                     (0..self.num_points_in_frame)
+                        .into_par_iter()
                         .map(|i| start_time + (i as u32 * time_step).as_secs_f32())
                         .map(|t| {
                             let p = dists
@@ -173,7 +175,7 @@ impl<'a> DeviceRecord<'a> {
 
         let cursor =
             (max_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32()).ceil() as usize;
-        let frame_window_size = 32;
+        let frame_window_size = 1024;
         let num_points_in_frame =
             (ULTRASOUND_PERIOD.as_nanos() / option.time_step.as_nanos()) as usize;
 
@@ -186,7 +188,7 @@ impl<'a> DeviceRecord<'a> {
             + frame_window_size) as isize;
         let cursor = -(cursor as isize);
         let output_ultrasound_cache = output_ultrasound
-            .iter_mut()
+            .par_iter_mut()
             .map(|ut| {
                 (0..cache_size)
                     .flat_map(|i| {
