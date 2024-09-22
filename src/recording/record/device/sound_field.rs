@@ -172,7 +172,7 @@ impl<'a> DeviceRecord<'a> {
 
         let cursor =
             (max_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32()).ceil() as usize;
-        let frame_window_size = 1024;
+        let frame_window_size = 32;
         let num_points_in_frame =
             (ULTRASOUND_PERIOD.as_nanos() / option.time_step.as_nanos()) as usize;
 
