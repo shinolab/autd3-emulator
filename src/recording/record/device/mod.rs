@@ -20,13 +20,17 @@ impl<'a> DeviceRecord<'a> {
         let mut df =
             df!("time[s]" => &TransducerRecord::time(0, self.records[0].pulse_width.len()))
                 .unwrap();
-        self.iter().enumerate().for_each(|(i, tr)| {
-            df.hstack_mut(&[
-                Series::new(format!("phase_{}", i).into(), &tr.phase),
-                Series::new(format!("pulsewidth_{}", i).into(), &tr.pulse_width),
-            ])
-            .unwrap();
-        });
+        let series = self
+            .iter()
+            .enumerate()
+            .flat_map(|(i, tr)| {
+                [
+                    Series::new(format!("phase_{}", i).into(), &tr.phase),
+                    Series::new(format!("pulsewidth_{}", i).into(), &tr.pulse_width),
+                ]
+            })
+            .collect::<Vec<_>>();
+        df.hstack_mut(&series).unwrap();
         df
     }
 }
