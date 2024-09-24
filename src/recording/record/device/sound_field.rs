@@ -40,6 +40,26 @@ impl<'a> SoundField<'a> {
             return Err(EmulatorError::InvalidDuration);
         }
 
+        if self.output_ultrasound_cache.is_empty() {
+            self.output_ultrasound_cache = self
+                .output_ultrasound
+                .par_iter_mut()
+                .map(|ut| {
+                    (0..self.cache_size)
+                        .flat_map(|i| {
+                            if self.cursor + i >= 0 {
+                                ut._next(1)
+                            } else {
+                                vec![0.; ULTRASOUND_PERIOD_COUNT]
+                            }
+                        })
+                        .collect()
+                })
+                .collect();
+            self.cursor += self.cache_size;
+            self.rem_frame = self.frame_window_size;
+        }
+
         let time_step = self.option.time_step;
         let sound_speed = self.option.sound_speed;
         let num_frames = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
@@ -64,10 +84,24 @@ impl<'a> SoundField<'a> {
                 break;
             }
 
-            let end_frame = if self.rem_frame != 0 {
-                cur_frame + self.rem_frame
-            } else {
+            let end_frame = if self.rem_frame == 0 {
+                (0..self.frame_window_size).for_each(|_| {
+                    self.output_ultrasound_cache
+                        .iter_mut()
+                        .zip(self.output_ultrasound.iter_mut())
+                        .for_each(|(cache, output_ultrasound)| {
+                            drop(cache.drain(0..ULTRASOUND_PERIOD_COUNT));
+                            cache.extend(if self.cursor >= 0 {
+                                output_ultrasound._next(1)
+                            } else {
+                                vec![0.; ULTRASOUND_PERIOD_COUNT]
+                            });
+                        });
+                    self.cursor += 1;
+                });
                 cur_frame + self.frame_window_size
+            } else {
+                cur_frame + self.rem_frame
             };
             let end_frame = if end_frame > self.last_frame + num_frames {
                 self.rem_frame = end_frame - (self.last_frame + num_frames);
@@ -121,23 +155,6 @@ impl<'a> SoundField<'a> {
                     });
                 });
 
-            if self.rem_frame == 0 {
-                (0..self.frame_window_size).for_each(|_| {
-                    self.output_ultrasound_cache
-                        .iter_mut()
-                        .zip(self.output_ultrasound.iter_mut())
-                        .for_each(|(cache, output_ultrasound)| {
-                            drop(cache.drain(0..ULTRASOUND_PERIOD_COUNT));
-                            cache.extend(if self.cursor >= 0 {
-                                output_ultrasound._next(1)
-                            } else {
-                                vec![0.; ULTRASOUND_PERIOD_COUNT]
-                            });
-                        });
-                    self.cursor += 1;
-                });
-            }
-
             cur_frame = end_frame;
         }
 
@@ -165,40 +182,51 @@ impl<'a> DeviceRecord<'a> {
             return Err(EmulatorError::InvalidTimeStep);
         }
 
+        let num_points_in_frame =
+            (ULTRASOUND_PERIOD.as_nanos() / option.time_step.as_nanos()) as usize;
+
         let (x, y, z) = range.points();
 
         let min_dist = crate::utils::aabb::aabb_min_dist(&self.aabb, &range.aabb());
         let max_dist = crate::utils::aabb::aabb_max_dist(&self.aabb, &range.aabb());
 
-        let cursor =
-            (max_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32()).ceil() as usize;
-        let frame_window_size = 32;
-        let num_points_in_frame =
-            (ULTRASOUND_PERIOD.as_nanos() / option.time_step.as_nanos()) as usize;
+        let required_frame_size = (max_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32())
+            .ceil() as usize
+            - (min_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32()).floor() as usize;
 
-        let mut output_ultrasound = self
+        let frame_window_size = {
+            let mem_usage = x.len() * size_of::<f32>()
+                + y.len() * size_of::<f32>()
+                + z.len() * size_of::<f32>();
+
+            let mem_usage = if option.gpu {
+                mem_usage
+            } else {
+                mem_usage + x.len() * self.len() * size_of::<f32>()
+            };
+
+            let memory_limits = option.memory_limits_hint_mb * 1024 * 1024;
+
+            let frame_window_size_mem = ((memory_limits.saturating_sub(mem_usage))
+                / (ULTRASOUND_PERIOD_COUNT * self.len()))
+            .saturating_sub(required_frame_size)
+            .max(1);
+
+            let frame_window_size_time = option.time_limits_hint.map_or(usize::MAX, |t| {
+                ((t.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize).max(1)
+            });
+
+            frame_window_size_mem.min(frame_window_size_time)
+        };
+
+        let cursor =
+            -((max_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32()).ceil() as isize);
+
+        let output_ultrasound = self
             .iter()
             .map(|tr| tr.output_ultrasound())
             .collect::<Vec<_>>();
-        let cache_size = (cursor
-            - (min_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32()).floor() as usize
-            + frame_window_size) as isize;
-        let cursor = -(cursor as isize);
-        let output_ultrasound_cache = output_ultrasound
-            .par_iter_mut()
-            .map(|ut| {
-                (0..cache_size)
-                    .flat_map(|i| {
-                        if cursor + i >= 0 {
-                            ut._next(1)
-                        } else {
-                            vec![0.; ULTRASOUND_PERIOD_COUNT]
-                        }
-                    })
-                    .collect()
-            })
-            .collect();
-        let cursor = cursor + cache_size;
+        let cache_size = (required_frame_size + frame_window_size) as isize;
 
         Ok(SoundField {
             cursor,
@@ -211,7 +239,7 @@ impl<'a> DeviceRecord<'a> {
             cache_size,
             num_points_in_frame,
             output_ultrasound,
-            output_ultrasound_cache,
+            output_ultrasound_cache: Vec::new(),
             transducer_positions: self.iter().map(|tr| *tr.tr.position()).collect(),
             option,
         })
