@@ -1,46 +1,27 @@
-use std::time::Duration;
-
-use autd3_driver::defined::ULTRASOUND_PERIOD;
-use polars::{df, frame::DataFrame};
-
-use crate::error::EmulatorError;
-
 use super::TransducerRecord;
 
 #[derive(Debug)]
 pub struct OutputUltrasound<'a> {
     pub(crate) cursor: usize,
-    pub(crate) record: &'a TransducerRecord<'a>,
+    pub(crate) record: &'a TransducerRecord,
     model: T4010A1BVDModel,
 }
 
 impl<'a> OutputUltrasound<'a> {
-    pub(crate) fn _next(&mut self, n: usize) -> Vec<f32> {
-        let output_volage = self.record._output_voltage_within(self.cursor, n);
+    pub(crate) fn _next(&mut self, n: usize) -> Option<Vec<f32>> {
+        let output_volage = self.record._output_voltage_within(self.cursor, n)?;
         self.cursor += n;
-        output_volage
-            .into_iter()
-            .map(|v| self.model.rk4(v))
-            .collect()
-    }
-
-    pub fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
-        if duration.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
-            return Err(EmulatorError::InvalidDuration);
-        }
-        let n = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
-        let time = self.record.output_times(self.cursor, n);
-        let p = self._next(n);
-        Ok(df!(
-            "time[s]" => &time,
-            "p[a.u.]" => &p
+        Some(
+            output_volage
+                .into_iter()
+                .map(|v| self.model.rk4(v))
+                .collect(),
         )
-        .unwrap())
     }
 }
 
-impl<'a> TransducerRecord<'a> {
-    pub fn output_ultrasound(&'a self) -> OutputUltrasound<'a> {
+impl TransducerRecord {
+    pub(crate) fn output_ultrasound<'a>(&'a self) -> OutputUltrasound<'a> {
         OutputUltrasound {
             record: self,
             model: T4010A1BVDModel {

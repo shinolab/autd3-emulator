@@ -32,7 +32,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+          - os: ubuntu-latest
+          - os: macos-latest
+          - os: ubuntu-latest
+            features: "async-trait"
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-build
@@ -40,8 +45,8 @@ jobs:
         with:
           tool: nextest
       - run: |
-          cargo nextest run
-          cargo clippy -- -D warnings
+          cargo nextest run --features "${{ matrix.features }}"
+          cargo clippy --features "${{ matrix.features }}" -- -D warnings
         shell: bash
 
   all-tests-passed:

@@ -1,17 +1,17 @@
 [package]
-name = "autd3-link-emulator"
+name = "autd3-emulator"
 description = "Link for calculating sound field, emulation of firmware, etc"
 readme = "README.md"
 keywords = ["autd"]
-version = "28.0.0-alpha.3"
+version = "28.0.0-alpha.5"
 authors = ["shun suzuki <suzuki@hapis.k.u-tokyo.ac.jp>"]
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/shinolab/autd3-link-emulator"
+repository = "https://github.com/shinolab/autd3-emulator"
 
 [dependencies]
-autd3-driver = "28.0.0-alpha.3"
-autd3-firmware-emulator = "28.0.0-alpha.3"
+autd3 = "28.0.0-alpha.5"
+autd3-firmware-emulator = "28.0.0-alpha.5"
 derive_more = { version = "1.0.0", features = ["deref"] }
 polars = { version = "0.43.1", features = ["dtype-u8"], default-features = false }
 indicatif = "0.17.8"
@@ -24,7 +24,6 @@ rayon = "1.10.0"
 [dev-dependencies]
 anyhow = "1.0.87"
 approx = "0.5.1"
-autd3 = "28.0.0-alpha.3"
 rstest = "0.22.0"
 textplots = "0.8.6"
 tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
@@ -34,4 +33,4 @@ rand = "0.8.5"
 
 [features]
 default = []
-async-trait = ["autd3-driver/async-trait"]
+async-trait = ["autd3/async-trait"]
