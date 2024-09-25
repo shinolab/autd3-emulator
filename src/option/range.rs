@@ -1,4 +1,4 @@
-use autd3_driver::geometry::Vector3;
+use autd3::driver::geometry::Vector3;
 use unzip3::Unzip3;
 
 use bvh::aabb::Aabb;

@@ -1,7 +1,7 @@
 mod range;
 use std::time::Duration;
 
-use autd3_driver::defined::mm;
+use autd3::driver::defined::mm;
 pub use range::Range;
 
 #[derive(Debug, Clone, Copy)]
