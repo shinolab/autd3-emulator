@@ -182,11 +182,11 @@ impl<'a> SoundField<'a> {
 }
 
 impl Record {
-    pub fn sound_field<'a>(
-        &'a self,
+    pub fn sound_field(
+        &self,
         range: Range,
         option: RecordOption,
-    ) -> Result<SoundField<'a>, EmulatorError> {
+    ) -> Result<SoundField<'_>, EmulatorError> {
         if ULTRASOUND_PERIOD.as_nanos() % option.time_step.as_nanos() != 0 {
             return Err(EmulatorError::InvalidTimeStep);
         }
