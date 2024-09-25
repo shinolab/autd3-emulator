@@ -21,7 +21,7 @@ impl<'a> OutputUltrasound<'a> {
 }
 
 impl TransducerRecord {
-    pub(crate) fn output_ultrasound<'a>(&'a self) -> OutputUltrasound<'a> {
+    pub(crate) fn output_ultrasound(&self) -> OutputUltrasound<'_> {
         OutputUltrasound {
             record: self,
             model: T4010A1BVDModel {

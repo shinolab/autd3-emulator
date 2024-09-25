@@ -97,7 +97,7 @@ impl LinkBuilder for RecorderBuilder {
             last_geometry_version: geometry.version(),
             is_open: true,
             emulators,
-            geometry: Geometry::new(geometry.iter().map(|dev| clone_device(dev)).collect()),
+            geometry: Geometry::new(geometry.iter().map(clone_device).collect()),
             timeout: DEFAULT_TIMEOUT,
             record,
             recording: false,
@@ -268,13 +268,14 @@ impl Emulator {
     where
         F: std::future::Future<Output = Result<Controller<Recorder>, EmulatorError>>,
     {
-        let mut recorder = Controller::builder(self.geometry.iter().map(|dev| clone_device(dev)))
+        let builder = Controller::builder(self.geometry.iter().map(clone_device))
             .with_parallel_threshold(self.parallel_threshold)
             .with_receive_interval(self.receive_interval)
-            .with_send_interval(self.send_interval)
-            .with_timer_resolution(self.timer_resolution)
-            .open(RecorderBuilder { start_time })
-            .await?;
+            .with_send_interval(self.send_interval);
+        #[cfg(target_os = "windows")]
+        let builder = builder.with_timer_resolution(self.timer_resolution);
+
+        let mut recorder = builder.open(RecorderBuilder { start_time }).await?;
 
         recorder.recording = true;
         let mut recorder = f(recorder).await?;
