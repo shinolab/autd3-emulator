@@ -209,7 +209,6 @@ async fn record_sound_field() -> anyhow::Result<()> {
         },
         RecordOption {
             time_step: Duration::from_micros(1),
-            time_limits_hint: Some(100 * ULTRASOUND_PERIOD),
             ..Default::default()
         },
     )?;
@@ -293,7 +292,6 @@ async fn record_sound_field_resume() -> anyhow::Result<()> {
             },
             RecordOption {
                 time_step: Duration::from_micros(1),
-                time_limits_hint: Some(4 * ULTRASOUND_PERIOD),
                 ..Default::default()
             },
         )?
