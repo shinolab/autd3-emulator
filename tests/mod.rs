@@ -1,11 +1,14 @@
-use autd3::{driver::firmware::fpga::FPGA_MAIN_CLK_FREQ, gain, prelude::*};
+use autd3::{derive::Datagram, driver::firmware::fpga::FPGA_MAIN_CLK_FREQ, gain, prelude::*};
 use autd3_emulator::{Emulator, EmulatorError, Range, RecordOption};
 
 use polars::prelude::{df, NamedFrom, Series};
 use std::time::Duration;
 
+#[rstest::rstest]
+#[case(Silencer::disable())]
+#[case(Silencer::disable().with_target(SilencerTarget::PulseWidth))]
 #[tokio::test]
-async fn record_drive() -> anyhow::Result<()> {
+async fn record_drive(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
     let emulator = Emulator::new([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())]);
 
     let to_pulse_width = |a, b| {
@@ -46,7 +49,7 @@ async fn record_drive() -> anyhow::Result<()> {
 
     let record = emulator
         .record(|mut autd| async {
-            autd.send(Silencer::disable()).await?;
+            autd.send(silencer).await?;
             autd.send((
                 Static::with_intensity(100),
                 gain::Custom::new(|_| {
