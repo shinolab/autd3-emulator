@@ -50,13 +50,11 @@ pub(crate) struct RawRecord {
 }
 
 pub struct Recorder {
-    last_geometry_version: usize,
     is_open: bool,
     emulators: Vec<CPUEmulator>,
     geometry: Geometry,
     timeout: std::time::Duration,
     record: RawRecord,
-    recording: bool,
 }
 
 #[derive(Builder)]
@@ -94,13 +92,11 @@ impl LinkBuilder for RecorderBuilder {
             start: self.start_time,
         };
         Ok(Recorder {
-            last_geometry_version: geometry.version(),
             is_open: true,
             emulators,
             geometry: Geometry::new(geometry.iter().map(clone_device).collect()),
             timeout: DEFAULT_TIMEOUT,
             record,
-            recording: false,
         })
     }
 }
@@ -150,15 +146,6 @@ impl Link for Recorder {
         });
 
         Ok(true)
-    }
-
-    async fn update(&mut self, geometry: &Geometry) -> Result<(), AUTDInternalError> {
-        if self.last_geometry_version == geometry.version() {
-            return Ok(());
-        }
-        self.last_geometry_version = geometry.version();
-
-        Ok(())
     }
 
     fn is_open(&self) -> bool {
@@ -275,11 +262,9 @@ impl Emulator {
         #[cfg(target_os = "windows")]
         let builder = builder.with_timer_resolution(self.timer_resolution);
 
-        let mut recorder = builder.open(RecorderBuilder { start_time }).await?;
+        let recorder = builder.open(RecorderBuilder { start_time }).await?;
 
-        recorder.recording = true;
         let mut recorder = f(recorder).await?;
-        recorder.is_open = false;
 
         let devices = recorder.geometry_mut().drain(..).collect::<Vec<_>>();
         let records = recorder.record.records.drain(..).collect::<Vec<_>>();
