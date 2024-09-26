@@ -217,11 +217,7 @@ impl Record {
                 + y.len() * size_of::<f32>()
                 + z.len() * size_of::<f32>();
 
-            let mem_usage = if option.gpu {
-                mem_usage
-            } else {
-                mem_usage + x.len() * num_transducers * size_of::<f32>()
-            };
+            let mem_usage = mem_usage + x.len() * num_transducers * size_of::<f32>();
 
             let memory_limits = option.memory_limits_hint_mb * 1024 * 1024;
 
@@ -230,9 +226,10 @@ impl Record {
                 .saturating_sub(required_frame_size)
                 .max(1);
 
-            let frame_window_size_time = option.time_limits_hint.map_or(usize::MAX, |t| {
-                ((t.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize).max(1)
-            });
+            let frame_window_size_time =
+                ((Duration::from_nanos(self.end.sys_time() - self.start.sys_time()).as_nanos()
+                    / ULTRASOUND_PERIOD.as_nanos()) as usize)
+                    .max(1);
 
             frame_window_size_mem.min(frame_window_size_time)
         };

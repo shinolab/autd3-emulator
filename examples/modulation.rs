@@ -88,7 +88,6 @@ async fn main() -> Result<()> {
             RecordOption {
                 time_step: Duration::from_micros(1),
                 print_progress: true,
-                time_limits_hint: Some(Duration::from_millis(20)),
                 ..Default::default()
             },
         )?;

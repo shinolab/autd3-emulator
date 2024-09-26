@@ -35,7 +35,6 @@ async fn main() -> Result<()> {
             RecordOption {
                 time_step: Duration::from_micros(1),
                 print_progress: true,
-                time_limits_hint: Some(Duration::from_millis(1)),
                 ..Default::default()
             },
         )?;
@@ -79,7 +78,6 @@ async fn main() -> Result<()> {
             RecordOption {
                 time_step: ULTRASOUND_PERIOD / 10,
                 print_progress: true,
-                time_limits_hint: Some(Duration::from_millis(5)),
                 ..Default::default()
             },
         )?;
