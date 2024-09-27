@@ -269,14 +269,14 @@ async fn record_sound_field() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn record_sound_field_resume() -> anyhow::Result<()> {
-    let emulator = Emulator::new([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())]);
+    let emulator = Emulator::new([AUTD3::new(Vector3::zeros())]);
 
     let record = emulator
         .record(|mut autd| async {
             autd.send(Silencer::disable()).await?;
             autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(4 * ULTRASOUND_PERIOD)?;
+            autd.tick(10 * ULTRASOUND_PERIOD)?;
             Ok(autd)
         })
         .await?;
@@ -285,8 +285,8 @@ async fn record_sound_field_resume() -> anyhow::Result<()> {
     let expect = record
         .sound_field(
             Range {
-                x: point.x - 1.0..=point.x + 1.0,
-                y: point.y - 1.0..=point.y + 1.0,
+                x: point.x - 9.0..=point.x + 9.0,
+                y: point.y - 50.0..=point.y + 50.0,
                 z: point.z..=point.z,
                 resolution: 1.,
             },
@@ -295,26 +295,82 @@ async fn record_sound_field_resume() -> anyhow::Result<()> {
                 ..Default::default()
             },
         )?
-        .next(4 * ULTRASOUND_PERIOD)?;
+        .next(10 * ULTRASOUND_PERIOD)?;
 
     let mut sound_field = record.sound_field(
         Range {
-            x: point.x - 1.0..=point.x + 1.0,
-            y: point.y - 1.0..=point.y + 1.0,
+            x: point.x - 9.0..=point.x + 9.0,
+            y: point.y - 50.0..=point.y + 50.0,
             z: point.z..=point.z,
             resolution: 1.,
         },
         RecordOption {
             time_step: Duration::from_micros(1),
+            memory_limits_hint_mb: 4,
             ..Default::default()
         },
     )?;
-    let mut v1 = sound_field.next(2 * ULTRASOUND_PERIOD)?;
-    let v2 = sound_field.next(2 * ULTRASOUND_PERIOD)?;
+    let mut v1 = sound_field.next(3 * ULTRASOUND_PERIOD)?;
+    let v2 = sound_field.next(3 * ULTRASOUND_PERIOD)?;
+    let v3 = sound_field.next(4 * ULTRASOUND_PERIOD)?;
     let columns = v2.get_columns();
+    v1.hstack_mut(&columns[3..]).unwrap();
+    let columns = v3.get_columns();
     v1.hstack_mut(&columns[3..]).unwrap();
 
     assert_eq!(expect, v1);
+
+    Ok(())
+}
+
+#[rstest::rstest]
+#[case(0)]
+#[case(1)]
+#[case(usize::MAX)]
+#[tokio::test]
+async fn record_sound_field_with_limit(#[case] memory_limits_hint_mb: usize) -> anyhow::Result<()> {
+    let emulator = Emulator::new([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())]);
+
+    let record = emulator
+        .record(|mut autd| async {
+            autd.send(Silencer::disable()).await?;
+            autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
+                .await?;
+            autd.tick(100 * ULTRASOUND_PERIOD)?;
+            Ok(autd)
+        })
+        .await?;
+
+    let point = Vector3::new(0., 0., 300. * mm);
+    let mut sound_field = record.sound_field(
+        Range {
+            x: point.x - 100.0..=point.x + 100.0,
+            y: point.y - 100.0..=point.y + 100.0,
+            z: point.z..=point.z,
+            resolution: 100.,
+        },
+        RecordOption {
+            time_step: Duration::from_micros(1),
+            memory_limits_hint_mb,
+            ..Default::default()
+        },
+    )?;
+
+    let df = sound_field.next(100 * ULTRASOUND_PERIOD)?;
+
+    assert_eq!(
+        vec![-100.0, 0.0, 100.0, -100.0, 0.0, 100.0, -100.0, 0.0, 100.0],
+        df["x[mm]"].f32()?.into_no_null_iter().collect::<Vec<_>>()
+    );
+    assert_eq!(
+        vec![-100.0, -100.0, -100.0, 0.0, 0.0, 0.0, 100.0, 100.0, 100.0],
+        df["y[mm]"].f32()?.into_no_null_iter().collect::<Vec<_>>()
+    );
+    assert_eq!(
+        vec![300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0],
+        df["z[mm]"].f32()?.into_no_null_iter().collect::<Vec<_>>()
+    );
+    // TODO: check the value
 
     Ok(())
 }
@@ -332,6 +388,42 @@ async fn invalid_tick() -> anyhow::Result<()> {
         .await;
 
     assert_eq!(EmulatorError::InvalidTick, record.unwrap_err());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn not_recorded() -> anyhow::Result<()> {
+    let emulator = Emulator::new([AUTD3::new(Vector3::zeros())]);
+
+    let record = emulator
+        .record(|mut autd| async {
+            autd.send(Silencer::disable()).await?;
+            autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
+                .await?;
+            autd.tick(ULTRASOUND_PERIOD)?;
+            Ok(autd)
+        })
+        .await?;
+
+    let point = Vector3::new(0., 0., 300. * mm);
+    let mut sound_field = record.sound_field(
+        Range {
+            x: point.x - 100.0..=point.x + 100.0,
+            y: point.y - 100.0..=point.y + 100.0,
+            z: point.z..=point.z,
+            resolution: 100.,
+        },
+        RecordOption {
+            time_step: Duration::from_micros(1),
+            ..Default::default()
+        },
+    )?;
+
+    assert_eq!(
+        Err(autd3_emulator::EmulatorError::NotRecorded),
+        sound_field.next(2 * ULTRASOUND_PERIOD)
+    );
 
     Ok(())
 }
