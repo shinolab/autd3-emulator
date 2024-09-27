@@ -219,7 +219,7 @@ impl Record {
 
             let mem_usage = mem_usage + x.len() * num_transducers * size_of::<f32>();
 
-            let memory_limits = option.memory_limits_hint_mb * 1024 * 1024;
+            let memory_limits = option.memory_limits_hint_mb.saturating_mul(1024 * 1024);
 
             let frame_window_size_mem = ((memory_limits.saturating_sub(mem_usage))
                 / (ULTRASOUND_PERIOD_COUNT * num_transducers))
@@ -233,6 +233,8 @@ impl Record {
 
             frame_window_size_mem.min(frame_window_size_time)
         };
+
+        dbg!(frame_window_size);
 
         let cursor =
             -((max_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32()).ceil() as isize);
