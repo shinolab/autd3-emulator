@@ -11,7 +11,6 @@ from scipy.interpolate import griddata
 
 def plot_focus():
     df = pl.read_csv(Path(__file__).parent.parent / "sound_field_around_focus.csv")
-    print(df)
     times = [float(c.replace("p[Pa]@", "")) * 1000 for c in df.columns[3:]]
     p = df.get_columns()[3:]
     times = times[440:]
@@ -37,6 +36,27 @@ def plot_focus():
 
     _ = animation.FuncAnimation(
         fig, f, frames=len(p), interval=1, repeat=False, blit=False
+    )
+    plt.show()
+
+    # plot RMS
+    fig = plt.figure()
+    spec = fig.add_gridspec(ncols=2, nrows=1, width_ratios=[10, 1])
+    ax = fig.add_subplot(spec[0], projection="3d")
+    cax = fig.add_subplot(spec[1])
+    rms = (
+        df.select(pl.exclude(r"^.\[mm\]$"))
+        .select(pl.all().pow(2))
+        .mean_horizontal()
+        .sqrt()
+    )
+    ax.plot_surface(
+        x,
+        y,
+        griddata((df["x[mm]"], df["y[mm]"]), rms, (x, y)),
+        shade=False,
+        cmap="jet",
+        norm=Normalize(vmin=0, vmax=rms.max()),
     )
     plt.show()
 
