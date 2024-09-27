@@ -126,6 +126,7 @@ impl Link for Recorder {
                 };
                 if update_silencer {
                     r.records.iter_mut().for_each(|tr| {
+                        tr.silencer_target = cpu.fpga().silencer_target();
                         tr.silencer_phase = cpu
                             .fpga()
                             .silencer_emulator_phase_continue_with(tr.silencer_phase);
