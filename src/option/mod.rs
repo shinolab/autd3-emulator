@@ -10,6 +10,7 @@ pub struct RecordOption {
     pub time_step: Duration,
     pub print_progress: bool,
     pub memory_limits_hint_mb: usize,
+    pub gpu: bool,
 }
 
 impl std::default::Default for RecordOption {
@@ -19,6 +20,7 @@ impl std::default::Default for RecordOption {
             time_step: Duration::from_micros(1),
             print_progress: false,
             memory_limits_hint_mb: 512,
+            gpu: false,
         }
     }
 }
