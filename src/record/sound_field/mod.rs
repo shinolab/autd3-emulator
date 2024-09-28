@@ -1,15 +1,66 @@
-use std::{collections::VecDeque, time::Duration};
+mod cpu;
+mod gpu;
 
-use autd3::{
-    driver::defined::ULTRASOUND_PERIOD_COUNT,
-    prelude::{Vector3, ULTRASOUND_PERIOD},
-};
+use std::time::Duration;
+
+use autd3::{driver::defined::ULTRASOUND_PERIOD_COUNT, prelude::ULTRASOUND_PERIOD};
 use bvh::aabb::Aabb;
+use indicatif::ProgressBar;
 use polars::{df, frame::DataFrame, prelude::NamedFrom, series::Series};
-use rayon::prelude::*;
 
-use super::{transducer, Record, TransducerRecord};
+use super::Record;
 use crate::{EmulatorError, Range, RecordOption};
+
+#[derive(Debug)]
+enum ComputeDevice<'a> {
+    CPU(cpu::Cpu<'a>),
+    GPU(gpu::Gpu),
+}
+
+impl<'a> ComputeDevice<'a> {
+    fn init(&mut self, cache_size: isize, cursor: &mut isize, rem_frame: &mut usize) {
+        match self {
+            Self::CPU(cpu) => cpu.init(cache_size, cursor, rem_frame),
+            Self::GPU(gpu) => gpu.init(cache_size, cursor, rem_frame),
+        }
+    }
+
+    fn progress(&mut self, cursor: &mut isize) -> Result<(), EmulatorError> {
+        match self {
+            Self::CPU(cpu) => cpu.progress(cursor),
+            Self::GPU(gpu) => gpu.progress(cursor),
+        }
+    }
+
+    fn compute(
+        &mut self,
+        start_time: f32,
+        time_step: Duration,
+        num_points_in_frame: usize,
+        sound_speed: f32,
+        offset: isize,
+        pb: &ProgressBar,
+    ) -> &Vec<Vec<f32>> {
+        match self {
+            Self::CPU(cpu) => cpu.compute(
+                start_time,
+                time_step,
+                num_points_in_frame,
+                sound_speed,
+                offset,
+                pb,
+            ),
+            Self::GPU(gpu) => gpu.compute(
+                start_time,
+                time_step,
+                num_points_in_frame,
+                sound_speed,
+                offset,
+                pb,
+            ),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct SoundField<'a> {
@@ -24,15 +75,10 @@ pub struct SoundField<'a> {
     frame_window_size: usize,
     cache_size: isize,
     num_points_in_frame: usize,
-    output_ultrasound: Vec<transducer::output_ultrasound::OutputUltrasound<'a>>,
-    output_ultrasound_cache: Vec<VecDeque<f32>>,
-    transducer_positions: Vec<Vector3>,
+    compute_device: ComputeDevice<'a>,
 }
 
 impl<'a> SoundField<'a> {
-    pub(crate) const P0: f32 = autd3::driver::defined::T4010A1_AMPLITUDE * std::f32::consts::SQRT_2
-        / (4. * std::f32::consts::PI);
-
     pub fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
         self._next(duration, false).map(Option::unwrap)
     }
@@ -55,42 +101,14 @@ impl<'a> SoundField<'a> {
             return Err(EmulatorError::NotRecorded);
         }
 
-        if self.output_ultrasound_cache.is_empty() {
-            self.output_ultrasound_cache = self
-                .output_ultrasound
-                .par_iter_mut()
-                .map(|ut| {
-                    (0..self.cache_size)
-                        .flat_map(|i| {
-                            if self.cursor + i >= 0 {
-                                ut._next(1)
-                                    .unwrap_or_else(|| vec![0.; ULTRASOUND_PERIOD_COUNT])
-                            } else {
-                                vec![0.; ULTRASOUND_PERIOD_COUNT]
-                            }
-                        })
-                        .collect()
-                })
-                .collect();
-            self.cursor += self.cache_size;
-            self.rem_frame = self.frame_window_size;
-        }
+        self.compute_device
+            .init(self.cache_size, &mut self.cursor, &mut self.rem_frame);
 
         let time_step = self.option.time_step;
         let sound_speed = self.option.sound_speed;
 
         let mut cur_frame = self.last_frame;
         let pb = self.option.pb(num_frames * self.num_points_in_frame);
-
-        let dists = itertools::izip!(self.x.iter(), self.y.iter(), self.z.iter())
-            .map(|(&x, &y, &z)| Vector3::new(x, y, z))
-            .map(|p| {
-                self.transducer_positions
-                    .iter()
-                    .map(|tp| (p - tp).norm())
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>();
 
         let mut columns = Vec::new();
 
@@ -100,26 +118,7 @@ impl<'a> SoundField<'a> {
             }
 
             let end_frame = if self.rem_frame == 0 {
-                (0..self.frame_window_size).try_for_each(|_| -> Result<(), EmulatorError> {
-                    self.output_ultrasound_cache
-                        .iter_mut()
-                        .zip(self.output_ultrasound.iter_mut())
-                        .try_for_each(
-                            |(cache, output_ultrasound)| -> Result<(), EmulatorError> {
-                                drop(cache.drain(0..ULTRASOUND_PERIOD_COUNT));
-                                cache.extend(if self.cursor >= 0 {
-                                    output_ultrasound
-                                        ._next(1)
-                                        .unwrap_or_else(|| vec![0.; ULTRASOUND_PERIOD_COUNT])
-                                } else {
-                                    vec![0.; ULTRASOUND_PERIOD_COUNT]
-                                });
-                                Ok(())
-                            },
-                        )?;
-                    self.cursor += 1;
-                    Ok(())
-                })?;
+                self.compute_device.progress(&mut self.cursor)?;
                 cur_frame + self.frame_window_size
             } else {
                 cur_frame + self.rem_frame
@@ -135,44 +134,25 @@ impl<'a> SoundField<'a> {
 
             if !skip {
                 let offset = (self.cursor - self.cache_size) * ULTRASOUND_PERIOD_COUNT as isize;
-                let mut cache = vec![vec![0.0f32; dists.len()]; self.num_points_in_frame];
                 (0..num_frames)
                     .map(|i| ((cur_frame + i) as u32 * ULTRASOUND_PERIOD).as_secs_f32())
                     .for_each(|start_time| {
-                        (0..self.num_points_in_frame)
-                            .into_par_iter()
-                            .map(|i| start_time + (i as u32 * time_step).as_secs_f32())
-                            .map(|t| {
-                                let p = dists
-                                    .iter()
-                                    .map(|d| {
-                                        d.iter()
-                                            .zip(self.output_ultrasound_cache.iter())
-                                            .map(|(dist, output_ultrasound)| {
-                                                let t_out = t - dist / sound_speed;
-                                                let idx = t_out / TransducerRecord::TS;
-                                                let a = idx.floor() as isize;
-                                                let alpha = idx - a as f32;
-                                                let a = (a - offset) as usize;
-                                                Self::P0 / dist
-                                                    * (output_ultrasound[a] * (1. - alpha)
-                                                        + output_ultrasound[a + 1] * alpha)
-                                            })
-                                            .sum::<f32>()
-                                    })
-                                    .collect::<Vec<_>>();
-                                pb.inc(1);
-                                p
-                            })
-                            .collect_into_vec(&mut cache);
-                        (0..self.num_points_in_frame).for_each(|i| {
+                        let r = self.compute_device.compute(
+                            start_time,
+                            time_step,
+                            self.num_points_in_frame,
+                            sound_speed,
+                            offset,
+                            &pb,
+                        );
+                        (0..r.len()).for_each(|i| {
                             columns.push(Series::new(
                                 format!(
                                     "p[Pa]@{}",
                                     start_time + (i as u32 * time_step).as_secs_f32()
                                 )
                                 .into(),
-                                &cache[i],
+                                &r[i],
                             ));
                         });
                     });
@@ -261,6 +241,23 @@ impl Record {
         let cache_size = (required_frame_size + frame_window_size) as isize;
 
         Ok(SoundField {
+            compute_device: if option.gpu {
+                ComputeDevice::GPU(gpu::Gpu {})
+            } else {
+                ComputeDevice::CPU(cpu::Cpu::new(
+                    &x,
+                    &y,
+                    &z,
+                    &self
+                        .records
+                        .iter()
+                        .flat_map(|dev| dev.records.iter().map(|tr| *tr.tr.position()))
+                        .collect::<Vec<_>>(),
+                    output_ultrasound,
+                    frame_window_size,
+                    num_points_in_frame,
+                ))
+            },
             cursor,
             last_frame: 0,
             rem_frame: 0,
@@ -271,13 +268,6 @@ impl Record {
             frame_window_size,
             cache_size,
             num_points_in_frame,
-            output_ultrasound,
-            output_ultrasound_cache: Vec::new(),
-            transducer_positions: self
-                .records
-                .iter()
-                .flat_map(|dev| dev.records.iter().map(|tr| *tr.tr.position()))
-                .collect(),
             option,
         })
     }
