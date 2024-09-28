@@ -34,6 +34,18 @@ impl<'a> SoundField<'a> {
         / (4. * std::f32::consts::PI);
 
     pub fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
+        self._next(duration, false).map(Option::unwrap)
+    }
+
+    pub fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {
+        self._next(duration, true).map(|_| self)
+    }
+
+    fn _next(
+        &mut self,
+        duration: Duration,
+        skip: bool,
+    ) -> Result<Option<DataFrame>, EmulatorError> {
         if duration.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
             return Err(EmulatorError::InvalidDuration);
         }
@@ -121,50 +133,56 @@ impl<'a> SoundField<'a> {
             };
             let num_frames = end_frame - cur_frame;
 
-            let offset = (self.cursor - self.cache_size) * ULTRASOUND_PERIOD_COUNT as isize;
-            let mut cache = vec![vec![0.0f32; dists.len()]; self.num_points_in_frame];
-            (0..num_frames)
-                .map(|i| ((cur_frame + i) as u32 * ULTRASOUND_PERIOD).as_secs_f32())
-                .for_each(|start_time| {
-                    (0..self.num_points_in_frame)
-                        .into_par_iter()
-                        .map(|i| start_time + (i as u32 * time_step).as_secs_f32())
-                        .map(|t| {
-                            let p = dists
-                                .iter()
-                                .map(|d| {
-                                    d.iter()
-                                        .zip(self.output_ultrasound_cache.iter())
-                                        .map(|(dist, output_ultrasound)| {
-                                            let t_out = t - dist / sound_speed;
-                                            let idx = t_out / TransducerRecord::TS;
-                                            let a = idx.floor() as isize;
-                                            let alpha = idx - a as f32;
-                                            let a = (a - offset) as usize;
-                                            Self::P0 / dist
-                                                * (output_ultrasound[a] * (1. - alpha)
-                                                    + output_ultrasound[a + 1] * alpha)
-                                        })
-                                        .sum::<f32>()
-                                })
-                                .collect::<Vec<_>>();
-                            pb.inc(1);
-                            p
-                        })
-                        .collect_into_vec(&mut cache);
-                    (0..self.num_points_in_frame).for_each(|i| {
-                        columns.push(Series::new(
-                            format!(
-                                "p[Pa]@{}",
-                                start_time + (i as u32 * time_step).as_secs_f32()
-                            )
-                            .into(),
-                            &cache[i],
-                        ));
+            if !skip {
+                let offset = (self.cursor - self.cache_size) * ULTRASOUND_PERIOD_COUNT as isize;
+                let mut cache = vec![vec![0.0f32; dists.len()]; self.num_points_in_frame];
+                (0..num_frames)
+                    .map(|i| ((cur_frame + i) as u32 * ULTRASOUND_PERIOD).as_secs_f32())
+                    .for_each(|start_time| {
+                        (0..self.num_points_in_frame)
+                            .into_par_iter()
+                            .map(|i| start_time + (i as u32 * time_step).as_secs_f32())
+                            .map(|t| {
+                                let p = dists
+                                    .iter()
+                                    .map(|d| {
+                                        d.iter()
+                                            .zip(self.output_ultrasound_cache.iter())
+                                            .map(|(dist, output_ultrasound)| {
+                                                let t_out = t - dist / sound_speed;
+                                                let idx = t_out / TransducerRecord::TS;
+                                                let a = idx.floor() as isize;
+                                                let alpha = idx - a as f32;
+                                                let a = (a - offset) as usize;
+                                                Self::P0 / dist
+                                                    * (output_ultrasound[a] * (1. - alpha)
+                                                        + output_ultrasound[a + 1] * alpha)
+                                            })
+                                            .sum::<f32>()
+                                    })
+                                    .collect::<Vec<_>>();
+                                pb.inc(1);
+                                p
+                            })
+                            .collect_into_vec(&mut cache);
+                        (0..self.num_points_in_frame).for_each(|i| {
+                            columns.push(Series::new(
+                                format!(
+                                    "p[Pa]@{}",
+                                    start_time + (i as u32 * time_step).as_secs_f32()
+                                )
+                                .into(),
+                                &cache[i],
+                            ));
+                        });
                     });
-                });
-
+            }
             cur_frame = end_frame;
+        }
+        self.last_frame = cur_frame;
+
+        if skip {
+            return Ok(None);
         }
 
         let mut df = df!(
@@ -175,9 +193,7 @@ impl<'a> SoundField<'a> {
         .unwrap();
         df.hstack_mut(&columns).unwrap();
 
-        self.last_frame = cur_frame;
-
-        Ok(df)
+        Ok(Some(df))
     }
 }
 
@@ -233,8 +249,6 @@ impl Record {
 
             frame_window_size_mem.min(frame_window_size_time)
         };
-
-        dbg!(frame_window_size);
 
         let cursor =
             -((max_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32()).ceil() as isize);
