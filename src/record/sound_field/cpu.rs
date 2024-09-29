@@ -74,12 +74,14 @@ impl<'a> Cpu<'a> {
     }
 
     pub(crate) fn progress(&mut self, cursor: &mut isize) -> Result<(), EmulatorError> {
-        (0..self.frame_window_size).try_for_each(|_| {
-            self.output_ultrasound_cache
-                .iter_mut()
-                .zip(self.output_ultrasound.iter_mut())
-                .try_for_each(|(cache, output_ultrasound)| -> Result<(), EmulatorError> {
-                    drop(cache.drain(0..ULTRASOUND_PERIOD_COUNT));
+        *cursor += self.frame_window_size as isize;
+        self.output_ultrasound_cache
+            .iter_mut()
+            .zip(self.output_ultrasound.iter_mut())
+            .par_bridge()
+            .try_for_each(|(cache, output_ultrasound)| -> Result<(), EmulatorError> {
+                drop(cache.drain(0..ULTRASOUND_PERIOD_COUNT * self.frame_window_size));
+                (0..self.frame_window_size).try_for_each(|_| {
                     cache.extend(if *cursor >= 0 {
                         output_ultrasound
                             ._next(1)
@@ -88,10 +90,9 @@ impl<'a> Cpu<'a> {
                         vec![0.; ULTRASOUND_PERIOD_COUNT]
                     });
                     Ok(())
-                })?;
-            *cursor += 1;
-            Ok(())
-        })
+                })
+            })?;
+        Ok(())
     }
 
     pub(crate) fn compute(
