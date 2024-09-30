@@ -112,19 +112,20 @@ impl<'a> Cpu<'a> {
                     .dists
                     .iter()
                     .map(|d| {
-                        d.iter()
-                            .zip(self.output_ultrasound_cache.iter())
-                            .map(|(dist, output_ultrasound)| {
-                                let t_out = t - dist / sound_speed;
-                                let idx = t_out / TransducerRecord::TS;
-                                let a = idx.floor() as isize;
-                                let alpha = idx - a as f32;
-                                let a = (a - offset) as usize;
-                                Self::P0 / dist
-                                    * (output_ultrasound[a] * (1. - alpha)
-                                        + output_ultrasound[a + 1] * alpha)
-                            })
-                            .sum::<f32>()
+                        Self::P0
+                            * d.iter()
+                                .zip(self.output_ultrasound_cache.iter())
+                                .map(|(dist, output_ultrasound)| {
+                                    let t_out = t - dist / sound_speed;
+                                    let a = t_out / TransducerRecord::TS;
+                                    let idx = a.floor() as isize;
+                                    let alpha = a - idx as f32;
+                                    let idx = (idx - offset) as usize;
+                                    (output_ultrasound[idx] * (1. - alpha)
+                                        + output_ultrasound[idx + 1] * alpha)
+                                        / dist
+                                })
+                                .sum::<f32>()
                     })
                     .collect::<Vec<_>>();
                 pb.inc(1);
