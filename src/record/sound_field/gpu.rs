@@ -296,26 +296,33 @@ impl<'a> Gpu<'a> {
         }
     }
 
-    pub(crate) fn progress(&mut self, cursor: &mut isize) -> Result<(), EmulatorError> {
-        *cursor += self.frame_window_size as isize;
-        self.update_buf_output_ultrasound = true;
+    pub(crate) fn progress(&mut self, cursor: &mut isize) {
+        let n = match *cursor {
+            c if (c + self.frame_window_size as isize) < 0 => 0,
+            c if c >= 0 => {
+                self.update_buf_output_ultrasound = true;
+                self.frame_window_size
+            }
+            c => {
+                self.update_buf_output_ultrasound = true;
+                (c + self.frame_window_size as isize) as usize
+            }
+        };
         self.output_ultrasound_cache
             .iter_mut()
             .zip(self.output_ultrasound.iter_mut())
             .par_bridge()
-            .try_for_each(|(cache, output_ultrasound)| -> Result<(), EmulatorError> {
-                drop(cache.drain(0..ULTRASOUND_PERIOD_COUNT * self.frame_window_size));
-                (0..self.frame_window_size).try_for_each(|_| {
-                    cache.extend(if *cursor >= 0 {
+            .for_each(|(cache, output_ultrasound)| {
+                drop(cache.drain(0..ULTRASOUND_PERIOD_COUNT * n));
+                (0..n).for_each(|_| {
+                    cache.extend(
                         output_ultrasound
                             ._next(1)
-                            .unwrap_or_else(|| vec![0.; ULTRASOUND_PERIOD_COUNT])
-                    } else {
-                        vec![0.; ULTRASOUND_PERIOD_COUNT]
-                    });
-                    Ok(())
+                            .unwrap_or_else(|| vec![0.; ULTRASOUND_PERIOD_COUNT]),
+                    );
                 })
-            })
+            });
+        *cursor += self.frame_window_size as isize;
     }
 
     async fn copy_output_ultrasound(&self) -> Result<(), EmulatorError> {

@@ -28,7 +28,7 @@ impl<'a> ComputeDevice<'a> {
         }
     }
 
-    fn progress(&mut self, cursor: &mut isize) -> Result<(), EmulatorError> {
+    fn progress(&mut self, cursor: &mut isize) {
         match self {
             Self::Cpu(cpu) => cpu.progress(cursor),
             #[cfg(feature = "gpu")]
@@ -126,7 +126,7 @@ impl<'a> SoundField<'a> {
             }
 
             let end_frame = if self.rem_frame == 0 {
-                self.compute_device.progress(&mut self.cursor)?;
+                self.compute_device.progress(&mut self.cursor);
                 cur_frame + self.frame_window_size
             } else {
                 cur_frame + self.rem_frame
