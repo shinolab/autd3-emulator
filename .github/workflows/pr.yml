@@ -27,15 +27,18 @@ jobs:
   test:
     needs: changed-files
     if: ${{ needs.changed-files.outputs.src == 'true' }}
-    name: test-on-${{ matrix.os }}
+    name: test-on-${{ matrix.os }}${{ matrix.features && '-' }}${{ matrix.features }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-latest
+            features: ""
           - os: ubuntu-latest
+            features: ""
           - os: macos-latest
+            features: "gpu"
           - os: ubuntu-latest
             features: "async-trait"
     steps:

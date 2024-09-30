@@ -35,6 +35,6 @@ nalgebra = "0.33.0"
 rand = "0.8.5"
 
 [features]
-default = ["gpu"]
+default = []
 async-trait = ["autd3/async-trait"]
 gpu = ["wgpu", "bytemuck", "flume"]

@@ -185,8 +185,13 @@ async fn record_output_ultrasound() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[rstest::rstest]
+#[case(false)]
+#[cfg(feature = "gpu")]
+#[case(true)]
 #[tokio::test]
-async fn record_sound_field() -> anyhow::Result<()> {
+#[allow(unused_variables)]
+async fn record_sound_field(#[case] gpu: bool) -> anyhow::Result<()> {
     let emulator = Emulator::new([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())]);
 
     let record = emulator
@@ -210,6 +215,8 @@ async fn record_sound_field() -> anyhow::Result<()> {
             },
             RecordOption {
                 time_step: Duration::from_micros(1),
+                #[cfg(feature = "gpu")]
+                gpu,
                 ..Default::default()
             },
         )
@@ -231,6 +238,8 @@ async fn record_sound_field() -> anyhow::Result<()> {
     );
     // TODO: check the value
 
+    assert!(false);
+
     assert!(record
         .sound_field(
             Range {
@@ -241,6 +250,8 @@ async fn record_sound_field() -> anyhow::Result<()> {
             },
             RecordOption {
                 time_step: Duration::from_micros(2),
+                #[cfg(feature = "gpu")]
+                gpu,
                 ..Default::default()
             },
         )
@@ -256,6 +267,8 @@ async fn record_sound_field() -> anyhow::Result<()> {
             },
             RecordOption {
                 time_step: Duration::from_micros(1),
+                #[cfg(feature = "gpu")]
+                gpu,
                 ..Default::default()
             },
         )
@@ -393,11 +406,19 @@ async fn record_sound_field_skip() -> anyhow::Result<()> {
 }
 
 #[rstest::rstest]
-#[case(0)]
-#[case(1)]
-#[case(usize::MAX)]
+#[case(false, 0)]
+#[case(false, 1)]
+#[case(false, usize::MAX)]
+#[cfg(feature = "gpu")]
+#[case(true, 0)]
+#[cfg(feature = "gpu")]
+#[case(true, 1)]
 #[tokio::test]
-async fn record_sound_field_with_limit(#[case] memory_limits_hint_mb: usize) -> anyhow::Result<()> {
+#[allow(unused_variables)]
+async fn record_sound_field_with_limit(
+    #[case] gpu: bool,
+    #[case] memory_limits_hint_mb: usize,
+) -> anyhow::Result<()> {
     let emulator = Emulator::new([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())]);
 
     let record = emulator
@@ -422,6 +443,8 @@ async fn record_sound_field_with_limit(#[case] memory_limits_hint_mb: usize) -> 
             RecordOption {
                 time_step: Duration::from_micros(1),
                 memory_limits_hint_mb,
+                #[cfg(feature = "gpu")]
+                gpu,
                 ..Default::default()
             },
         )
@@ -448,7 +471,7 @@ async fn record_sound_field_with_limit(#[case] memory_limits_hint_mb: usize) -> 
 
 #[cfg(feature = "gpu")]
 #[tokio::test]
-async fn record_sound_field_gpu() -> anyhow::Result<()> {
+async fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
     let emulator = Emulator::new([AUTD3::new(Vector3::zeros())]);
 
     let record = emulator

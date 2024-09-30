@@ -16,7 +16,7 @@ env:
 
 jobs:
   coverage:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -26,8 +26,8 @@ jobs:
           components: llvm-tools
       - run: cargo install grcov
       - run: |
-            cargo build
-            cargo test
+            cargo build --features "gpu"
+            cargo test --features "gpu"
             grcov . -s . --binary-path ./target/debug --llvm --branch --ignore-not-existing -o ./coverage -t lcov --excl-line 'GRCOV_EXCL_LINE|#\[derive|#\[error|unreachable!|unimplemented!|tracing::(debug|trace|info|warn|error)!\([\s\S]*\);' --keep-only 'src/**/*.rs' --excl-start GRCOV_EXCL_START --excl-stop GRCOV_EXCL_STOP
       - uses: codecov/codecov-action@v4
         with:
