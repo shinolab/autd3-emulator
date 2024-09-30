@@ -58,6 +58,7 @@ def plot_focus():
         cmap="jet",
         norm=Normalize(vmin=0, vmax=rms.max()),
     )
+    colorbar.ColorbarBase(cax, cmap="jet", norm=Normalize(vmin=0, vmax=rms.max()))
     plt.show()
 
 
