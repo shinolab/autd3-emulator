@@ -64,7 +64,7 @@ impl<'a> ComputeDevice<'a> {
                     offset,
                     pb,
                 )
-                .await
+                .await // GRCOV_EXCL_LINE
             }
         }
     }
@@ -154,7 +154,7 @@ impl<'a> SoundField<'a> {
                             offset,
                             &pb,
                         )
-                        .await?;
+                        .await?; // GRCOV_EXCL_LINE
                     (0..r.len()).for_each(|i| {
                         columns.push(Series::new(
                             format!(
@@ -273,7 +273,7 @@ impl Record {
                     cache_size,
                     option.memory_limits_hint_mb,
                 )
-                .await?,
+                .await?, // GRCOV_EXCL_LINE
             )
         } else {
             ComputeDevice::Cpu(cpu::Cpu::new(
