@@ -7,7 +7,7 @@ use autd3::{driver::defined::ULTRASOUND_PERIOD_COUNT, prelude::Vector3};
 use bytemuck::NoUninit;
 use indicatif::ProgressBar;
 use rayon::prelude::*;
-use wgpu::{util::DeviceExt, Buffer};
+use wgpu::{util::DeviceExt, Buffer, BufferAddress};
 
 // GRCOV_EXCL_START
 #[derive(NoUninit, Clone, Copy)]
@@ -54,7 +54,7 @@ pub(crate) struct Gpu<'a> {
     bind_group: wgpu::BindGroup,
     buf_staging_output_ultrasound: Buffer,
     buf_storage_output_ultrasound: Buffer,
-    buf_output_ultrasound_size: wgpu::BufferAddress,
+    buf_output_ultrasound_size: BufferAddress,
     buf_storage_dst: Buffer,
     buf_staging_dst: Buffer,
     update_buf_output_ultrasound: bool,
@@ -72,8 +72,20 @@ impl<'a> Gpu<'a> {
         frame_window_size: usize,
         num_points_in_frame: usize,
         cache_size: isize,
-        mem_limits_hint_mb: usize,
     ) -> Result<Self, EmulatorError> {
+        let target_pos = itertools::izip!(x.iter(), y.iter(), z.iter())
+            .map(|(&x, &y, &z)| Vec3 { x, y, z, _pad: 0. })
+            .collect::<Vec<_>>();
+        let transducer_pos = transducer_positions.map(Vec3::from).collect::<Vec<_>>();
+
+        let buf_output_ultrasound_size = (output_ultrasound.len()
+            * cache_size as usize
+            * ULTRASOUND_PERIOD_COUNT
+            * size_of::<f32>()) as BufferAddress;
+        let buf_dst_size = (target_pos.len() * size_of::<f32>()) as BufferAddress;
+        let buf_target_pos_size = (transducer_pos.len() * size_of::<Vec3>()) as BufferAddress;
+        let buf_tr_pos_size = (transducer_pos.len() * size_of::<Vec3>()) as BufferAddress;
+
         let instance = wgpu::Instance::default();
 
         let adapter = instance
@@ -89,7 +101,11 @@ impl<'a> Gpu<'a> {
                     required_limits: wgpu::Limits {
                         max_push_constant_size: std::mem::size_of::<Pc>() as u32,
                         max_storage_buffers_per_shader_stage: 5,
-                        max_storage_buffer_binding_size: (mem_limits_hint_mb * 1024 * 1024) as _,
+                        max_storage_buffer_binding_size: buf_output_ultrasound_size
+                            .max(buf_dst_size)
+                            .max(buf_target_pos_size)
+                            .max(buf_tr_pos_size)
+                            as _,
                         ..wgpu::Limits::downlevel_defaults()
                     },
                     memory_hints: wgpu::MemoryHints::MemoryUsage,
@@ -102,11 +118,6 @@ impl<'a> Gpu<'a> {
             label: None,
             source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
         });
-
-        let target_pos = itertools::izip!(x.iter(), y.iter(), z.iter())
-            .map(|(&x, &y, &z)| Vec3 { x, y, z, _pad: 0. })
-            .collect::<Vec<_>>();
-        let transducer_pos = transducer_positions.map(Vec3::from).collect::<Vec<_>>();
 
         let buf_storage_target_pos = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
@@ -121,10 +132,7 @@ impl<'a> Gpu<'a> {
 
         let buf_staging_output_ultrasound = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
-            size: (output_ultrasound.len()
-                * cache_size as usize
-                * ULTRASOUND_PERIOD_COUNT
-                * size_of::<f32>()) as _,
+            size: buf_output_ultrasound_size,
             usage: wgpu::BufferUsages::MAP_WRITE | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
@@ -133,22 +141,19 @@ impl<'a> Gpu<'a> {
             usage: wgpu::BufferUsages::STORAGE
                 | wgpu::BufferUsages::COPY_SRC
                 | wgpu::BufferUsages::COPY_DST,
-            size: (output_ultrasound.len()
-                * cache_size as usize
-                * ULTRASOUND_PERIOD_COUNT
-                * size_of::<f32>()) as _,
+            size: buf_output_ultrasound_size,
             mapped_at_creation: false,
         });
 
         let buf_staging_dst = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
-            size: (target_pos.len() * size_of::<f32>()) as _,
+            size: buf_dst_size,
             usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
         let buf_storage_dst = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
-            size: (target_pos.len() * size_of::<f32>()) as _,
+            size: buf_dst_size,
             usage: wgpu::BufferUsages::STORAGE
                 | wgpu::BufferUsages::COPY_DST
                 | wgpu::BufferUsages::COPY_SRC,
@@ -253,7 +258,7 @@ impl<'a> Gpu<'a> {
             bind_group,
             buf_staging_output_ultrasound,
             buf_storage_output_ultrasound,
-            buf_output_ultrasound_size: 0,
+            buf_output_ultrasound_size,
             update_buf_output_ultrasound: false,
             buf_storage_dst,
             buf_staging_dst,

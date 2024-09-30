@@ -238,8 +238,6 @@ async fn record_sound_field(#[case] gpu: bool) -> anyhow::Result<()> {
     );
     // TODO: check the value
 
-    assert!(false);
-
     assert!(record
         .sound_field(
             Range {
