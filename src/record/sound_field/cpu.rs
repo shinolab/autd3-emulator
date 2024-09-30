@@ -27,11 +27,12 @@ impl<'a> Cpu<'a> {
         x: &[f32],
         y: &[f32],
         z: &[f32],
-        transducer_positions: &[Vector3],
+        transducer_positions: impl Iterator<Item = Vector3>,
         output_ultrasound: Vec<OutputUltrasound<'a>>,
         frame_window_size: usize,
         num_points_in_frame: usize,
     ) -> Self {
+        let transducer_positions = transducer_positions.collect::<Vec<_>>();
         let dists = itertools::izip!(x.iter(), y.iter(), z.iter())
             .map(|(&x, &y, &z)| Vector3::new(x, y, z))
             .map(|p| {
@@ -91,8 +92,7 @@ impl<'a> Cpu<'a> {
                     });
                     Ok(())
                 })
-            })?;
-        Ok(())
+            })
     }
 
     pub(crate) fn compute(

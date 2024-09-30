@@ -78,21 +78,23 @@ async fn main() -> Result<()> {
             .await?;
 
         println!("Calculating sound pressure at focus under 200Hz sin modulation with silencer...");
-        let mut sound_field = record.sound_field(
-            Range {
-                x: focus.x..=focus.x,
-                y: focus.y..=focus.y,
-                z: focus.z..=focus.z,
-                resolution: 1.0 * mm,
-            },
-            RecordOption {
-                time_step: Duration::from_micros(1),
-                print_progress: true,
-                ..Default::default()
-            },
-        )?;
+        let mut sound_field = record
+            .sound_field(
+                Range {
+                    x: focus.x..=focus.x,
+                    y: focus.y..=focus.y,
+                    z: focus.z..=focus.z,
+                    resolution: 1.0 * mm,
+                },
+                RecordOption {
+                    time_step: Duration::from_micros(1),
+                    print_progress: true,
+                    ..Default::default()
+                },
+            )
+            .await?;
 
-        let df = sound_field.next(Duration::from_millis(20))?;
+        let df = sound_field.next(Duration::from_millis(20)).await?;
 
         let t = df
             .get_column_names()
