@@ -271,7 +271,6 @@ impl Record {
                     frame_window_size,
                     num_points_in_frame,
                     cache_size,
-                    option.memory_limits_hint_mb,
                 )
                 .await?, // GRCOV_EXCL_LINE
             )
