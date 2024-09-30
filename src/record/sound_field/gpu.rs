@@ -60,6 +60,7 @@ pub(crate) struct Gpu<'a> {
 }
 
 impl<'a> Gpu<'a> {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) async fn new(
         x: &[f32],
         y: &[f32],
