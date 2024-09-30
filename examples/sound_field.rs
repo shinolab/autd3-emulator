@@ -25,20 +25,24 @@ async fn main() -> Result<()> {
             .await?;
 
         println!("Calculating sound field around focus...");
-        let mut sound_field = record.sound_field(
-            Range {
-                x: focus.x - 20.0..=focus.x + 20.0,
-                y: focus.y - 20.0..=focus.y + 20.0,
-                z: focus.z..=focus.z,
-                resolution: 1.,
-            },
-            RecordOption {
-                time_step: Duration::from_micros(1),
-                print_progress: true,
-                ..Default::default()
-            },
-        )?;
-        let mut df = sound_field.next(Duration::from_millis(1))?;
+        let mut sound_field = record
+            .sound_field(
+                Range {
+                    x: focus.x - 20.0..=focus.x + 20.0,
+                    y: focus.y - 20.0..=focus.y + 20.0,
+                    z: focus.z..=focus.z,
+                    resolution: 1.,
+                },
+                RecordOption {
+                    time_step: Duration::from_micros(1),
+                    print_progress: true,
+                    #[cfg(feature = "gpu")]
+                    gpu: true,
+                    ..Default::default()
+                },
+            )
+            .await?;
+        let mut df = sound_field.next(Duration::from_millis(1)).await?;
 
         CsvWriter::new(std::fs::File::create("sound_field_around_focus.csv")?)
             .include_header(true)
@@ -68,20 +72,24 @@ async fn main() -> Result<()> {
             .await?;
 
         println!("Calculating sound field with STM...");
-        let mut sound_field = record.sound_field(
-            Range {
-                x: focus.x - 30.0..=focus.x + 30.0,
-                y: focus.y - 30.0..=focus.y + 30.0,
-                z: focus.z..=focus.z,
-                resolution: 2.,
-            },
-            RecordOption {
-                time_step: ULTRASOUND_PERIOD / 10,
-                print_progress: true,
-                ..Default::default()
-            },
-        )?;
-        let mut df = sound_field.next(Duration::from_millis(5))?;
+        let mut sound_field = record
+            .sound_field(
+                Range {
+                    x: focus.x - 30.0..=focus.x + 30.0,
+                    y: focus.y - 30.0..=focus.y + 30.0,
+                    z: focus.z..=focus.z,
+                    resolution: 1.,
+                },
+                RecordOption {
+                    time_step: ULTRASOUND_PERIOD / 10,
+                    print_progress: true,
+                    #[cfg(feature = "gpu")]
+                    gpu: true,
+                    ..Default::default()
+                },
+            )
+            .await?;
+        let mut df = sound_field.next(Duration::from_millis(5)).await?;
         CsvWriter::new(std::fs::File::create("sound_field_stm.csv")?)
             .include_header(true)
             .finish(&mut df)?;

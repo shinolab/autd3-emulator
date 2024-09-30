@@ -1,4 +1,5 @@
 mod cpu;
+#[cfg(feature = "gpu")]
 mod gpu;
 
 use std::time::Duration;
@@ -14,13 +15,15 @@ use crate::{EmulatorError, Range, RecordOption};
 #[derive(Debug)]
 enum ComputeDevice<'a> {
     CPU(cpu::Cpu<'a>),
-    GPU(gpu::Gpu),
+    #[cfg(feature = "gpu")]
+    GPU(gpu::Gpu<'a>),
 }
 
 impl<'a> ComputeDevice<'a> {
     fn init(&mut self, cache_size: isize, cursor: &mut isize, rem_frame: &mut usize) {
         match self {
             Self::CPU(cpu) => cpu.init(cache_size, cursor, rem_frame),
+            #[cfg(feature = "gpu")]
             Self::GPU(gpu) => gpu.init(cache_size, cursor, rem_frame),
         }
     }
@@ -28,11 +31,12 @@ impl<'a> ComputeDevice<'a> {
     fn progress(&mut self, cursor: &mut isize) -> Result<(), EmulatorError> {
         match self {
             Self::CPU(cpu) => cpu.progress(cursor),
+            #[cfg(feature = "gpu")]
             Self::GPU(gpu) => gpu.progress(cursor),
         }
     }
 
-    fn compute(
+    async fn compute(
         &mut self,
         start_time: f32,
         time_step: Duration,
@@ -40,24 +44,28 @@ impl<'a> ComputeDevice<'a> {
         sound_speed: f32,
         offset: isize,
         pb: &ProgressBar,
-    ) -> &Vec<Vec<f32>> {
+    ) -> Result<&Vec<Vec<f32>>, EmulatorError> {
         match self {
-            Self::CPU(cpu) => cpu.compute(
+            Self::CPU(cpu) => Ok(cpu.compute(
                 start_time,
                 time_step,
                 num_points_in_frame,
                 sound_speed,
                 offset,
                 pb,
-            ),
-            Self::GPU(gpu) => gpu.compute(
-                start_time,
-                time_step,
-                num_points_in_frame,
-                sound_speed,
-                offset,
-                pb,
-            ),
+            )),
+            #[cfg(feature = "gpu")]
+            Self::GPU(gpu) => {
+                gpu.compute(
+                    start_time,
+                    time_step,
+                    num_points_in_frame,
+                    sound_speed,
+                    offset,
+                    pb,
+                )
+                .await
+            }
         }
     }
 }
@@ -79,15 +87,15 @@ pub struct SoundField<'a> {
 }
 
 impl<'a> SoundField<'a> {
-    pub fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
-        self._next(duration, false).map(Option::unwrap)
+    pub async fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
+        self._next(duration, false).await.map(Option::unwrap)
     }
 
-    pub fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {
-        self._next(duration, true).map(|_| self)
+    pub async fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {
+        self._next(duration, true).await.map(|_| self)
     }
 
-    fn _next(
+    async fn _next(
         &mut self,
         duration: Duration,
         skip: bool,
@@ -134,28 +142,30 @@ impl<'a> SoundField<'a> {
 
             if !skip {
                 let offset = (self.cursor - self.cache_size) * ULTRASOUND_PERIOD_COUNT as isize;
-                (0..num_frames)
-                    .map(|i| ((cur_frame + i) as u32 * ULTRASOUND_PERIOD).as_secs_f32())
-                    .for_each(|start_time| {
-                        let r = self.compute_device.compute(
+                for i in 0..num_frames {
+                    let start_time = ((cur_frame + i) as u32 * ULTRASOUND_PERIOD).as_secs_f32();
+                    let r = self
+                        .compute_device
+                        .compute(
                             start_time,
                             time_step,
                             self.num_points_in_frame,
                             sound_speed,
                             offset,
                             &pb,
-                        );
-                        (0..r.len()).for_each(|i| {
-                            columns.push(Series::new(
-                                format!(
-                                    "p[Pa]@{}",
-                                    start_time + (i as u32 * time_step).as_secs_f32()
-                                )
-                                .into(),
-                                &r[i],
-                            ));
-                        });
+                        )
+                        .await?;
+                    (0..r.len()).for_each(|i| {
+                        columns.push(Series::new(
+                            format!(
+                                "p[Pa]@{}",
+                                start_time + (i as u32 * time_step).as_secs_f32()
+                            )
+                            .into(),
+                            &r[i],
+                        ));
                     });
+                }
             }
             cur_frame = end_frame;
         }
@@ -178,7 +188,7 @@ impl<'a> SoundField<'a> {
 }
 
 impl Record {
-    pub fn sound_field(
+    pub async fn sound_field(
         &self,
         range: Range,
         option: RecordOption,
@@ -213,14 +223,21 @@ impl Record {
                 + y.len() * size_of::<f32>()
                 + z.len() * size_of::<f32>();
 
+            #[cfg(feature = "gpu")]
+            let mem_usage = if option.gpu {
+                mem_usage
+            } else {
+                mem_usage + x.len() * num_transducers * size_of::<f32>()
+            };
+            #[cfg(not(feature = "gpu"))]
             let mem_usage = mem_usage + x.len() * num_transducers * size_of::<f32>();
 
             let memory_limits = option.memory_limits_hint_mb.saturating_mul(1024 * 1024);
 
             let frame_window_size_mem = ((memory_limits.saturating_sub(mem_usage))
-                / (ULTRASOUND_PERIOD_COUNT * num_transducers))
-                .saturating_sub(required_frame_size)
-                .max(1);
+                / (ULTRASOUND_PERIOD_COUNT * num_transducers * size_of::<f32>()))
+            .saturating_sub(required_frame_size)
+            .max(1);
 
             let frame_window_size_time =
                 ((Duration::from_nanos(self.end.sys_time() - self.start.sys_time()).as_nanos()
@@ -240,24 +257,52 @@ impl Record {
             .collect::<Vec<_>>();
         let cache_size = (required_frame_size + frame_window_size) as isize;
 
-        Ok(SoundField {
-            compute_device: if option.gpu {
-                ComputeDevice::GPU(gpu::Gpu {})
-            } else {
-                ComputeDevice::CPU(cpu::Cpu::new(
+        #[cfg(feature = "gpu")]
+        let compute_device = if option.gpu {
+            ComputeDevice::GPU(
+                gpu::Gpu::new(
                     &x,
                     &y,
                     &z,
-                    &self
-                        .records
+                    self.records
                         .iter()
-                        .flat_map(|dev| dev.records.iter().map(|tr| *tr.tr.position()))
-                        .collect::<Vec<_>>(),
+                        .flat_map(|dev| dev.records.iter().map(|tr| *tr.tr.position())),
                     output_ultrasound,
                     frame_window_size,
                     num_points_in_frame,
-                ))
-            },
+                    cache_size,
+                    option.memory_limits_hint_mb,
+                )
+                .await?,
+            )
+        } else {
+            ComputeDevice::CPU(cpu::Cpu::new(
+                &x,
+                &y,
+                &z,
+                self.records
+                    .iter()
+                    .flat_map(|dev| dev.records.iter().map(|tr| *tr.tr.position())),
+                output_ultrasound,
+                frame_window_size,
+                num_points_in_frame,
+            ))
+        };
+        #[cfg(not(feature = "gpu"))]
+        let compute_device = ComputeDevice::CPU(cpu::Cpu::new(
+            &x,
+            &y,
+            &z,
+            self.records
+                .iter()
+                .flat_map(|dev| dev.records.iter().map(|tr| *tr.tr.position())),
+            output_ultrasound,
+            frame_window_size,
+            num_points_in_frame,
+        ));
+
+        Ok(SoundField {
+            compute_device,
             cursor,
             last_frame: 0,
             rem_frame: 0,

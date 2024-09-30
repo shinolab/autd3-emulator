@@ -10,6 +10,7 @@ pub struct RecordOption {
     pub time_step: Duration,
     pub print_progress: bool,
     pub memory_limits_hint_mb: usize,
+    #[cfg(feature = "gpu")]
     pub gpu: bool,
 }
 
@@ -19,7 +20,8 @@ impl std::default::Default for RecordOption {
             sound_speed: 340e3 * mm,
             time_step: Duration::from_micros(1),
             print_progress: false,
-            memory_limits_hint_mb: 512,
+            memory_limits_hint_mb: 128,
+            #[cfg(feature = "gpu")]
             gpu: false,
         }
     }
