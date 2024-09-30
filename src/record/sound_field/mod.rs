@@ -14,25 +14,25 @@ use crate::{EmulatorError, Range, RecordOption};
 
 #[derive(Debug)]
 enum ComputeDevice<'a> {
-    CPU(cpu::Cpu<'a>),
+    Cpu(cpu::Cpu<'a>),
     #[cfg(feature = "gpu")]
-    GPU(gpu::Gpu<'a>),
+    Gpu(gpu::Gpu<'a>),
 }
 
 impl<'a> ComputeDevice<'a> {
     fn init(&mut self, cache_size: isize, cursor: &mut isize, rem_frame: &mut usize) {
         match self {
-            Self::CPU(cpu) => cpu.init(cache_size, cursor, rem_frame),
+            Self::Cpu(cpu) => cpu.init(cache_size, cursor, rem_frame),
             #[cfg(feature = "gpu")]
-            Self::GPU(gpu) => gpu.init(cache_size, cursor, rem_frame),
+            Self::Gpu(gpu) => gpu.init(cache_size, cursor, rem_frame),
         }
     }
 
     fn progress(&mut self, cursor: &mut isize) -> Result<(), EmulatorError> {
         match self {
-            Self::CPU(cpu) => cpu.progress(cursor),
+            Self::Cpu(cpu) => cpu.progress(cursor),
             #[cfg(feature = "gpu")]
-            Self::GPU(gpu) => gpu.progress(cursor),
+            Self::Gpu(gpu) => gpu.progress(cursor),
         }
     }
 
@@ -46,7 +46,7 @@ impl<'a> ComputeDevice<'a> {
         pb: &ProgressBar,
     ) -> Result<&Vec<Vec<f32>>, EmulatorError> {
         match self {
-            Self::CPU(cpu) => Ok(cpu.compute(
+            Self::Cpu(cpu) => Ok(cpu.compute(
                 start_time,
                 time_step,
                 num_points_in_frame,
@@ -55,7 +55,7 @@ impl<'a> ComputeDevice<'a> {
                 pb,
             )),
             #[cfg(feature = "gpu")]
-            Self::GPU(gpu) => {
+            Self::Gpu(gpu) => {
                 gpu.compute(
                     start_time,
                     time_step,
@@ -259,7 +259,7 @@ impl Record {
 
         #[cfg(feature = "gpu")]
         let compute_device = if option.gpu {
-            ComputeDevice::GPU(
+            ComputeDevice::Gpu(
                 gpu::Gpu::new(
                     &x,
                     &y,
@@ -276,7 +276,7 @@ impl Record {
                 .await?,
             )
         } else {
-            ComputeDevice::CPU(cpu::Cpu::new(
+            ComputeDevice::Cpu(cpu::Cpu::new(
                 &x,
                 &y,
                 &z,
@@ -289,7 +289,7 @@ impl Record {
             ))
         };
         #[cfg(not(feature = "gpu"))]
-        let compute_device = ComputeDevice::CPU(cpu::Cpu::new(
+        let compute_device = ComputeDevice::Cpu(cpu::Cpu::new(
             &x,
             &y,
             &z,
