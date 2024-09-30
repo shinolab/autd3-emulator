@@ -27,7 +27,7 @@ flume = { version = "0.11.0", optional = true }
 [dev-dependencies]
 anyhow = "1.0.87"
 approx = "0.5.1"
-rstest = "0.22.0"
+rstest = "0.23.0"
 textplots = "0.8.6"
 tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 polars = { version = "0.43.1", features = ["dtype-u8", "csv"] }
