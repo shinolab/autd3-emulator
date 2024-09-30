@@ -9,6 +9,7 @@ use indicatif::ProgressBar;
 use rayon::prelude::*;
 use wgpu::{util::DeviceExt, Buffer};
 
+// GRCOV_EXCL_START
 #[derive(NoUninit, Clone, Copy)]
 #[repr(C)]
 struct Vec3 {
@@ -39,6 +40,7 @@ struct Pc {
     output_ultrasound_stride: u32,
     _pad: [u32; 3],
 }
+// GRCOV_EXCL_STOP
 
 #[derive(Debug)]
 pub(crate) struct Gpu<'a> {

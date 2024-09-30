@@ -61,7 +61,7 @@ with working_dir(os.path.dirname(os.path.abspath(__file__))):
         RUSTFLAGS="-C instrument-coverage",
         LLVM_PROFILE_FILE="%m-%p.profraw",
     ):
-        command = ["cargo", "build"]
+        command = ["cargo", "build", "--features", "gpu"]
         subprocess.run(command).check_returncode()
         command[1] = "test"
         subprocess.run(command).check_returncode()
