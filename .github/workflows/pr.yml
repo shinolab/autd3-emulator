@@ -41,6 +41,8 @@ jobs:
             features: "gpu"
           - os: ubuntu-latest
             features: "async-trait"
+          - os: ubuntu-latest
+            features: "inplace"
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-build

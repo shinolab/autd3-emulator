@@ -1,22 +1,32 @@
+use autd3::driver::defined::ULTRASOUND_PERIOD_COUNT;
 use polars::{df, frame::DataFrame, prelude::NamedFrom, series::Series};
 
 use super::Record;
 
 impl Record {
+    #[cfg(feature = "inplace")]
+    pub fn output_ultrasound_inplace(&self, dev_idx: usize, tr_idx: usize, v: &mut [f32]) {
+        let n = self.records[dev_idx].records[tr_idx].pulse_width.len();
+        self.records[dev_idx].records[tr_idx]
+            .output_ultrasound()
+            ._next_inplace(n, v);
+    }
+
     pub fn output_ultrasound(&self) -> DataFrame {
         let n = self.records[0].records[0].pulse_width.len();
 
         let time = self.records[0].records[0].output_times(0, n);
 
-        let series = self
-            .records
-            .iter()
-            .enumerate()
-            .flat_map(|(dev_idx, dev)| {
-                dev.records.iter().enumerate().map(move |(tr_idx, tr)| {
-                    let o = tr.output_ultrasound()._next(n).unwrap();
-                    Series::new(format!("p_{}_{}[a.u.]", dev_idx, tr_idx).into(), &o)
-                })
+        let mut v = vec![0.0; n * ULTRASOUND_PERIOD_COUNT];
+        let series = (0..self.records.len())
+            .flat_map(|dev_idx| {
+                (0..self.records[dev_idx].records.len()).map(move |tr_idx| (dev_idx, tr_idx))
+            })
+            .map(|(dev_idx, tr_idx)| {
+                self.records[dev_idx].records[tr_idx]
+                    .output_ultrasound()
+                    ._next_inplace(n, &mut v);
+                Series::new(format!("p_{}_{}[a.u.]", dev_idx, tr_idx).into(), &v)
             })
             .collect::<Vec<_>>();
 

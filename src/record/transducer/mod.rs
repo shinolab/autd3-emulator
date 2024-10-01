@@ -1,8 +1,6 @@
 pub(crate) mod output_ultrasound;
 mod output_voltage;
 
-use polars::prelude::*;
-
 use autd3::driver::{defined::ULTRASOUND_PERIOD, derive::Builder};
 
 use derive_more::Debug;
@@ -16,10 +14,16 @@ pub(crate) struct TransducerRecord {
 }
 
 impl TransducerRecord {
-    pub(crate) fn time(start: usize, n: usize) -> Series {
+    pub(crate) fn time_inplace(start: usize, n: usize, time: &mut [f32]) {
         (start..)
             .take(n)
-            .map(|i| (i as u32 * ULTRASOUND_PERIOD).as_secs_f32())
-            .collect()
+            .zip(time.iter_mut())
+            .for_each(|(i, dst)| *dst = (i as u32 * ULTRASOUND_PERIOD).as_secs_f32());
+    }
+
+    pub(crate) fn time(start: usize, n: usize) -> Vec<f32> {
+        let mut time = vec![0.; n];
+        Self::time_inplace(start, n, &mut time);
+        time
     }
 }
