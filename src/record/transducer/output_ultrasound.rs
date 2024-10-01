@@ -1,3 +1,5 @@
+use autd3::driver::defined::ULTRASOUND_PERIOD_COUNT;
+
 use super::TransducerRecord;
 
 #[derive(Debug)]
@@ -8,15 +10,20 @@ pub struct OutputUltrasound<'a> {
 }
 
 impl<'a> OutputUltrasound<'a> {
-    pub(crate) fn _next(&mut self, n: usize) -> Option<Vec<f32>> {
+    pub(crate) fn _next_inplace(&mut self, n: usize, v: &mut [f32]) -> Option<()> {
         let output_volage = self.record._output_voltage_within(self.cursor, n)?;
         self.cursor += n;
-        Some(
-            output_volage
-                .into_iter()
-                .map(|v| self.model.rk4(v))
-                .collect(),
-        )
+        output_volage
+            .into_iter()
+            .zip(v.iter_mut())
+            .for_each(|(v, dst)| *dst = self.model.rk4(v));
+        Some(())
+    }
+
+    pub(crate) fn _next(&mut self, n: usize) -> Option<Vec<f32>> {
+        let mut v = vec![0.0; n * ULTRASOUND_PERIOD_COUNT];
+        self._next_inplace(n, &mut v)?;
+        Some(v)
     }
 }
 

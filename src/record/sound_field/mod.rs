@@ -88,18 +88,59 @@ pub struct SoundField<'a> {
 
 impl<'a> SoundField<'a> {
     pub async fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
-        self._next(duration, false).await.map(Option::unwrap)
+        let num_frames = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
+
+        let n = num_frames * self.num_points_in_frame;
+        let mut time = vec![0.0; n];
+        let mut v = vec![vec![0.0; self.x.len()]; n];
+        self.next_inplace(duration, false, &mut time, &mut v)
+            .await?;
+
+        let columns = time
+            .iter()
+            .zip(v.iter())
+            .map(|(t, v)| Series::new(format!("p[Pa]@{}", t).into(), v))
+            .collect::<Vec<_>>();
+
+        let mut df = df!(
+            "x[mm]" => &self.x,
+            "y[mm]" => &self.y,
+            "z[mm]" => &self.z,
+        )
+        .unwrap();
+        df.hstack_mut(&columns).unwrap();
+
+        Ok(df)
     }
 
     pub async fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {
-        self._next(duration, true).await.map(|_| self)
+        self.next_inplace(duration, true, &mut [], &mut []).await?;
+        Ok(self)
     }
 
-    async fn _next(
+    #[cfg(feature = "inplace")]
+    pub fn x_inplace(&self, x: &mut [f32]) {
+        x.copy_from_slice(&self.x);
+    }
+
+    #[cfg(feature = "inplace")]
+    pub fn y_inplace(&self, y: &mut [f32]) {
+        y.copy_from_slice(&self.y);
+    }
+
+    #[cfg(feature = "inplace")]
+    pub fn z_inplace(&self, z: &mut [f32]) {
+        z.copy_from_slice(&self.z);
+    }
+
+    #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    async fn next_inplace(
         &mut self,
         duration: Duration,
         skip: bool,
-    ) -> Result<Option<DataFrame>, EmulatorError> {
+        time: &mut [f32],
+        v: &mut [Vec<f32>],
+    ) -> Result<(), EmulatorError> {
         if duration.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
             return Err(EmulatorError::InvalidDuration);
         }
@@ -118,8 +159,7 @@ impl<'a> SoundField<'a> {
         let mut cur_frame = self.last_frame;
         let pb = self.option.pb(num_frames * self.num_points_in_frame);
 
-        let mut columns = Vec::new();
-
+        let mut idx = 0;
         loop {
             if cur_frame == self.last_frame + num_frames {
                 break;
@@ -156,14 +196,9 @@ impl<'a> SoundField<'a> {
                         )
                         .await?; // GRCOV_EXCL_LINE
                     (0..r.len()).for_each(|i| {
-                        columns.push(Series::new(
-                            format!(
-                                "p[Pa]@{}",
-                                start_time + (i as u32 * time_step).as_secs_f32()
-                            )
-                            .into(),
-                            &r[i],
-                        ));
+                        time[idx] = start_time + (i as u32 * time_step).as_secs_f32();
+                        v[idx].copy_from_slice(&r[i]);
+                        idx += 1;
                     });
                 }
             }
@@ -171,19 +206,7 @@ impl<'a> SoundField<'a> {
         }
         self.last_frame = cur_frame;
 
-        if skip {
-            return Ok(None);
-        }
-
-        let mut df = df!(
-            "x[mm]" => &self.x,
-            "y[mm]" => &self.y,
-            "z[mm]" => &self.z,
-        )
-        .unwrap();
-        df.hstack_mut(&columns).unwrap();
-
-        Ok(Some(df))
+        Ok(())
     }
 }
 
