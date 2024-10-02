@@ -5,7 +5,8 @@ mod utils;
 
 pub use error::EmulatorError;
 pub use option::{Range, RecordOption};
-use record::{DeviceRecord, Record, TransducerRecord};
+pub use record::Record;
+use record::{DeviceRecord, TransducerRecord};
 
 use std::time::Duration;
 
