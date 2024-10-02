@@ -7,6 +7,7 @@ use autd3::{derive::Builder, prelude::DcSysTime};
 use derive_more::Debug;
 use polars::{df, frame::DataFrame, prelude::NamedFrom, series::Series};
 
+pub use sound_field::SoundField;
 pub(crate) use transducer::TransducerRecord;
 
 #[derive(Debug)]
