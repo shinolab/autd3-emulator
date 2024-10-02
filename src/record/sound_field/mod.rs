@@ -224,7 +224,7 @@ impl Record {
         &self,
         range: Range,
         option: RecordOption,
-    ) -> Result<SoundField<'_>, EmulatorError> {
+    ) -> Result<SoundField, EmulatorError> {
         if ULTRASOUND_PERIOD.as_nanos() % option.time_step.as_nanos() != 0 {
             return Err(EmulatorError::InvalidTimeStep);
         }
