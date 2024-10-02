@@ -88,11 +88,9 @@ pub struct SoundField<'a> {
 
 impl<'a> SoundField<'a> {
     pub async fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
-        let num_frames = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
-
-        let n = num_frames * self.num_points_in_frame;
+        let n = self.next_time_len(duration);
         let mut time = vec![0.0; n];
-        let mut v = vec![vec![0.0; self.x.len()]; n];
+        let mut v = vec![vec![0.0; self.next_points_len()]; n];
         self.next_inplace(duration, false, &mut time, &mut v)
             .await?;
 
@@ -131,6 +129,17 @@ impl<'a> SoundField<'a> {
     #[cfg(feature = "inplace")]
     pub fn z_inplace(&self, z: &mut [f32]) {
         z.copy_from_slice(&self.z);
+    }
+
+    #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    fn next_time_len(&self, duration: Duration) -> usize {
+        let num_frames = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
+        num_frames * self.num_points_in_frame
+    }
+
+    #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    fn next_points_len(&self) -> usize {
+        self.x.len()
     }
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]

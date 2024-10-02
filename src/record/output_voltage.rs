@@ -5,6 +5,11 @@ use super::Record;
 
 impl Record {
     #[cfg(feature = "inplace")]
+    pub fn output_len(&self) -> usize {
+        self.records[0].records[0].pulse_width.len() * ULTRASOUND_PERIOD_COUNT
+    }
+
+    #[cfg(feature = "inplace")]
     pub fn output_voltage_time_inplace(&self, time: &mut [f32]) {
         let n = self.records[0].records[0].pulse_width.len();
         self.records[0].records[0].output_times_inplace(0, n, time);

@@ -27,8 +27,13 @@ pub struct Record {
 
 impl Record {
     #[cfg(feature = "inplace")]
+    pub fn drive_time_len(&self) -> usize {
+        self.records[0].records[0].pulse_width.len()
+    }
+
+    #[cfg(feature = "inplace")]
     pub fn drive_time_inplace(&self, time: &mut [f32]) {
-        TransducerRecord::time_inplace(0, self.records[0].records[0].pulse_width.len(), time)
+        TransducerRecord::time_inplace(0, self.drive_time_len(), time)
     }
 
     #[cfg(feature = "inplace")]
@@ -39,6 +44,16 @@ impl Record {
     #[cfg(feature = "inplace")]
     pub fn drive_pulsewidth_inplace(&self, dev_idx: usize, tr_idx: usize, pulsewidth: &mut [u8]) {
         pulsewidth.copy_from_slice(&self.records[dev_idx].records[tr_idx].pulse_width);
+    }
+
+    #[cfg(feature = "inplace")]
+    pub fn num_devices(&self) -> usize {
+        self.records.len()
+    }
+
+    #[cfg(feature = "inplace")]
+    pub fn num_transducers(&self, dev_idx: usize) -> usize {
+        self.records[dev_idx].records.len()
     }
 
     pub fn drive(&self) -> DataFrame {
