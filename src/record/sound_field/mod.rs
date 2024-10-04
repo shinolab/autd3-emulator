@@ -118,7 +118,7 @@ impl<'a> SoundField<'a> {
 
     pub async fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {
         self.next_inplace(duration, true, &mut [], std::iter::empty())
-            .await?;
+            .await?; // GRCOV_EXCL_LINE
         Ok(self)
     }
 
