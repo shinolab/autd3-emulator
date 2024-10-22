@@ -3,7 +3,7 @@ use std::time::Duration;
 use anyhow::Result;
 
 use autd3::prelude::*;
-use autd3_emulator::{Emulator, Range, RecordOption};
+use autd3_emulator::{Emulator, Range, RecordOption, RecorderControllerExt};
 
 use polars::prelude::AnyValue;
 use textplots::{Chart, Plot, Shape};

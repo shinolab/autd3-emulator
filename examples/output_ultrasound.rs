@@ -3,7 +3,7 @@ use std::time::Duration;
 use anyhow::Result;
 
 use autd3::prelude::*;
-use autd3_emulator::Emulator;
+use autd3_emulator::{Emulator, RecorderControllerExt};
 
 use textplots::{Chart, Plot, Shape};
 
