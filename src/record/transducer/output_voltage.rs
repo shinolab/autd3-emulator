@@ -1,4 +1,4 @@
-use autd3::driver::defined::{ULTRASOUND_FREQ, ULTRASOUND_PERIOD, ULTRASOUND_PERIOD_COUNT};
+use autd3::driver::defined::{ULTRASOUND_FREQ, ULTRASOUND_PERIOD_COUNT};
 
 use super::TransducerRecord;
 
@@ -6,19 +6,18 @@ impl TransducerRecord {
     pub(crate) const TS: f32 = 1. / (ULTRASOUND_FREQ.hz() as f32 * ULTRASOUND_PERIOD_COUNT as f32);
     pub(crate) const V: f32 = 12.0;
 
-    pub(crate) fn output_times_inplace(&self, start: usize, n: usize, time: &mut [f32]) {
+    pub(crate) fn output_times_inplace(&self, start: usize, n: usize, time: &mut [u64]) {
         (start..)
             .take(n)
-            .map(|i| i as u32 * ULTRASOUND_PERIOD)
-            .flat_map(|t| {
-                (0..ULTRASOUND_PERIOD_COUNT).map(move |i| t.as_secs_f32() + i as f32 * Self::TS)
+            .flat_map(|i| {
+                (0..ULTRASOUND_PERIOD_COUNT).map(move |j| i * ULTRASOUND_PERIOD_COUNT + j)
             })
             .zip(time.iter_mut())
-            .for_each(|(src, dst)| *dst = src);
+            .for_each(|(src, dst)| *dst = src as _);
     }
 
-    pub(crate) fn output_times(&self, start: usize, n: usize) -> Vec<f32> {
-        let mut time = vec![0.; n * ULTRASOUND_PERIOD_COUNT];
+    pub(crate) fn output_times(&self, start: usize, n: usize) -> Vec<u64> {
+        let mut time = vec![0; n * ULTRASOUND_PERIOD_COUNT];
         self.output_times_inplace(start, n, &mut time);
         time
     }

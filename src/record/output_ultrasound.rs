@@ -30,7 +30,7 @@ impl Record {
             })
             .collect::<Vec<_>>();
 
-        let mut df = df!("time[s]" => &time).unwrap();
+        let mut df = df!("time[25us/256]" => &time).unwrap();
         df.hstack_mut(&series).unwrap();
         df
     }
