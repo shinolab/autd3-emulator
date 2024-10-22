@@ -27,14 +27,15 @@ async fn main() -> Result<()> {
             .await?;
 
         let df = record.output_voltage();
-        let t = df["time[s]"].f32()?;
+        let t = df["time[25us/256]"].u64()?;
+        dbg!(&t);
         let v = df["voltage_0_0[V]"].f32()?; // voltage_<device idx>_<transducer idx>
         println!("output voltage");
         Chart::new(300, 40, 0.0, 1.0)
             .lineplot(&Shape::Lines(
                 &t.into_no_null_iter()
                     .zip(v.into_no_null_iter())
-                    .map(|(t, v)| (t * 1000., v))
+                    .map(|(t, v)| (t as f32 * 0.025 / 256., v))
                     .collect::<Vec<_>>(),
             ))
             .display();
@@ -56,14 +57,14 @@ async fn main() -> Result<()> {
             .await?;
 
         let df = record.output_ultrasound();
-        let t = df["time[s]"].f32()?;
+        let t = df["time[25us/256]"].u64()?;
         let v = df["p_0_0[a.u.]"].f32()?;
         println!("output ultrasound");
         Chart::new(300, 40, 0.0, 1.0)
             .lineplot(&Shape::Lines(
                 &t.into_no_null_iter()
                     .zip(v.into_no_null_iter())
-                    .map(|(t, v)| (t * 1000., v))
+                    .map(|(t, v)| (t as f32 * 0.025 / 256., v))
                     .collect::<Vec<_>>(),
             ))
             .display();

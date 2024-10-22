@@ -10,7 +10,7 @@ impl Record {
     }
 
     #[cfg(feature = "inplace")]
-    pub fn output_voltage_time_inplace(&self, time: &mut [f32]) {
+    pub fn output_voltage_time_inplace(&self, time: &mut [u64]) {
         let n = self.records[0].records[0].pulse_width.len();
         self.records[0].records[0].output_times_inplace(0, n, time);
     }
@@ -36,7 +36,7 @@ impl Record {
             })
             .collect::<Vec<_>>();
 
-        let mut df = df!("time[s]" => &t).unwrap();
+        let mut df = df!("time[25us/256]" => &t).unwrap();
         df.hstack_mut(&series).unwrap();
         df
     }

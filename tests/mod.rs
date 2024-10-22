@@ -1,4 +1,4 @@
-use autd3::{derive::Datagram, driver::firmware::fpga::FPGA_MAIN_CLK_FREQ, gain, prelude::*};
+use autd3::{derive::Datagram, gain, prelude::*};
 use autd3_emulator::{Emulator, Range, RecordOption, RecorderControllerExt};
 
 use polars::prelude::{df, NamedFrom, Series};
@@ -16,7 +16,7 @@ async fn record_drive(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
         ((((i as f32) / 255.).asin() / PI) * 256.).round() as u8
     };
     let mut expect = df!(
-        "time[s]" => [0f32, 25. / 1e6, 50. / 1e6],
+        "time[ns]" => [0u64, 25000, 50000],
     )
     .unwrap();
     let series = emulator
@@ -118,13 +118,11 @@ async fn record_output_voltage() -> anyhow::Result<()> {
         .await?;
 
     let v = record.output_voltage();
-    v["time[s]"]
-        .f32()?
+    v["time[25us/256]"]
+        .u64()?
         .into_no_null_iter()
         .enumerate()
-        .for_each(|(i, t)| {
-            approx::assert_abs_diff_eq!(i as f32 * (1. / FPGA_MAIN_CLK_FREQ.hz() as f32), t)
-        });
+        .for_each(|(i, t)| assert_eq!(i as u64, t));
     let expect_1 = [vec![12.; 64], vec![-12.; 128], vec![12.; 64]].concat();
     let expect_2 = [vec![-12.; 64], vec![12.; 128], vec![-12.; 64]].concat();
     let expect_3 = [vec![-12.; 96], vec![12.; 64], vec![-12.; 96]].concat();
@@ -161,13 +159,11 @@ async fn record_output_ultrasound() -> anyhow::Result<()> {
         .await?;
 
     let df = record.output_ultrasound();
-    df["time[s]"]
-        .f32()?
+    df["time[25us/256]"]
+        .u64()?
         .into_no_null_iter()
         .enumerate()
-        .for_each(|(i, t)| {
-            approx::assert_abs_diff_eq!(i as f32 * (1. / FPGA_MAIN_CLK_FREQ.hz() as f32), t)
-        });
+        .for_each(|(i, t)| assert_eq!(i as u64, t));
     emulator.geometry().iter().for_each(|dev| {
         dev.iter().for_each(|tr| {
             // TODO: check the value

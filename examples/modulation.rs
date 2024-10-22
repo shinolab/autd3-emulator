@@ -25,14 +25,14 @@ async fn main() -> Result<()> {
             .await?;
 
         let df = record.drive();
-        let t = df["time[s]"].f32()?;
+        let t = df["time[ns]"].u64()?;
         let pulse_width = df["pulsewidth_0_0"].u8()?; // pulsewidth_<device idx>_<transducer idx>
         println!("pulse width under 200Hz sine modulation with silencer");
         Chart::new(180, 40, 5.0, 10.0)
             .lineplot(&Shape::Lines(
                 &t.into_no_null_iter()
                     .zip(pulse_width.into_no_null_iter())
-                    .map(|(t, v)| (t * 1000., v as f32))
+                    .map(|(t, v)| (t as f32 / 1000_000., v as f32))
                     .collect::<Vec<_>>(),
             ))
             .display();
@@ -51,14 +51,14 @@ async fn main() -> Result<()> {
             .await?;
 
         let df = record.drive();
-        let t = df["time[s]"].f32()?;
+        let t = df["time[ns]"].u64()?;
         let pulse_width = df["pulsewidth_0_0"].u8()?; // pulsewidth_<device idx>_<transducer idx>
         println!("pulse width under 200Hz sine modulation without silencer");
         Chart::new(180, 40, 5.0, 10.0)
             .lineplot(&Shape::Lines(
                 &t.into_no_null_iter()
                     .zip(pulse_width.into_no_null_iter())
-                    .map(|(t, v)| (t * 1000., v as f32))
+                    .map(|(t, v)| (t as f32 / 1000_000., v as f32))
                     .collect::<Vec<_>>(),
             ))
             .display();
@@ -96,11 +96,13 @@ async fn main() -> Result<()> {
 
         let df = sound_field.next(Duration::from_millis(20)).await?;
 
-        let t = df
-            .get_column_names()
-            .into_iter()
-            .skip(3)
-            .map(|n| n.as_str().replace("p[Pa]@", "").parse::<f32>().unwrap());
+        let t = df.get_column_names().into_iter().skip(3).map(|n| {
+            n.as_str()
+                .replace("p[Pa]@", "")
+                .replace("[ns]", "")
+                .parse::<u64>()
+                .unwrap()
+        });
         let p = df
             .get_row(0)?
             .0
@@ -113,7 +115,9 @@ async fn main() -> Result<()> {
         println!("sound pressure at focus under 200Hz sin modulation with silencer");
         Chart::new(180, 40, 0.0, 20.0)
             .lineplot(&Shape::Lines(
-                &t.zip(p).map(|(t, p)| (t * 1000., p)).collect::<Vec<_>>(),
+                &t.zip(p)
+                    .map(|(t, p)| (t as f32 / 1000_000., p))
+                    .collect::<Vec<_>>(),
             ))
             .display();
     }

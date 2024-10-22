@@ -89,7 +89,7 @@ pub struct SoundField<'a> {
 impl<'a> SoundField<'a> {
     pub async fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
         let n = self.next_time_len(duration);
-        let mut time = vec![0.0; n];
+        let mut time = vec![0; n];
         let mut v = vec![vec![0.0; self.next_points_len()]; n];
         self.next_inplace(
             duration,
@@ -102,7 +102,7 @@ impl<'a> SoundField<'a> {
         let columns = time
             .iter()
             .zip(v.iter())
-            .map(|(t, v)| Series::new(format!("p[Pa]@{}", t).into(), v))
+            .map(|(t, v)| Series::new(format!("p[Pa]@{}[ns]", t).into(), v))
             .collect::<Vec<_>>();
 
         let mut df = df!(
@@ -153,7 +153,7 @@ impl<'a> SoundField<'a> {
         &mut self,
         duration: Duration,
         skip: bool,
-        time: &mut [f32],
+        time: &mut [u64],
         mut v: impl Iterator<Item = *mut f32>,
     ) -> Result<(), EmulatorError> {
         if duration.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
@@ -198,11 +198,11 @@ impl<'a> SoundField<'a> {
             if !skip {
                 let offset = (self.cursor - self.cache_size) * ULTRASOUND_PERIOD_COUNT as isize;
                 for i in 0..num_frames {
-                    let start_time = ((cur_frame + i) as u32 * ULTRASOUND_PERIOD).as_secs_f32();
+                    let start_time = (cur_frame + i) as u32 * ULTRASOUND_PERIOD;
                     let r = self
                         .compute_device
                         .compute(
-                            start_time,
+                            start_time.as_secs_f32(),
                             time_step,
                             self.num_points_in_frame,
                             sound_speed,
@@ -211,7 +211,7 @@ impl<'a> SoundField<'a> {
                         )
                         .await?; // GRCOV_EXCL_LINE
                     (0..r.len()).for_each(|i| {
-                        time[idx] = start_time + (i as u32 * time_step).as_secs_f32();
+                        time[idx] = (start_time + (i as u32 * time_step)).as_nanos() as u64;
                         unsafe {
                             std::ptr::copy_nonoverlapping(
                                 r[i].as_ptr(),

@@ -32,7 +32,7 @@ impl Record {
     }
 
     #[cfg(feature = "inplace")]
-    pub fn drive_time_inplace(&self, time: &mut [f32]) {
+    pub fn drive_time_inplace(&self, time: &mut [u64]) {
         TransducerRecord::time_inplace(0, self.drive_time_len(), time)
     }
 
@@ -58,7 +58,7 @@ impl Record {
 
     pub fn drive(&self) -> DataFrame {
         let mut df =
-            df!("time[s]" => &TransducerRecord::time(0, self.records[0].records[0].pulse_width.len()))
+            df!("time[ns]" => &TransducerRecord::time(0, self.records[0].records[0].pulse_width.len()))
                 .unwrap();
         let series = self
             .records

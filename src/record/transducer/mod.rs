@@ -14,15 +14,15 @@ pub(crate) struct TransducerRecord {
 }
 
 impl TransducerRecord {
-    pub(crate) fn time_inplace(start: usize, n: usize, time: &mut [f32]) {
+    pub(crate) fn time_inplace(start: usize, n: usize, time: &mut [u64]) {
         (start..)
             .take(n)
             .zip(time.iter_mut())
-            .for_each(|(i, dst)| *dst = (i as u32 * ULTRASOUND_PERIOD).as_secs_f32());
+            .for_each(|(i, dst)| *dst = (i as u32 * ULTRASOUND_PERIOD).as_nanos() as u64);
     }
 
-    pub(crate) fn time(start: usize, n: usize) -> Vec<f32> {
-        let mut time = vec![0.; n];
+    pub(crate) fn time(start: usize, n: usize) -> Vec<u64> {
+        let mut time = vec![0; n];
         Self::time_inplace(start, n, &mut time);
         time
     }
