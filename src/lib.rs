@@ -3,6 +3,8 @@ mod option;
 mod record;
 mod utils;
 
+use autd3::prelude::SpinSleeper;
+use autd3::prelude::TimerStrategy;
 pub use error::EmulatorError;
 pub use option::{Range, RecordOption};
 pub use record::Record;
@@ -17,7 +19,7 @@ use autd3::{
         derive::{Builder, *},
         ethercat::DcSysTime,
         firmware::{
-            cpu::{RxMessage, TxDatagram},
+            cpu::{RxMessage, TxMessage},
             fpga::{EmitIntensity, Phase, SilencerTarget},
         },
         geometry::IntoDevice,
@@ -55,7 +57,6 @@ pub struct Recorder {
     is_open: bool,
     emulators: Vec<CPUEmulator>,
     geometry: Geometry,
-    timeout: std::time::Duration,
     record: RawRecord,
 }
 
@@ -97,7 +98,6 @@ impl LinkBuilder for RecorderBuilder {
             is_open: true,
             emulators,
             geometry: Geometry::new(geometry.iter().map(clone_device).collect()),
-            timeout: DEFAULT_TIMEOUT,
             record,
         })
     }
@@ -110,7 +110,7 @@ impl Link for Recorder {
         Ok(())
     }
 
-    async fn send(&mut self, tx: &TxDatagram) -> Result<bool, AUTDInternalError> {
+    async fn send(&mut self, tx: &[TxMessage]) -> Result<bool, AUTDInternalError> {
         self.emulators
             .iter_mut()
             .zip(self.record.records.iter_mut())
@@ -119,10 +119,11 @@ impl Link for Recorder {
 
                 let should_update_silencer =
                     |tag: u8| -> bool { matches!(tag, TAG_SILENCER | TAG_CLEAR) };
-                let update_silencer = should_update_silencer(tx[cpu.idx()].payload[0]);
-                let slot_2_offset = tx[cpu.idx()].header.slot_2_offset as usize;
+                let update_silencer = should_update_silencer(tx[cpu.idx()].payload()[0]);
+                let slot_2_offset = tx[cpu.idx()].header().slot_2_offset as usize;
                 let update_silencer = if slot_2_offset != 0 {
-                    update_silencer || should_update_silencer(tx[cpu.idx()].payload[slot_2_offset])
+                    update_silencer
+                        || should_update_silencer(tx[cpu.idx()].payload()[slot_2_offset])
                 } else {
                     update_silencer
                 };
@@ -153,10 +154,6 @@ impl Link for Recorder {
 
     fn is_open(&self) -> bool {
         self.is_open
-    }
-
-    fn timeout(&self) -> std::time::Duration {
-        self.timeout
     }
 }
 
@@ -209,17 +206,19 @@ pub struct Emulator {
     geometry: Geometry,
     #[get]
     #[set]
-    parallel_threshold: usize,
+    fallback_parallel_threshold: usize,
+    #[get]
+    #[set]
+    fallback_timeout: Duration,
     #[get]
     #[set]
     send_interval: Duration,
     #[get]
     #[set]
     receive_interval: Duration,
-    #[cfg(target_os = "windows")]
-    #[get]
+    #[get(ref)]
     #[set]
-    timer_resolution: Option<std::num::NonZeroU32>,
+    timer_strategy: TimerStrategy,
 }
 
 impl Emulator {
@@ -232,11 +231,11 @@ impl Emulator {
                     .map(|(i, d)| d.into_device(i as _))
                     .collect(),
             ),
-            parallel_threshold: 4,
+            fallback_parallel_threshold: 4,
+            fallback_timeout: Duration::from_millis(20),
             send_interval: Duration::from_millis(1),
             receive_interval: Duration::from_millis(1),
-            #[cfg(target_os = "windows")]
-            timer_resolution: Some(std::num::NonZeroU32::MIN),
+            timer_strategy: TimerStrategy::Spin(SpinSleeper::default()),
         }
     }
 
@@ -259,20 +258,26 @@ impl Emulator {
         F: std::future::Future<Output = Result<Controller<Recorder>, EmulatorError>>,
     {
         let builder = Controller::builder(self.geometry.iter().map(clone_device))
-            .with_parallel_threshold(self.parallel_threshold)
+            .with_fallback_parallel_threshold(self.fallback_parallel_threshold)
+            .with_fallback_timeout(self.fallback_timeout)
             .with_receive_interval(self.receive_interval)
-            .with_send_interval(self.send_interval);
-        #[cfg(target_os = "windows")]
-        let builder = builder.with_timer_resolution(self.timer_resolution);
+            .with_send_interval(self.send_interval)
+            // .with_timer_strategy(self.timer_strategy)
+            ;
 
         let recorder = builder.open(RecorderBuilder { start_time }).await?;
 
         let mut recorder = f(recorder).await?;
 
         let devices = recorder.geometry_mut().drain(..).collect::<Vec<_>>();
-        let records = recorder.record.records.drain(..).collect::<Vec<_>>();
-        let start = recorder.record.start;
-        let end = recorder.record.current;
+        let records = recorder
+            .link_mut()
+            .record
+            .records
+            .drain(..)
+            .collect::<Vec<_>>();
+        let start = recorder.link_mut().record.start;
+        let end = recorder.link_mut().record.current;
 
         recorder.close().await?;
 
@@ -297,5 +302,15 @@ impl Emulator {
             start,
             end,
         })
+    }
+}
+
+pub trait RecorderControllerExt {
+    fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError>;
+}
+
+impl RecorderControllerExt for Controller<Recorder> {
+    fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError> {
+        self.link_mut().tick(tick)
     }
 }

@@ -1,5 +1,5 @@
 use autd3::{derive::Datagram, driver::firmware::fpga::FPGA_MAIN_CLK_FREQ, gain, prelude::*};
-use autd3_emulator::{Emulator, Range, RecordOption};
+use autd3_emulator::{Emulator, Range, RecordOption, RecorderControllerExt};
 
 use polars::prelude::{df, NamedFrom, Series};
 use std::time::Duration;
