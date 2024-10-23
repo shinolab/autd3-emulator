@@ -183,8 +183,7 @@ async fn record_output_ultrasound() -> anyhow::Result<()> {
 
 #[rstest::rstest]
 #[case(false)]
-#[cfg(feature = "gpu")]
-#[case(true)]
+#[cfg_attr(feature = "gpu", case(true))]
 #[tokio::test]
 #[allow(unused_variables)]
 async fn record_sound_field(#[case] gpu: bool) -> anyhow::Result<()> {
@@ -276,8 +275,7 @@ async fn record_sound_field(#[case] gpu: bool) -> anyhow::Result<()> {
 
 #[rstest::rstest]
 #[case(false, 20)]
-#[cfg(feature = "gpu")]
-#[case(true, 10)]
+#[cfg_attr(feature = "gpu", case(true, 10))]
 #[tokio::test]
 #[allow(unused_variables)]
 async fn record_sound_field_resume(
@@ -403,10 +401,8 @@ async fn record_sound_field_skip() -> anyhow::Result<()> {
 #[case(false, 0)]
 #[case(false, 1)]
 #[case(false, usize::MAX)]
-#[cfg(feature = "gpu")]
-#[case(true, 0)]
-#[cfg(feature = "gpu")]
-#[case(true, 1)]
+#[cfg_attr(feature = "gpu", case(true, 0))]
+#[cfg_attr(feature = "gpu", case(true, 1))]
 #[tokio::test]
 #[allow(unused_variables)]
 async fn record_sound_field_with_limit(
