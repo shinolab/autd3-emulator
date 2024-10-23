@@ -3,8 +3,7 @@ mod option;
 mod record;
 mod utils;
 
-use autd3::prelude::SpinSleeper;
-use autd3::prelude::TimerStrategy;
+use autd3::controller::timer::{SpinSleeper, TimerStrategy};
 pub use error::EmulatorError;
 pub use option::{Range, RecordOption};
 pub use record::Record;
