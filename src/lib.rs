@@ -273,6 +273,8 @@ impl Emulator {
             })
             .collect();
 
+        recorder.close().await?;
+
         Ok(Record {
             records,
             start,
