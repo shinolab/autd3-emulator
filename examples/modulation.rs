@@ -68,7 +68,7 @@ async fn main() -> Result<()> {
 
     // plot sound pressure at focus under 200Hz sin modulation with silencer
     {
-        let focus = emulator.geometry().center() + Vector3::new(0., 0., 150. * mm);
+        let focus = emulator.center() + Vector3::new(0., 0., 150. * mm);
 
         let record = emulator
             .record(|mut autd| async {

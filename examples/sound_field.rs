@@ -12,7 +12,7 @@ async fn main() -> Result<()> {
         Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
             .into_emulator();
 
-    let focus = emulator.geometry().center() + Vector3::new(0., 0., 150. * mm);
+    let focus = emulator.center() + Vector3::new(0., 0., 150. * mm);
 
     // plot sound field around focus
     {
