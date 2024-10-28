@@ -245,36 +245,37 @@ impl Emulator {
 
         let mut recorder = f(recorder).await?;
 
-        let devices = recorder.geometry_mut().drain(..).collect::<Vec<_>>();
+        let start = recorder.link().record.start;
+        let end = recorder.link().record.current;
+        let devices = {
+            let mut tmp: Vec<Device> = Vec::new();
+            std::mem::swap(&mut tmp, recorder.geometry_mut());
+            tmp
+        };
         let records = recorder
             .link_mut()
             .record
             .records
             .drain(..)
-            .collect::<Vec<_>>();
-        let start = recorder.link_mut().record.start;
-        let end = recorder.link_mut().record.current;
-
-        recorder.close().await?;
+            .into_iter()
+            .zip(devices.into_iter())
+            .map(|(rd, dev)| DeviceRecord {
+                aabb: *dev.aabb(),
+                records: rd
+                    .records
+                    .into_iter()
+                    .zip(dev.into_iter())
+                    .map(|(r, tr)| TransducerRecord {
+                        pulse_width: r.pulse_width,
+                        phase: r.phase,
+                        tr,
+                    })
+                    .collect(),
+            })
+            .collect();
 
         Ok(Record {
-            records: records
-                .into_iter()
-                .zip(devices.into_iter())
-                .map(|(rd, dev)| DeviceRecord {
-                    aabb: *dev.aabb(),
-                    records: rd
-                        .records
-                        .into_iter()
-                        .zip(dev.into_iter())
-                        .map(|(r, tr)| TransducerRecord {
-                            pulse_width: r.pulse_width,
-                            phase: r.phase,
-                            tr,
-                        })
-                        .collect(),
-                })
-                .collect(),
+            records,
             start,
             end,
         })
@@ -287,24 +288,23 @@ pub trait ControllerBuilderIntoEmulatorExt {
 
 impl ControllerBuilderIntoEmulatorExt for ControllerBuilder {
     fn into_emulator(self) -> Emulator {
+        let fallback_parallel_threshold = self.fallback_parallel_threshold();
+        let fallback_timeout = self.fallback_timeout();
+        let send_interval = self.send_interval();
+        let receive_interval = self.receive_interval();
+        let timer_strategy = *self.timer_strategy();
+        let devices = self
+            .devices()
+            .iter()
+            .map(|d| clone_device(d))
+            .collect::<Vec<_>>();
         Emulator {
-            fallback_parallel_threshold: self.fallback_parallel_threshold(),
-            fallback_timeout: self.fallback_timeout(),
-            send_interval: self.send_interval(),
-            receive_interval: self.receive_interval(),
-            timer_strategy: *self.timer_strategy(),
-            geometry: Geometry::new(
-                self.devices()
-                    .iter()
-                    .map(|d| {
-                        Device::new(
-                            d.idx() as _,
-                            *d.rotation(),
-                            d.into_iter().cloned().collect::<Vec<_>>(),
-                        )
-                    })
-                    .collect(),
-            ),
+            geometry: Geometry::new(devices),
+            fallback_parallel_threshold,
+            fallback_timeout,
+            send_interval,
+            receive_interval,
+            timer_strategy,
         }
     }
 }
