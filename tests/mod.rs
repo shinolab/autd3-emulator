@@ -132,7 +132,7 @@ async fn record_output_voltage() -> anyhow::Result<()> {
     let expect_3 = [vec![-12.; 96], vec![12.; 64], vec![-12.; 96]].concat();
     let expect_4 = vec![-12.; 256];
     let expect = [expect_1, expect_2, expect_3, expect_4].concat();
-    emulator.geometry().iter().for_each(|dev| {
+    emulator.iter().for_each(|dev| {
         dev.iter().for_each(|tr| {
             assert_eq!(
                 expect,
@@ -170,7 +170,7 @@ async fn record_output_ultrasound() -> anyhow::Result<()> {
         .into_no_null_iter()
         .enumerate()
         .for_each(|(i, t)| assert_eq!(i as u64, t));
-    emulator.geometry().iter().for_each(|dev| {
+    emulator.iter().for_each(|dev| {
         dev.iter().for_each(|tr| {
             // TODO: check the value
             assert_eq!(

@@ -13,6 +13,8 @@ use record::{DeviceRecord, TransducerRecord};
 
 use std::time::Duration;
 
+use derive_more::{Deref, DerefMut};
+
 use autd3::{
     driver::{
         defined::ULTRASOUND_PERIOD,
@@ -199,9 +201,11 @@ impl Recorder {
     }
 }
 
-#[derive(Builder)]
+#[derive(Builder, Deref, DerefMut)]
 pub struct Emulator {
     #[get(ref, ref_mut)]
+    #[deref]
+    #[deref_mut]
     geometry: Geometry,
     #[get]
     fallback_parallel_threshold: usize,
