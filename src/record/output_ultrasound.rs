@@ -1,5 +1,5 @@
 use autd3::driver::defined::ULTRASOUND_PERIOD_COUNT;
-use polars::{df, frame::DataFrame, prelude::NamedFrom, series::Series};
+use polars::{df, frame::DataFrame, prelude::Column};
 
 use super::Record;
 
@@ -26,7 +26,7 @@ impl Record {
                 self.records[dev_idx].records[tr_idx]
                     .output_ultrasound()
                     ._next_inplace(n, &mut v);
-                Series::new(format!("p_{}_{}[a.u.]", dev_idx, tr_idx).into(), &v)
+                Column::new(format!("p_{}_{}[a.u.]", dev_idx, tr_idx).into(), &v)
             })
             .collect::<Vec<_>>();
 

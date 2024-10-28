@@ -5,7 +5,7 @@ mod transducer;
 
 use autd3::{derive::Builder, prelude::DcSysTime};
 use derive_more::Debug;
-use polars::{df, frame::DataFrame, prelude::NamedFrom, series::Series};
+use polars::{df, frame::DataFrame, prelude::Column};
 
 pub use sound_field::SoundField;
 pub(crate) use transducer::TransducerRecord;
@@ -70,8 +70,8 @@ impl Record {
                     .enumerate()
                     .flat_map(move |(tr_idx, tr)| {
                         [
-                            Series::new(format!("phase_{}_{}", dev_idx, tr_idx).into(), &tr.phase),
-                            Series::new(
+                            Column::new(format!("phase_{}_{}", dev_idx, tr_idx).into(), &tr.phase),
+                            Column::new(
                                 format!("pulsewidth_{}_{}", dev_idx, tr_idx).into(),
                                 &tr.pulse_width,
                             ),
