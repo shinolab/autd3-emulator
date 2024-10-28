@@ -477,7 +477,7 @@ async fn record_sound_field_with_limit(
 #[cfg(feature = "gpu")]
 #[tokio::test]
 async fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
-    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]);
+    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
 
     let record = emulator
         .record(|mut autd| async {
