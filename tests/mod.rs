@@ -1,5 +1,5 @@
 use autd3::{derive::Datagram, gain, prelude::*};
-use autd3_emulator::{Emulator, Range, RecordOption, RecorderControllerExt};
+use autd3_emulator::*;
 
 use polars::prelude::{df, NamedFrom, Series};
 use std::time::Duration;
@@ -9,7 +9,9 @@ use std::time::Duration;
 #[case(Silencer::disable().with_target(SilencerTarget::PulseWidth))]
 #[tokio::test]
 async fn record_drive(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
-    let emulator = Emulator::new([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())]);
+    let emulator =
+        Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
+            .into_emulator();
 
     let to_pulse_width = |a, b| {
         let i = (a as usize * b as usize) / 255;
@@ -88,7 +90,9 @@ async fn record_drive(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn record_output_voltage() -> anyhow::Result<()> {
-    let emulator = Emulator::new([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())]);
+    let emulator =
+        Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
+            .into_emulator();
 
     let record = emulator
         .record(|mut autd| async {
@@ -146,7 +150,9 @@ async fn record_output_voltage() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn record_output_ultrasound() -> anyhow::Result<()> {
-    let emulator = Emulator::new([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())]);
+    let emulator =
+        Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
+            .into_emulator();
 
     let record = emulator
         .record(|mut autd| async {
@@ -190,7 +196,9 @@ async fn record_sound_field(
     #[case]
     gpu: bool,
 ) -> anyhow::Result<()> {
-    let emulator = Emulator::new([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())]);
+    let emulator =
+        Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
+            .into_emulator();
 
     let record = emulator
         .record(|mut autd| async {
@@ -286,7 +294,7 @@ async fn record_sound_field_resume(
     gpu: bool,
     #[case] memory_limits_hint_mb: usize,
 ) -> anyhow::Result<()> {
-    let emulator = Emulator::new([AUTD3::new(Vector3::zeros())]);
+    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
 
     let record = emulator
         .record(|mut autd| async {
@@ -343,7 +351,7 @@ async fn record_sound_field_resume(
 
 #[tokio::test]
 async fn record_sound_field_skip() -> anyhow::Result<()> {
-    let emulator = Emulator::new([AUTD3::new(Vector3::zeros())]);
+    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
 
     let record = emulator
         .record(|mut autd| async {
@@ -414,7 +422,9 @@ async fn record_sound_field_with_limit(
     gpu: bool,
     #[case] memory_limits_hint_mb: usize,
 ) -> anyhow::Result<()> {
-    let emulator = Emulator::new([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())]);
+    let emulator =
+        Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
+            .into_emulator();
 
     let record = emulator
         .record(|mut autd| async {
@@ -467,7 +477,7 @@ async fn record_sound_field_with_limit(
 #[cfg(feature = "gpu")]
 #[tokio::test]
 async fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
-    let emulator = Emulator::new([AUTD3::new(Vector3::zeros())]);
+    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]);
 
     let record = emulator
         .record(|mut autd| async {
@@ -533,7 +543,7 @@ async fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn invalid_tick() -> anyhow::Result<()> {
-    let emulator = Emulator::new([AUTD3::new(Vector3::zeros())]);
+    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
 
     let record = emulator
         .record(|mut autd| async {
@@ -550,7 +560,7 @@ async fn invalid_tick() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn not_recorded() -> anyhow::Result<()> {
-    let emulator = Emulator::new([AUTD3::new(Vector3::zeros())]);
+    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
 
     let record = emulator
         .record(|mut autd| async {

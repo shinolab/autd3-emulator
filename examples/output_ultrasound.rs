@@ -3,13 +3,13 @@ use std::time::Duration;
 use anyhow::Result;
 
 use autd3::prelude::*;
-use autd3_emulator::{Emulator, RecorderControllerExt};
+use autd3_emulator::*;
 
 use textplots::{Chart, Plot, Shape};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let emulator = Emulator::new([AUTD3::new(Vector3::zeros())]);
+    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
 
     // output voltage
     {
