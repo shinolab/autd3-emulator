@@ -1,7 +1,7 @@
 use autd3::{derive::Datagram, gain, prelude::*};
 use autd3_emulator::*;
 
-use polars::prelude::{df, NamedFrom, Series};
+use polars::prelude::{df, Column};
 use std::time::Duration;
 
 #[rstest::rstest]
@@ -28,7 +28,7 @@ async fn record_drive(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
             dev.iter().flat_map(|tr| {
                 let dev_idx = tr.dev_idx() as u8;
                 let tr_idx = tr.idx() as u8;
-                let pulse_width = Series::new(
+                let pulse_width = Column::new(
                     format!("pulsewidth_{}_{}", dev_idx, tr_idx).into(),
                     &[
                         to_pulse_width(100, tr_idx),
@@ -36,7 +36,7 @@ async fn record_drive(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
                         to_pulse_width(200, tr_idx),
                     ],
                 );
-                let phase = Series::new(
+                let phase = Column::new(
                     format!("phase_{}_{}", dev_idx, tr_idx).into(),
                     &[dev_idx as u8, (0x01 + dev_idx) as _, (0x01 + dev_idx) as _]
                         .iter()

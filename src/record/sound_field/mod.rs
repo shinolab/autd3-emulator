@@ -7,7 +7,7 @@ use std::time::Duration;
 use autd3::{driver::defined::ULTRASOUND_PERIOD_COUNT, prelude::ULTRASOUND_PERIOD};
 use bvh::aabb::Aabb;
 use indicatif::ProgressBar;
-use polars::{df, frame::DataFrame, prelude::NamedFrom, series::Series};
+use polars::{df, frame::DataFrame, prelude::Column};
 
 use super::Record;
 use crate::{EmulatorError, Range, RecordOption};
@@ -102,7 +102,7 @@ impl<'a> SoundField<'a> {
         let columns = time
             .iter()
             .zip(v.iter())
-            .map(|(t, v)| Series::new(format!("p[Pa]@{}[ns]", t).into(), v))
+            .map(|(t, v)| Column::new(format!("p[Pa]@{}[ns]", t).into(), v))
             .collect::<Vec<_>>();
 
         let mut df = df!(

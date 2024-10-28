@@ -1,5 +1,5 @@
 use autd3::driver::defined::ULTRASOUND_PERIOD_COUNT;
-use polars::{df, frame::DataFrame, prelude::NamedFrom, series::Series};
+use polars::{df, frame::DataFrame, prelude::Column};
 
 use super::Record;
 
@@ -32,7 +32,7 @@ impl Record {
             })
             .map(|(dev_idx, tr_idx)| {
                 self.records[dev_idx].records[tr_idx]._output_voltage_within_inplace(0, n, &mut v);
-                Series::new(format!("voltage_{}_{}[V]", dev_idx, tr_idx).into(), &v)
+                Column::new(format!("voltage_{}_{}[V]", dev_idx, tr_idx).into(), &v)
             })
             .collect::<Vec<_>>();
 
