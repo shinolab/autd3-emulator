@@ -257,7 +257,6 @@ impl Emulator {
             .record
             .records
             .drain(..)
-            .into_iter()
             .zip(devices.into_iter())
             .map(|(rd, dev)| DeviceRecord {
                 aabb: *dev.aabb(),
@@ -293,11 +292,7 @@ impl ControllerBuilderIntoEmulatorExt for ControllerBuilder {
         let send_interval = self.send_interval();
         let receive_interval = self.receive_interval();
         let timer_strategy = *self.timer_strategy();
-        let devices = self
-            .devices()
-            .iter()
-            .map(|d| clone_device(d))
-            .collect::<Vec<_>>();
+        let devices = self.devices().iter().map(clone_device).collect::<Vec<_>>();
         Emulator {
             geometry: Geometry::new(devices),
             fallback_parallel_threshold,
