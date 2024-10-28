@@ -3,7 +3,8 @@ mod option;
 mod record;
 mod utils;
 
-use autd3::controller::timer::{SpinSleeper, TimerStrategy};
+use autd3::controller::timer::TimerStrategy;
+use autd3::controller::ControllerBuilder;
 pub use error::EmulatorError;
 pub use option::{Range, RecordOption};
 pub use record::Record;
@@ -21,7 +22,6 @@ use autd3::{
             cpu::{RxMessage, TxMessage},
             fpga::{EmitIntensity, Phase, SilencerTarget},
         },
-        geometry::IntoDevice,
         link::{Link, LinkBuilder},
     },
     Controller,
@@ -204,40 +204,18 @@ pub struct Emulator {
     #[get(ref, ref_mut)]
     geometry: Geometry,
     #[get]
-    #[set]
     fallback_parallel_threshold: usize,
     #[get]
-    #[set]
     fallback_timeout: Duration,
     #[get]
-    #[set]
     send_interval: Duration,
     #[get]
-    #[set]
     receive_interval: Duration,
     #[get(ref)]
-    #[set]
     timer_strategy: TimerStrategy,
 }
 
 impl Emulator {
-    #[must_use]
-    pub fn new<D: IntoDevice, F: IntoIterator<Item = D>>(iter: F) -> Emulator {
-        Self {
-            geometry: Geometry::new(
-                iter.into_iter()
-                    .enumerate()
-                    .map(|(i, d)| d.into_device(i as _))
-                    .collect(),
-            ),
-            fallback_parallel_threshold: 4,
-            fallback_timeout: Duration::from_millis(20),
-            send_interval: Duration::from_millis(1),
-            receive_interval: Duration::from_millis(1),
-            timer_strategy: TimerStrategy::Spin(SpinSleeper::default()),
-        }
-    }
-
     pub async fn record<F>(
         &self,
         f: impl FnOnce(Controller<Recorder>) -> F,
@@ -261,8 +239,7 @@ impl Emulator {
             .with_fallback_timeout(self.fallback_timeout)
             .with_receive_interval(self.receive_interval)
             .with_send_interval(self.send_interval)
-            // .with_timer_strategy(self.timer_strategy)
-            ;
+            .with_timer_strategy(self.timer_strategy);
 
         let recorder = builder.open(RecorderBuilder { start_time }).await?;
 
@@ -301,6 +278,34 @@ impl Emulator {
             start,
             end,
         })
+    }
+}
+
+pub trait ControllerBuilderIntoEmulatorExt {
+    fn into_emulator(self) -> Emulator;
+}
+
+impl ControllerBuilderIntoEmulatorExt for ControllerBuilder {
+    fn into_emulator(self) -> Emulator {
+        Emulator {
+            fallback_parallel_threshold: self.fallback_parallel_threshold(),
+            fallback_timeout: self.fallback_timeout(),
+            send_interval: self.send_interval(),
+            receive_interval: self.receive_interval(),
+            timer_strategy: *self.timer_strategy(),
+            geometry: Geometry::new(
+                self.devices()
+                    .iter()
+                    .map(|d| {
+                        Device::new(
+                            d.idx() as _,
+                            *d.rotation(),
+                            d.into_iter().cloned().collect::<Vec<_>>(),
+                        )
+                    })
+                    .collect(),
+            ),
+        }
     }
 }
 
