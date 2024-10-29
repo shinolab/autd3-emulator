@@ -98,7 +98,10 @@ impl LinkBuilder for RecorderBuilder {
         Ok(Recorder {
             is_open: true,
             emulators,
-            geometry: Geometry::new(geometry.iter().map(clone_device).collect()),
+            geometry: Geometry::new(
+                geometry.iter().map(clone_device).collect(),
+                geometry.fallback_parallel_threshold(),
+            ),
             record,
         })
     }
@@ -208,8 +211,6 @@ pub struct Emulator {
     #[deref_mut]
     geometry: Geometry,
     #[get]
-    fallback_parallel_threshold: usize,
-    #[get]
     fallback_timeout: Duration,
     #[get]
     send_interval: Duration,
@@ -239,7 +240,7 @@ impl Emulator {
         F: std::future::Future<Output = Result<Controller<Recorder>, EmulatorError>>,
     {
         let builder = Controller::builder(self.geometry.iter().map(clone_device))
-            .with_fallback_parallel_threshold(self.fallback_parallel_threshold)
+            .with_fallback_parallel_threshold(self.geometry.fallback_parallel_threshold())
             .with_fallback_timeout(self.fallback_timeout)
             .with_receive_interval(self.receive_interval)
             .with_send_interval(self.send_interval)
@@ -298,10 +299,8 @@ impl ControllerBuilderIntoEmulatorExt for ControllerBuilder {
         let send_interval = self.send_interval();
         let receive_interval = self.receive_interval();
         let timer_strategy = *self.timer_strategy();
-        let devices = self.devices().iter().map(clone_device).collect::<Vec<_>>();
         Emulator {
-            geometry: Geometry::new(devices),
-            fallback_parallel_threshold,
+            geometry: Geometry::new(self.devices(), fallback_parallel_threshold),
             fallback_timeout,
             send_interval,
             receive_interval,
