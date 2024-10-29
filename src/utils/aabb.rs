@@ -83,10 +83,13 @@ mod tests {
     #[case::include(Range{ x: -10.0..=200.0, y: -10.0..=150.0, z: -10.0..=60.0, resolution: 10.0 })]
     #[case::separate(Range{ x: -10.0..=200.0, y: -10.0..=150.0, z: 150.0..=150.0, resolution: 10.0 })]
     fn test_aabb_max_dist(#[case] range: Range) {
-        let geo = Geometry::new(vec![
-            AUTD3::new(Vector3::zeros()).into_device(0),
-            AUTD3::new(Vector3::new(0., 0., 50.)).into_device(0),
-        ]);
+        let geo = Geometry::new(
+            vec![
+                AUTD3::new(Vector3::zeros()).into_device(0),
+                AUTD3::new(Vector3::new(0., 0., 50.)).into_device(0),
+            ],
+            4,
+        );
         approx::assert_relative_eq!(
             aabb_max_dist_naive(&geo, &range),
             aabb_max_dist(&geo.aabb(), &range.aabb())
@@ -104,10 +107,13 @@ mod tests {
     #[case::include(Range{ x: -10.0..=200.0, y: -10.0..=150.0, z: -10.0..=60.0, resolution: 10.0 })]
     #[case::separate(Range{ x: -10.0..=200.0, y: -10.0..=150.0, z: 150.0..=150.0, resolution: 10.0 })]
     fn test_aabb_min_dist(#[case] range: Range) {
-        let geo = Geometry::new(vec![
-            AUTD3::new(Vector3::zeros()).into_device(0),
-            AUTD3::new(Vector3::new(0., 0., 50.)).into_device(0),
-        ]);
+        let geo = Geometry::new(
+            vec![
+                AUTD3::new(Vector3::zeros()).into_device(0),
+                AUTD3::new(Vector3::new(0., 0., 50.)).into_device(0),
+            ],
+            4,
+        );
         approx::assert_relative_eq!(
             aabb_min_dist_naive(&geo, &range),
             aabb_min_dist(&geo.aabb(), &range.aabb())
@@ -124,17 +130,20 @@ mod tests {
             resolution: 10.0,
         };
         for _ in 0..10 {
-            let geo = Geometry::new(vec![AUTD3::new(Vector3::new(
-                rng.gen_range(-300.0..300.0),
-                rng.gen_range(-300.0..300.0),
-                rng.gen_range(-300.0..300.0),
-            ))
-            .with_rotation(EulerAngle::ZYZ(
-                [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad][rng.gen_range(0..4)],
-                [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad][rng.gen_range(0..4)],
-                [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad][rng.gen_range(0..4)],
-            ))
-            .into_device(0)]);
+            let geo = Geometry::new(
+                vec![AUTD3::new(Vector3::new(
+                    rng.gen_range(-300.0..300.0),
+                    rng.gen_range(-300.0..300.0),
+                    rng.gen_range(-300.0..300.0),
+                ))
+                .with_rotation(EulerAngle::ZYZ(
+                    [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad][rng.gen_range(0..4)],
+                    [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad][rng.gen_range(0..4)],
+                    [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad][rng.gen_range(0..4)],
+                ))
+                .into_device(0)],
+                4,
+            );
             approx::assert_abs_diff_eq!(
                 aabb_max_dist_naive(&geo, &range),
                 aabb_max_dist(&geo.aabb(), &range.aabb()),
