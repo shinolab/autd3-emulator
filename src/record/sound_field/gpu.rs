@@ -242,7 +242,7 @@ impl<'a> Gpu<'a> {
             label: None,
             layout: Some(&pipeline_layout),
             module: &cs_module,
-            entry_point: "main",
+            entry_point: None,
             compilation_options: Default::default(),
             cache: None,
         });
