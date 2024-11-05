@@ -251,7 +251,7 @@ impl<'a> Gpu<'a> {
             output_ultrasound,
             output_ultrasound_cache: Vec::new(),
             frame_window_size,
-            num_transducers: target_pos.len() as _,
+            num_transducers: transducer_pos.len() as _,
             device,
             queue,
             pipeline,
