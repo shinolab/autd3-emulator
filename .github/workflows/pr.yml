@@ -45,13 +45,15 @@ jobs:
             features: "inplace"
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: ./.github/actions/setup-build
       - uses: taiki-e/install-action@v2
         with:
           tool: nextest
       - run: |
-          cargo nextest run --features "${{ matrix.features }}"
-          cargo clippy --features "${{ matrix.features }}" -- -D warnings
+          python3 build.py test --features "${{ matrix.features }}"
+          python3 build.py lint --features "${{ matrix.features }}"
         shell: bash
 
   all-tests-passed:
