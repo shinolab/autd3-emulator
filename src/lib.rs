@@ -7,9 +7,8 @@ use autd3::controller::timer::TimerStrategy;
 use autd3::controller::ControllerBuilder;
 pub use error::EmulatorError;
 pub use option::{Range, RecordOption};
-pub use record::Record;
-pub use record::SoundField;
 use record::{DeviceRecord, TransducerRecord};
+pub use record::{Record, Rms, SoundField};
 
 use std::time::Duration;
 
