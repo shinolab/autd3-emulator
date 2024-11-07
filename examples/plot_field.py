@@ -11,10 +11,7 @@ from scipy.interpolate import griddata
 
 def plot_focus():
     df = pl.read_csv(Path(__file__).parent.parent / "sound_field_around_focus.csv")
-    times = [
-        float(c.replace("p[Pa]@", "").replace("[ns]", "")) / 1000_000
-        for c in df.columns[3:]
-    ]
+    times = [float(c.replace("p[Pa]@", "").replace("[ns]", "")) / 1000_000 for c in df.columns[3:]]
     p = df.get_columns()[3:]
     times = times[440:]
     p = p[440:]
@@ -30,16 +27,12 @@ def plot_focus():
     def f(i):
         ax.cla()
         z = griddata((df["x[mm]"], df["y[mm]"]), p[i], (x, y))
-        plot = ax.plot_surface(
-            x, y, z, shade=False, cmap="jet", norm=Normalize(vmin=-10e3, vmax=10e3)
-        )
+        plot = ax.plot_surface(x, y, z, shade=False, cmap="jet", norm=Normalize(vmin=-10e3, vmax=10e3))
         ax.set_zlim(-10e3, 10e3)
         ax.set_title(f"t={times[i]:.3f} [ms]")
         return plot
 
-    _ = animation.FuncAnimation(
-        fig, f, frames=len(p), interval=1, repeat=False, blit=False
-    )
+    _ = animation.FuncAnimation(fig, f, frames=len(p), interval=1, repeat=False, blit=False)
     plt.show()
 
     # plot RMS
@@ -47,12 +40,7 @@ def plot_focus():
     spec = fig.add_gridspec(ncols=2, nrows=1, width_ratios=[10, 1])
     ax = fig.add_subplot(spec[0], projection="3d")
     cax = fig.add_subplot(spec[1])
-    rms = (
-        df.select(pl.exclude(r"^.\[mm\]$"))
-        .select(pl.all().pow(2))
-        .mean_horizontal()
-        .sqrt()
-    )
+    rms = df.select(pl.exclude(r"^.\[mm\]$")).select(pl.all().pow(2)).mean_horizontal().sqrt()
     ax.plot_surface(
         x,
         y,
@@ -67,10 +55,7 @@ def plot_focus():
 
 def plot_stm():
     df = pl.read_csv(Path(__file__).parent.parent / "sound_field_stm.csv")
-    times = [
-        float(c.replace("p[Pa]@", "").replace("[ns]", "")) / 1000_000
-        for c in df.columns[3:]
-    ]
+    times = [float(c.replace("p[Pa]@", "").replace("[ns]", "")) / 1000_000 for c in df.columns[3:]]
     p = df.get_columns()[3:]
     times = times[700:]
     p = p[700:]
@@ -86,16 +71,12 @@ def plot_stm():
     def f(i):
         ax.cla()
         z = griddata((df["x[mm]"], df["y[mm]"]), p[i], (x, y))
-        plot = ax.plot_surface(
-            x, y, z, shade=False, cmap="jet", norm=Normalize(vmin=-10e3, vmax=10e3)
-        )
+        plot = ax.plot_surface(x, y, z, shade=False, cmap="jet", norm=Normalize(vmin=-10e3, vmax=10e3))
         ax.set_zlim(-10e3, 10e3)
         ax.set_title(f"t={times[i]:.3f} [ms]")
         return plot
 
-    _ = animation.FuncAnimation(
-        fig, f, frames=len(p), interval=1, repeat=False, blit=False
-    )
+    _ = animation.FuncAnimation(fig, f, frames=len(p), interval=1, repeat=False, blit=False)
     plt.show()
 
 

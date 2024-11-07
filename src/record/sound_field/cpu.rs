@@ -96,7 +96,7 @@ impl<'a> Cpu<'a> {
 
     pub(crate) fn compute(
         &mut self,
-        start_time: f32,
+        start_time: Duration,
         time_step: Duration,
         num_points_in_frame: usize,
         sound_speed: f32,
@@ -105,7 +105,7 @@ impl<'a> Cpu<'a> {
     ) -> &Vec<Vec<f32>> {
         (0..num_points_in_frame)
             .into_par_iter()
-            .map(|i| start_time + (i as u32 * time_step).as_secs_f32())
+            .map(|i| (start_time + i as u32 * time_step).as_secs_f32())
             .map(|t| {
                 let p = self
                     .dists
