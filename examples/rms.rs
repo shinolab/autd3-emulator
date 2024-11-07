@@ -8,7 +8,7 @@ use polars::{io::SerWriter, prelude::CsvWriter};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!("rms does not take into account propagation delay nor transducer response.");
+    println!("INFO: rms does not take into account propagation delay nor transducer response.");
 
     let emulator =
         Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
@@ -38,7 +38,6 @@ async fn main() -> Result<()> {
                     resolution: 1.,
                 },
                 RecordOption {
-                    print_progress: true,
                     #[cfg(feature = "gpu")]
                     gpu: true,
                     ..Default::default()
@@ -84,7 +83,6 @@ async fn main() -> Result<()> {
                     resolution: 1.,
                 },
                 RecordOption {
-                    print_progress: true,
                     #[cfg(feature = "gpu")]
                     gpu: true,
                     ..Default::default()
