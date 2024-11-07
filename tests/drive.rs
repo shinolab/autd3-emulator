@@ -37,10 +37,7 @@ async fn record_drive(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
                 );
                 let phase = Column::new(
                     format!("phase_{}_{}", dev_idx, tr_idx).into(),
-                    &[dev_idx as u8, (0x01 + dev_idx) as _, (0x01 + dev_idx) as _]
-                        .iter()
-                        .copied()
-                        .collect::<Vec<_>>(),
+                    &[dev_idx, (0x01 + dev_idx) as _, (0x01 + dev_idx) as _],
                 );
                 [phase, pulse_width]
             })
