@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use autd3::prelude::*;
 use autd3_emulator::*;
 
@@ -56,6 +58,25 @@ async fn record_rms(
         df["z[mm]"].f32()?.into_no_null_iter().collect::<Vec<_>>()
     );
     // TODO: check the value
+
+    assert!(record
+        .rms(
+            Range {
+                x: point.x - 1.0..=point.x + 1.0,
+                y: point.y - 1.0..=point.y + 1.0,
+                z: point.z..=point.z,
+                resolution: 1.,
+            },
+            RecordOption {
+                #[cfg(feature = "gpu")]
+                gpu,
+                ..Default::default()
+            },
+        )
+        .await?
+        .next(Duration::from_micros(1))
+        .await
+        .is_err());
 
     Ok(())
 }
@@ -233,6 +254,41 @@ async fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
                 });
             Ok(())
         })?;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn not_recorded() -> anyhow::Result<()> {
+    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
+
+    let record = emulator
+        .record(|mut autd| async {
+            autd.send(Silencer::disable()).await?;
+            autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
+                .await?;
+            autd.tick(ULTRASOUND_PERIOD)?;
+            Ok(autd)
+        })
+        .await?;
+
+    let point = Vector3::new(0., 0., 300. * mm);
+    let mut rms = record
+        .rms(
+            Range {
+                x: point.x - 100.0..=point.x + 100.0,
+                y: point.y - 100.0..=point.y + 100.0,
+                z: point.z..=point.z,
+                resolution: 100.,
+            },
+            RecordOption {
+                time_step: Duration::from_micros(1),
+                ..Default::default()
+            },
+        )
+        .await?;
+
+    assert!(rms.next(2 * ULTRASOUND_PERIOD).await.is_err());
 
     Ok(())
 }
