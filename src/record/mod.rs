@@ -2,6 +2,7 @@ mod output_ultrasound;
 mod output_voltage;
 mod sound_field;
 mod transducer;
+mod rms;
 
 use autd3::{derive::Builder, prelude::DcSysTime};
 use derive_more::Debug;

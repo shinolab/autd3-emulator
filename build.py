@@ -66,7 +66,7 @@ def rust_test(args) -> None:  # noqa: ANN001
 
 
 def rust_run(args) -> None:  # noqa: ANN001
-    examples = ["modulation", "output_ultrasound", "sound_field"]
+    examples = ["modulation", "output_ultrasound", "sound_field", "rms"]
     if args.target not in examples:
         err(f'example "{args.target}" is not found.')
         info(f"Available examples: {examples}")
