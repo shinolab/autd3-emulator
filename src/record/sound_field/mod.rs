@@ -64,7 +64,7 @@ impl<'a> ComputeDevice<'a> {
                     offset,
                     pb,
                 )
-                .await // GRCOV_EXCL_LINE
+                .await
             }
         }
     }
@@ -118,7 +118,7 @@ impl<'a> SoundField<'a> {
 
     pub async fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {
         self.next_inplace(duration, true, &mut [], std::iter::empty())
-            .await?; // GRCOV_EXCL_LINE
+            .await?;
         Ok(self)
     }
 
@@ -209,7 +209,7 @@ impl<'a> SoundField<'a> {
                             offset,
                             &pb,
                         )
-                        .await?; // GRCOV_EXCL_LINE
+                        .await?;
                     (0..r.len()).for_each(|i| {
                         time[idx] = (start_time + (i as u32 * time_step)).as_nanos() as u64;
                         unsafe {
@@ -316,7 +316,7 @@ impl Record {
                     num_points_in_frame,
                     cache_size,
                 )
-                .await?, // GRCOV_EXCL_LINE
+                .await?,
             )
         } else {
             ComputeDevice::Cpu(cpu::Cpu::new(
