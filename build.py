@@ -110,7 +110,7 @@ def rust_coverage(args) -> None:  # noqa: ANN001
                 "-t",
                 args.format,
                 "--excl-line",
-                r"GRCOV_EXCL_LINE|^\s*\.await;?$|#\[derive|#\[error|unreachable!|unimplemented!|tracing::(debug|trace|info|warn|error)!\([\s\S]*\);",
+                r"GRCOV_EXCL_LINE|^\s*\.await\??;?$|#\[derive|#\[error|unreachable!|unimplemented!|tracing::(debug|trace|info|warn|error)!\([\s\S]*\);",
                 "--keep-only",
                 "src/**/*.rs",
                 "--excl-start",
