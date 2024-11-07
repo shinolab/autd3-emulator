@@ -38,7 +38,7 @@ impl<'a> ComputeDevice<'a> {
 
     async fn compute(
         &mut self,
-        start_time: f32,
+        start_time: Duration,
         time_step: Duration,
         num_points_in_frame: usize,
         sound_speed: f32,
@@ -202,7 +202,7 @@ impl<'a> SoundField<'a> {
                     let r = self
                         .compute_device
                         .compute(
-                            start_time.as_secs_f32(),
+                            start_time,
                             time_step,
                             self.num_points_in_frame,
                             sound_speed,

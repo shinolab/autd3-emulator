@@ -83,7 +83,7 @@ impl<'a> Gpu<'a> {
             * ULTRASOUND_PERIOD_COUNT
             * size_of::<f32>()) as BufferAddress;
         let buf_dst_size = (target_pos.len() * size_of::<f32>()) as BufferAddress;
-        let buf_target_pos_size = (transducer_pos.len() * size_of::<Vec3>()) as BufferAddress;
+        let buf_target_pos_size = (target_pos.len() * size_of::<Vec3>()) as BufferAddress;
         let buf_tr_pos_size = (transducer_pos.len() * size_of::<Vec3>()) as BufferAddress;
 
         let instance = wgpu::Instance::default();
@@ -102,7 +102,6 @@ impl<'a> Gpu<'a> {
                         max_push_constant_size: std::mem::size_of::<Pc>() as u32,
                         max_storage_buffers_per_shader_stage: 5,
                         max_storage_buffer_binding_size: buf_output_ultrasound_size
-                            .max(buf_dst_size)
                             .max(buf_target_pos_size)
                             .max(buf_tr_pos_size)
                             as _,
@@ -346,7 +345,7 @@ impl<'a> Gpu<'a> {
 
     pub(crate) async fn compute(
         &mut self,
-        start_time: f32,
+        start_time: Duration,
         time_step: Duration,
         num_points_in_frame: usize,
         sound_speed: f32,
@@ -354,7 +353,7 @@ impl<'a> Gpu<'a> {
         pb: &ProgressBar,
     ) -> Result<&Vec<Vec<f32>>, EmulatorError> {
         for i in 0..num_points_in_frame {
-            let t = start_time + (i as u32 * time_step).as_secs_f32();
+            let t = (start_time + i as u32 * time_step).as_secs_f32();
             let pc = Pc {
                 t,
                 sound_speed,
