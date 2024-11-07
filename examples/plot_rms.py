@@ -44,15 +44,15 @@ def plot_stm():
     spec = fig.add_gridspec(ncols=2, nrows=1, width_ratios=[10, 1])
     ax = fig.add_subplot(spec[0], projection="3d")
     cax = fig.add_subplot(spec[1])
-    colorbar.ColorbarBase(cax, cmap="jet", norm=Normalize(vmin=-10e3, vmax=10e3))
+    colorbar.ColorbarBase(cax, cmap="jet", norm=Normalize(vmin=-0, vmax=10e3))
 
     x, y = np.meshgrid(np.unique(df["x[mm]"]), np.unique(df["y[mm]"]))
 
     def f(i):
         ax.cla()
         z = griddata((df["x[mm]"], df["y[mm]"]), p[i], (x, y))
-        plot = ax.plot_surface(x, y, z, shade=False, cmap="jet", norm=Normalize(vmin=-10e3, vmax=10e3))
-        ax.set_zlim(-10e3, 10e3)
+        plot = ax.plot_surface(x, y, z, shade=False, cmap="jet", norm=Normalize(vmin=-0, vmax=10e3))
+        ax.set_zlim(0e3, 10e3)
         ax.set_title(f"t={times[i]:.3f} [ms]")
         return plot
 
