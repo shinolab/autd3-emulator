@@ -83,7 +83,7 @@ impl Rms {
 
     pub async fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {
         self.next_inplace(duration, true, &mut [], std::iter::empty())
-            .await?; // GRCOV_EXCL_LINE
+            .await?;
         Ok(self)
     }
 
@@ -138,8 +138,8 @@ impl Rms {
             let mut i = 0;
             while i < num_frames {
                 let cur_frame = self.cursor + i;
-                let r = self.compute_device.compute(cur_frame, wavenumber).await?; // GRCOV_EXCL_LINE
-                time[cur_frame] = (cur_frame as u32 * ULTRASOUND_PERIOD).as_nanos() as u64;
+                let r = self.compute_device.compute(cur_frame, wavenumber).await?;
+                time[i] = (cur_frame as u32 * ULTRASOUND_PERIOD).as_nanos() as u64;
                 unsafe {
                     std::ptr::copy_nonoverlapping(r.as_ptr(), v.next().unwrap(), r.len());
                 }
@@ -189,7 +189,7 @@ impl Record {
                         .flat_map(|dev| dev.records.iter().map(|tr| *tr.tr.position())),
                     records,
                 )
-                .await?, // GRCOV_EXCL_LINE
+                .await?,
             )
         } else {
             ComputeDevice::Cpu(cpu::Cpu::new(

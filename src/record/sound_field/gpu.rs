@@ -90,7 +90,7 @@ impl<'a> Gpu<'a> {
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions::default())
-            .await // GRCOV_EXCL_LINE
+            .await
             .ok_or(EmulatorError::NoSuitableAdapterFound)?;
 
         let (device, queue) = adapter
@@ -111,7 +111,7 @@ impl<'a> Gpu<'a> {
                 },
                 None,
             )
-            .await?; // GRCOV_EXCL_LINE
+            .await?;
 
         let cs_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
