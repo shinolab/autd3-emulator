@@ -88,7 +88,7 @@ async fn main() -> Result<()> {
                     z: focus.z..=focus.z,
                     resolution: 1.0 * mm,
                 },
-                RecordOption {
+                InstantRecordOption {
                     time_step: Duration::from_micros(1),
                     print_progress: true,
                     ..Default::default()

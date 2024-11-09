@@ -7,7 +7,7 @@ use autd3_emulator::*;
 #[case(false)]
 #[cfg_attr(feature = "gpu", case(true))]
 #[tokio::test]
-async fn record_rms(
+async fn record_sound_field(
     #[allow(unused_variables)]
     #[case]
     gpu: bool,
@@ -28,14 +28,14 @@ async fn record_rms(
 
     let point = Vector3::new(0., 0., 300. * mm);
     let mut rms = record
-        .rms(
+        .sound_field(
             Range {
                 x: point.x - 100.0..=point.x + 100.0,
                 y: point.y - 100.0..=point.y + 100.0,
                 z: point.z..=point.z,
                 resolution: 100.,
             },
-            RecordOption {
+            RmsRecordOption {
                 #[cfg(feature = "gpu")]
                 gpu,
                 ..Default::default()
@@ -60,14 +60,14 @@ async fn record_rms(
     // TODO: check the value
 
     assert!(record
-        .rms(
+        .sound_field(
             Range {
                 x: point.x - 1.0..=point.x + 1.0,
                 y: point.y - 1.0..=point.y + 1.0,
                 z: point.z..=point.z,
                 resolution: 1.,
             },
-            RecordOption {
+            RmsRecordOption {
                 #[cfg(feature = "gpu")]
                 gpu,
                 ..Default::default()
@@ -110,9 +110,9 @@ async fn record_rms_resume(
         resolution: 1.,
     };
     let expect = record
-        .rms(
+        .sound_field(
             range.clone(),
-            RecordOption {
+            RmsRecordOption {
                 #[cfg(feature = "gpu")]
                 gpu,
                 ..Default::default()
@@ -123,9 +123,9 @@ async fn record_rms_resume(
         .await?;
 
     let mut rms = record
-        .rms(
+        .sound_field(
             range,
-            RecordOption {
+            RmsRecordOption {
                 #[cfg(feature = "gpu")]
                 gpu,
                 ..Default::default()
@@ -159,14 +159,14 @@ async fn record_rms_skip() -> anyhow::Result<()> {
     let point = Vector3::new(0., 0., 1. * mm);
     let expect = {
         let mut sf = record
-            .rms(
+            .sound_field(
                 Range {
                     x: point.x - 9.0..=point.x + 9.0,
                     y: point.y - 50.0..=point.y + 50.0,
                     z: point.z..=point.z,
                     resolution: 1.,
                 },
-                Default::default(),
+                RmsRecordOption::default(),
             )
             .await?;
         sf.next(5 * ULTRASOUND_PERIOD).await?;
@@ -174,14 +174,14 @@ async fn record_rms_skip() -> anyhow::Result<()> {
     };
 
     let mut rms = record
-        .rms(
+        .sound_field(
             Range {
                 x: point.x - 9.0..=point.x + 9.0,
                 y: point.y - 50.0..=point.y + 50.0,
                 z: point.z..=point.z,
                 resolution: 1.,
             },
-            Default::default(),
+            RmsRecordOption::default(),
         )
         .await?;
     let v = rms
@@ -212,28 +212,28 @@ async fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
 
     let point = Vector3::new(0., 0., 1. * mm);
     let cpu = record
-        .rms(
+        .sound_field(
             Range {
                 x: point.x - 9.0..=point.x + 9.0,
                 y: point.y - 50.0..=point.y + 50.0,
                 z: point.z..=point.z,
                 resolution: 1.,
             },
-            Default::default(),
+            RmsRecordOption::default(),
         )
         .await?
         .next(10 * ULTRASOUND_PERIOD)
         .await?;
 
     let mut rms = record
-        .rms(
+        .sound_field(
             Range {
                 x: point.x - 9.0..=point.x + 9.0,
                 y: point.y - 50.0..=point.y + 50.0,
                 z: point.z..=point.z,
                 resolution: 1.,
             },
-            RecordOption {
+            RmsRecordOption {
                 gpu: true,
                 ..Default::default()
             },
@@ -274,17 +274,14 @@ async fn not_recorded() -> anyhow::Result<()> {
 
     let point = Vector3::new(0., 0., 300. * mm);
     let mut rms = record
-        .rms(
+        .sound_field(
             Range {
                 x: point.x - 100.0..=point.x + 100.0,
                 y: point.y - 100.0..=point.y + 100.0,
                 z: point.z..=point.z,
                 resolution: 100.,
             },
-            RecordOption {
-                time_step: Duration::from_micros(1),
-                ..Default::default()
-            },
+            RmsRecordOption::default(),
         )
         .await?;
 

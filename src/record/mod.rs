@@ -1,6 +1,5 @@
 mod output_ultrasound;
 mod output_voltage;
-mod rms;
 mod sound_field;
 mod transducer;
 
@@ -8,8 +7,10 @@ use autd3::{derive::Builder, prelude::DcSysTime};
 use derive_more::Debug;
 use polars::{df, frame::DataFrame, prelude::Column};
 
-pub use rms::Rms;
-pub use sound_field::SoundField;
+pub use sound_field::{
+    instant::{Instant, InstantRecordOption},
+    rms::{Rms, RmsRecordOption},
+};
 pub(crate) use transducer::TransducerRecord;
 
 #[derive(Debug)]
