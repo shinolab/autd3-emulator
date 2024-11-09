@@ -1,6 +1,7 @@
 mod cpu;
 #[cfg(feature = "gpu")]
 mod gpu;
+mod option;
 
 use std::{
     f32::consts::{PI, SQRT_2},
@@ -14,8 +15,10 @@ use autd3::{
 };
 use polars::{df, frame::DataFrame, prelude::Column};
 
-use super::Record;
-use crate::{EmulatorError, Range, RecordOption};
+use super::{super::Record, internal::SoundFieldOption};
+use crate::{EmulatorError, Range};
+
+pub use option::RmsRecordOption;
 
 #[derive(Debug)]
 struct RmsTransducerRecord {
@@ -42,7 +45,7 @@ impl ComputeDevice {
 
 #[derive(Debug)]
 pub struct Rms {
-    option: RecordOption,
+    option: RmsRecordOption,
     cursor: usize,
     max_frame: usize,
     x: Vec<f32>,
@@ -157,7 +160,11 @@ impl Rms {
 impl Record {
     pub(crate) const P0: f32 = autd3::driver::defined::T4010A1_AMPLITUDE / (4. * PI) / SQRT_2;
 
-    pub async fn rms(&self, range: Range, option: RecordOption) -> Result<Rms, EmulatorError> {
+    async fn sound_field_rms(
+        &self,
+        range: Range,
+        option: RmsRecordOption,
+    ) -> Result<Rms, EmulatorError> {
         let max_frame = self.records[0].records[0].pulse_width.len();
 
         let (x, y, z) = range.points();
@@ -222,5 +229,18 @@ impl Record {
             z,
             option,
         })
+    }
+}
+
+#[cfg_attr(feature = "async-trait", autd3::driver::async_trait)]
+impl<'a> SoundFieldOption<'a> for RmsRecordOption {
+    type Output = Rms;
+
+    async fn sound_field(
+        self,
+        record: &'a Record,
+        range: Range,
+    ) -> Result<Self::Output, EmulatorError> {
+        record.sound_field_rms(range, self).await
     }
 }

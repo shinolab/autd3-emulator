@@ -35,7 +35,7 @@ async fn record_sound_field(
                 z: point.z..=point.z,
                 resolution: 100.,
             },
-            RecordOption {
+            InstantRecordOption {
                 time_step: Duration::from_micros(1),
                 #[cfg(feature = "gpu")]
                 gpu,
@@ -68,7 +68,7 @@ async fn record_sound_field(
                 z: point.z..=point.z,
                 resolution: 1.,
             },
-            RecordOption {
+            InstantRecordOption {
                 time_step: Duration::from_micros(2),
                 #[cfg(feature = "gpu")]
                 gpu,
@@ -85,7 +85,7 @@ async fn record_sound_field(
                 z: point.z..=point.z,
                 resolution: 1.,
             },
-            RecordOption {
+            InstantRecordOption {
                 time_step: Duration::from_micros(1),
                 #[cfg(feature = "gpu")]
                 gpu,
@@ -132,7 +132,7 @@ async fn record_sound_field_resume(
     let expect = record
         .sound_field(
             range.clone(),
-            RecordOption {
+            InstantRecordOption {
                 time_step: Duration::from_micros(1),
                 #[cfg(feature = "gpu")]
                 gpu,
@@ -146,7 +146,7 @@ async fn record_sound_field_resume(
     let mut sound_field = record
         .sound_field(
             range,
-            RecordOption {
+            InstantRecordOption {
                 time_step: Duration::from_micros(1),
                 memory_limits_hint_mb,
                 #[cfg(feature = "gpu")]
@@ -189,7 +189,7 @@ async fn record_sound_field_skip() -> anyhow::Result<()> {
                     z: point.z..=point.z,
                     resolution: 1.,
                 },
-                RecordOption {
+                InstantRecordOption {
                     time_step: Duration::from_micros(1),
                     ..Default::default()
                 },
@@ -207,7 +207,7 @@ async fn record_sound_field_skip() -> anyhow::Result<()> {
                 z: point.z..=point.z,
                 resolution: 1.,
             },
-            RecordOption {
+            InstantRecordOption {
                 time_step: Duration::from_micros(1),
                 memory_limits_hint_mb: 1,
                 ..Default::default()
@@ -261,7 +261,7 @@ async fn record_sound_field_with_limit(
                 z: point.z..=point.z,
                 resolution: 100.,
             },
-            RecordOption {
+            InstantRecordOption {
                 time_step: Duration::from_micros(1),
                 memory_limits_hint_mb,
                 #[cfg(feature = "gpu")]
@@ -314,7 +314,7 @@ async fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
                 z: point.z..=point.z,
                 resolution: 1.,
             },
-            RecordOption {
+            InstantRecordOption {
                 time_step: Duration::from_micros(1),
                 ..Default::default()
             },
@@ -331,7 +331,7 @@ async fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
                 z: point.z..=point.z,
                 resolution: 1.,
             },
-            RecordOption {
+            InstantRecordOption {
                 time_step: Duration::from_micros(1),
                 gpu: true,
                 ..Default::default()
@@ -380,7 +380,7 @@ async fn not_recorded() -> anyhow::Result<()> {
                 z: point.z..=point.z,
                 resolution: 100.,
             },
-            RecordOption {
+            InstantRecordOption {
                 time_step: Duration::from_micros(1),
                 ..Default::default()
             },

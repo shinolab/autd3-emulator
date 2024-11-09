@@ -35,7 +35,7 @@ async fn main() -> Result<()> {
                     z: focus.z..=focus.z,
                     resolution: 1.,
                 },
-                RecordOption {
+                InstantRecordOption {
                     time_step: Duration::from_micros(1),
                     print_progress: true,
                     #[cfg(feature = "gpu")]
@@ -82,7 +82,7 @@ async fn main() -> Result<()> {
                     z: focus.z..=focus.z,
                     resolution: 1.,
                 },
-                RecordOption {
+                InstantRecordOption {
                     time_step: ULTRASOUND_PERIOD / 10,
                     print_progress: true,
                     #[cfg(feature = "gpu")]
