@@ -15,7 +15,7 @@ use autd3::{
 };
 use polars::{df, frame::DataFrame, prelude::Column};
 
-use super::{super::Record, internal::SoundFieldOption};
+use super::{super::Record, SoundFieldOption};
 use crate::{EmulatorError, Range};
 
 pub use option::RmsRecordOption;
@@ -232,7 +232,6 @@ impl Record {
     }
 }
 
-#[cfg_attr(feature = "async-trait", autd3::driver::async_trait)]
 impl<'a> SoundFieldOption<'a> for RmsRecordOption {
     type Output = Rms;
 

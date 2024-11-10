@@ -10,7 +10,7 @@ use bvh::aabb::Aabb;
 use indicatif::ProgressBar;
 use polars::{df, frame::DataFrame, prelude::Column};
 
-use super::{super::Record, internal::SoundFieldOption};
+use super::{super::Record, SoundFieldOption};
 use crate::{EmulatorError, Range};
 
 pub use option::InstantRecordOption;
@@ -364,7 +364,6 @@ impl Record {
     }
 }
 
-#[cfg_attr(feature = "async-trait", autd3::driver::async_trait)]
 impl<'a> SoundFieldOption<'a> for InstantRecordOption {
     type Output = Instant<'a>;
 
