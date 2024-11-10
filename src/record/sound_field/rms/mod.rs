@@ -127,17 +127,15 @@ impl Rms {
             return Err(EmulatorError::InvalidDuration);
         }
 
-        let num_frames = time.len();
+        let num_frames = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
 
         if self.cursor + num_frames > self.max_frame {
             return Err(EmulatorError::NotRecorded);
         }
 
-        let wavenumber = 2. * PI * ULTRASOUND_FREQ.hz() as f32 / self.option.sound_speed;
-
-        let pb = self.option.pb(num_frames);
-
         if !skip {
+            let wavenumber = 2. * PI * ULTRASOUND_FREQ.hz() as f32 / self.option.sound_speed;
+            let pb = self.option.pb(num_frames);
             let mut i = 0;
             while i < num_frames {
                 let cur_frame = self.cursor + i;
