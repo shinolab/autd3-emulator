@@ -1,3 +1,3 @@
 mod range;
 
-pub use range::Range;
+pub use range::*;

@@ -82,12 +82,7 @@ async fn main() -> Result<()> {
         println!("Calculating sound pressure at focus under 200Hz sin modulation with silencer...");
         let mut sound_field = record
             .sound_field(
-                Range {
-                    x: focus.x..=focus.x,
-                    y: focus.y..=focus.y,
-                    z: focus.z..=focus.z,
-                    resolution: 1.0 * mm,
-                },
+                focus,
                 InstantRecordOption {
                     time_step: Duration::from_micros(1),
                     print_progress: true,

@@ -6,7 +6,7 @@ mod utils;
 use autd3::controller::timer::TimerStrategy;
 use autd3::controller::ControllerBuilder;
 pub use error::EmulatorError;
-pub use option::Range;
+pub use option::*;
 use record::{DeviceRecord, TransducerRecord};
 pub use record::{Instant, InstantRecordOption, Record, Rms, RmsRecordOption};
 

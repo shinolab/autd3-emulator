@@ -9,6 +9,7 @@ use autd3::{driver::defined::ULTRASOUND_PERIOD_COUNT, prelude::ULTRASOUND_PERIOD
 use bvh::aabb::Aabb;
 use indicatif::ProgressBar;
 use polars::{df, frame::DataFrame, prelude::Column};
+use unzip3::Unzip3;
 
 use super::{super::Record, SoundFieldOption};
 use crate::{EmulatorError, Range};
@@ -237,7 +238,7 @@ impl<'a> Instant<'a> {
 impl Record {
     async fn sound_field_instant(
         &self,
-        range: Range,
+        range: impl Range,
         option: InstantRecordOption,
     ) -> Result<Instant, EmulatorError> {
         if ULTRASOUND_PERIOD.as_nanos() % option.time_step.as_nanos() != 0 {
@@ -249,7 +250,7 @@ impl Record {
         let num_points_in_frame =
             (ULTRASOUND_PERIOD.as_nanos() / option.time_step.as_nanos()) as usize;
 
-        let (x, y, z) = range.points();
+        let (x, y, z): (Vec<_>, Vec<_>, Vec<_>) = range.points().unzip3();
 
         let aabb = self
             .records
@@ -370,7 +371,7 @@ impl<'a> SoundFieldOption<'a> for InstantRecordOption {
     async fn sound_field(
         self,
         record: &'a Record,
-        range: Range,
+        range: impl Range,
     ) -> Result<Self::Output, EmulatorError> {
         record.sound_field_instant(range, self).await
     }
