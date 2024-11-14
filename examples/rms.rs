@@ -10,9 +10,7 @@ use polars::{io::SerWriter, prelude::CsvWriter};
 async fn main() -> Result<()> {
     println!("INFO: rms does not take into account propagation delay nor transducer response.");
 
-    let emulator =
-        Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
-            .into_emulator();
+    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
 
     let focus = emulator.center() + Vector3::new(0., 0., 150. * mm);
 

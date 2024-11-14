@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 from matplotlib.colors import Normalize
-from scipy.interpolate import griddata
 
 
 def plot_focus():
@@ -22,13 +21,18 @@ def plot_focus():
     cax = fig.add_subplot(spec[1])
     colorbar.ColorbarBase(cax, cmap="jet", norm=Normalize(vmin=-10e3, vmax=10e3))
 
-    x, y = np.meshgrid(np.unique(df["x[mm]"]), np.unique(df["y[mm]"]))
+    x = np.unique(df["x[mm]"])
+    y = np.unique(df["y[mm]"])
+    p_shape = [len(y), len(x)]
+    aspect = (len(x), len(y), len(x))
+    x, y = np.meshgrid(x, y)
 
     def f(i):
         ax.cla()
-        z = griddata((df["x[mm]"], df["y[mm]"]), p[i], (x, y))
+        z = p[i].to_numpy().reshape(p_shape)
         plot = ax.plot_surface(x, y, z, shade=False, cmap="jet", norm=Normalize(vmin=-10e3, vmax=10e3))
         ax.set_zlim(-10e3, 10e3)
+        ax.set_box_aspect(aspect)
         ax.set_title(f"t={times[i]:.3f} [ms]")
         return plot
 
@@ -44,11 +48,12 @@ def plot_focus():
     ax.plot_surface(
         x,
         y,
-        griddata((df["x[mm]"], df["y[mm]"]), rms, (x, y)),
+        rms.to_numpy().reshape(p_shape),
         shade=False,
         cmap="jet",
         norm=Normalize(vmin=0, vmax=rms.max()),
     )
+    ax.set_box_aspect(aspect)
     colorbar.ColorbarBase(cax, cmap="jet", norm=Normalize(vmin=0, vmax=rms.max()))
     plt.show()
 
@@ -66,13 +71,18 @@ def plot_stm():
     cax = fig.add_subplot(spec[1])
     colorbar.ColorbarBase(cax, cmap="jet", norm=Normalize(vmin=-10e3, vmax=10e3))
 
-    x, y = np.meshgrid(np.unique(df["x[mm]"]), np.unique(df["y[mm]"]))
+    x = np.unique(df["x[mm]"])
+    y = np.unique(df["y[mm]"])
+    p_shape = [len(y), len(x)]
+    aspect = (len(x), len(y), len(x))
+    x, y = np.meshgrid(x, y)
 
     def f(i):
         ax.cla()
-        z = griddata((df["x[mm]"], df["y[mm]"]), p[i], (x, y))
+        z = p[i].to_numpy().reshape(p_shape)
         plot = ax.plot_surface(x, y, z, shade=False, cmap="jet", norm=Normalize(vmin=-10e3, vmax=10e3))
         ax.set_zlim(-10e3, 10e3)
+        ax.set_box_aspect(aspect)
         ax.set_title(f"t={times[i]:.3f} [ms]")
         return plot
 
