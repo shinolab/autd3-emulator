@@ -29,10 +29,10 @@ async fn main() -> Result<()> {
         println!("Calculating sound field around focus...");
         let mut sound_field = record
             .sound_field(
-                Range {
+                RangeXY {
                     x: focus.x - 20.0..=focus.x + 20.0,
                     y: focus.y - 20.0..=focus.y + 20.0,
-                    z: focus.z..=focus.z,
+                    z: focus.z,
                     resolution: 1.,
                 },
                 InstantRecordOption {
@@ -76,10 +76,10 @@ async fn main() -> Result<()> {
         println!("Calculating sound field with STM...");
         let mut sound_field = record
             .sound_field(
-                Range {
+                RangeXY {
                     x: focus.x - 30.0..=focus.x + 30.0,
                     y: focus.y - 30.0..=focus.y + 30.0,
-                    z: focus.z..=focus.z,
+                    z: focus.z,
                     resolution: 1.,
                 },
                 InstantRecordOption {

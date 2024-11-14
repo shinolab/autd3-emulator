@@ -40,32 +40,36 @@ mod tests {
     };
     use rand::Rng;
 
-    use crate::option::Range;
+    use crate::option::*;
 
     use super::*;
 
-    fn aabb_max_dist_naive(geo: &Geometry, range: &Range) -> f32 {
-        let (x, y, z) = range.points();
+    fn aabb_max_dist_naive(geo: &Geometry, range: &impl Range) -> f32 {
+        let points = range
+            .points()
+            .map(|(x, y, z)| Vector3::new(x, y, z))
+            .collect::<Vec<_>>();
         itertools::iproduct!(
             geo.iter()
                 .flat_map(|dev| dev.iter())
                 .map(|tr| tr.position()),
-            itertools::izip!(x.iter(), y.iter(), z.iter())
-                .map(|(x, y, z)| Vector3::new(*x, *y, *z))
+            points
         )
         .map(|(tp, p)| (p - tp).norm())
         .max_by(|a, b| a.partial_cmp(b).unwrap())
         .unwrap()
     }
 
-    fn aabb_min_dist_naive(geo: &Geometry, range: &Range) -> f32 {
-        let (x, y, z) = range.points();
+    fn aabb_min_dist_naive(geo: &Geometry, range: &impl Range) -> f32 {
+        let points = range
+            .points()
+            .map(|(x, y, z)| Vector3::new(x, y, z))
+            .collect::<Vec<_>>();
         itertools::iproduct!(
             geo.iter()
                 .flat_map(|dev| dev.iter())
                 .map(|tr| tr.position()),
-            itertools::izip!(x.iter(), y.iter(), z.iter())
-                .map(|(x, y, z)| Vector3::new(*x, *y, *z))
+            points
         )
         .map(|(tp, p)| (p - tp).norm())
         .min_by(|a, b| a.partial_cmp(b).unwrap())
@@ -74,15 +78,15 @@ mod tests {
 
     #[rstest::rstest]
     #[test]
-    #[case::x_include(Range{ x: -10.0..=200.0, y: 0.0..=0.0, z: 0.0..=0.0, resolution: 1.0 })]
-    #[case::x_separate(Range{ x: 200.0..=400.0, y: 0.0..=0.0, z: 0.0..=0.0, resolution: 1.0 })]
-    #[case::y_include(Range{ x: 0.0..=0.0, y: -10.0..=200.0, z: 0.0..=0.0, resolution: 1.0 })]
-    #[case::y_separate(Range{ x: 0.0..=0.0, y: 200.0..=400.0, z: 0.0..=0.0, resolution: 1.0 })]
-    #[case::z_include(Range{ x: 0.0..=0.0, y: 0.0..=0.0, z: -10.0..=100.0, resolution: 1.0 })]
-    #[case::z_separate(Range{ x: 0.0..=0.0, y: 0.0..=0.0, z: 100.0..=200.0, resolution: 1.0 })]
-    #[case::include(Range{ x: -10.0..=200.0, y: -10.0..=150.0, z: -10.0..=60.0, resolution: 10.0 })]
-    #[case::separate(Range{ x: -10.0..=200.0, y: -10.0..=150.0, z: 150.0..=150.0, resolution: 10.0 })]
-    fn test_aabb_max_dist(#[case] range: Range) {
+    #[case::x_include(RangeX{ x: -10.0..=200.0, y: 0.0, z: 0.0, resolution: 1.0 })]
+    #[case::x_separate(RangeX{ x: 200.0..=400.0, y: 0.0, z: 0.0, resolution: 1.0 })]
+    #[case::y_include(RangeY{ x: 0.0, y: -10.0..=200.0, z: 0.0, resolution: 1.0 })]
+    #[case::y_separate(RangeY{ x: 0.0, y: 200.0..=400.0, z: 0.0, resolution: 1.0 })]
+    #[case::z_include(RangeZ{ x: 0.0, y: 0.0, z: -10.0..=100.0, resolution: 1.0 })]
+    #[case::z_separate(RangeZ{ x: 0.0, y: 0.0, z: 100.0..=200.0, resolution: 1.0 })]
+    #[case::include(RangeXYZ{ x: -10.0..=200.0, y: -10.0..=150.0, z: -10.0..=60.0, resolution: 10.0 })]
+    #[case::separate(RangeXYZ{ x: -10.0..=200.0, y: -10.0..=150.0, z: 150.0..=150.0, resolution: 10.0 })]
+    fn test_aabb_max_dist(#[case] range: impl Range) {
         let geo = Geometry::new(
             vec![
                 AUTD3::new(Vector3::zeros()).into_device(0),
@@ -98,15 +102,15 @@ mod tests {
 
     #[rstest::rstest]
     #[test]
-    #[case::x_include(Range{ x: -10.0..=200.0, y: 0.0..=0.0, z: 0.0..=0.0, resolution: 1.0 })]
-    #[case::x_separate(Range{ x: 200.0..=400.0, y: 0.0..=0.0, z: 0.0..=0.0, resolution: 1.0 })]
-    #[case::y_include(Range{ x: 0.0..=0.0, y: -10.0..=200.0, z: 0.0..=0.0, resolution: 1.0 })]
-    #[case::y_separate(Range{ x: 0.0..=0.0, y: 200.0..=400.0, z: 0.0..=0.0, resolution: 1.0 })]
-    #[case::z_include(Range{ x: 0.0..=0.0, y: 0.0..=0.0, z: -10.0..=100.0, resolution: 1.0 })]
-    #[case::z_separate(Range{ x: 0.0..=0.0, y: 0.0..=0.0, z: 100.0..=200.0, resolution: 1.0 })]
-    #[case::include(Range{ x: -10.0..=200.0, y: -10.0..=150.0, z: -10.0..=60.0, resolution: 10.0 })]
-    #[case::separate(Range{ x: -10.0..=200.0, y: -10.0..=150.0, z: 150.0..=150.0, resolution: 10.0 })]
-    fn test_aabb_min_dist(#[case] range: Range) {
+    #[case::x_include(RangeXYZ{ x: -10.0..=200.0, y: 0.0..=0.0, z: 0.0..=0.0, resolution: 1.0 })]
+    #[case::x_separate(RangeXYZ{ x: 200.0..=400.0, y: 0.0..=0.0, z: 0.0..=0.0, resolution: 1.0 })]
+    #[case::y_include(RangeXYZ{ x: 0.0..=0.0, y: -10.0..=200.0, z: 0.0..=0.0, resolution: 1.0 })]
+    #[case::y_separate(RangeXYZ{ x: 0.0..=0.0, y: 200.0..=400.0, z: 0.0..=0.0, resolution: 1.0 })]
+    #[case::z_include(RangeXYZ{ x: 0.0..=0.0, y: 0.0..=0.0, z: -10.0..=100.0, resolution: 1.0 })]
+    #[case::z_separate(RangeXYZ{ x: 0.0..=0.0, y: 0.0..=0.0, z: 100.0..=200.0, resolution: 1.0 })]
+    #[case::include(RangeXYZ{ x: -10.0..=200.0, y: -10.0..=150.0, z: -10.0..=60.0, resolution: 10.0 })]
+    #[case::separate(RangeXYZ{ x: -10.0..=200.0, y: -10.0..=150.0, z: 150.0..=150.0, resolution: 10.0 })]
+    fn test_aabb_min_dist(#[case] range: impl Range) {
         let geo = Geometry::new(
             vec![
                 AUTD3::new(Vector3::zeros()).into_device(0),
@@ -123,7 +127,7 @@ mod tests {
     #[test]
     fn test_aabb_max_dist_rand() {
         let mut rng = rand::thread_rng();
-        let range = Range {
+        let range = RangeXYZ {
             x: -100.0..=100.0,
             y: -100.0..=100.0,
             z: 100.0..=100.0,

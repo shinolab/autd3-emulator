@@ -14,6 +14,7 @@ use autd3::{
     prelude::{ULTRASOUND_FREQ, ULTRASOUND_PERIOD},
 };
 use polars::{df, frame::DataFrame, prelude::Column};
+use unzip3::Unzip3;
 
 use super::{super::Record, SoundFieldOption};
 use crate::{EmulatorError, Range};
@@ -160,12 +161,12 @@ impl Record {
 
     async fn sound_field_rms(
         &self,
-        range: Range,
+        range: impl Range,
         option: RmsRecordOption,
     ) -> Result<Rms, EmulatorError> {
         let max_frame = self.records[0].records[0].pulse_width.len();
 
-        let (x, y, z) = range.points();
+        let (x, y, z): (Vec<_>, Vec<_>, Vec<_>) = range.points().unzip3();
 
         let records = self
             .records
@@ -236,7 +237,7 @@ impl<'a> SoundFieldOption<'a> for RmsRecordOption {
     async fn sound_field(
         self,
         record: &'a Record,
-        range: Range,
+        range: impl Range,
     ) -> Result<Self::Output, EmulatorError> {
         record.sound_field_rms(range, self).await
     }

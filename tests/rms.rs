@@ -29,10 +29,10 @@ async fn record_sound_field(
     let point = Vector3::new(0., 0., 300. * mm);
     let mut rms = record
         .sound_field(
-            Range {
+            RangeXY {
                 x: point.x - 100.0..=point.x + 100.0,
                 y: point.y - 100.0..=point.y + 100.0,
-                z: point.z..=point.z,
+                z: point.z,
                 resolution: 100.,
             },
             RmsRecordOption {
@@ -61,10 +61,10 @@ async fn record_sound_field(
 
     assert!(record
         .sound_field(
-            Range {
+            RangeXY {
                 x: point.x - 1.0..=point.x + 1.0,
                 y: point.y - 1.0..=point.y + 1.0,
-                z: point.z..=point.z,
+                z: point.z,
                 resolution: 1.,
             },
             RmsRecordOption {
@@ -103,10 +103,10 @@ async fn record_rms_resume(
         .await?;
 
     let point = Vector3::new(0., 0., 1. * mm);
-    let range = Range {
+    let range = RangeXY {
         x: point.x - 50.0..=point.x + 50.0,
         y: point.y - 50.0..=point.y + 50.0,
-        z: point.z..=point.z,
+        z: point.z,
         resolution: 1.,
     };
     let expect = record
@@ -160,10 +160,10 @@ async fn record_rms_skip() -> anyhow::Result<()> {
     let expect = {
         let mut sf = record
             .sound_field(
-                Range {
+                RangeXY {
                     x: point.x - 9.0..=point.x + 9.0,
                     y: point.y - 50.0..=point.y + 50.0,
-                    z: point.z..=point.z,
+                    z: point.z,
                     resolution: 1.,
                 },
                 RmsRecordOption::default(),
@@ -175,10 +175,10 @@ async fn record_rms_skip() -> anyhow::Result<()> {
 
     let mut rms = record
         .sound_field(
-            Range {
+            RangeXY {
                 x: point.x - 9.0..=point.x + 9.0,
                 y: point.y - 50.0..=point.y + 50.0,
-                z: point.z..=point.z,
+                z: point.z,
                 resolution: 1.,
             },
             RmsRecordOption::default(),
@@ -213,10 +213,10 @@ async fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
     let point = Vector3::new(0., 0., 1. * mm);
     let cpu = record
         .sound_field(
-            Range {
+            RangeXY {
                 x: point.x - 9.0..=point.x + 9.0,
                 y: point.y - 50.0..=point.y + 50.0,
-                z: point.z..=point.z,
+                z: point.z,
                 resolution: 1.,
             },
             RmsRecordOption::default(),
@@ -227,10 +227,10 @@ async fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
 
     let mut rms = record
         .sound_field(
-            Range {
+            RangeXY {
                 x: point.x - 9.0..=point.x + 9.0,
                 y: point.y - 50.0..=point.y + 50.0,
-                z: point.z..=point.z,
+                z: point.z,
                 resolution: 1.,
             },
             RmsRecordOption {
@@ -275,10 +275,10 @@ async fn not_recorded() -> anyhow::Result<()> {
     let point = Vector3::new(0., 0., 300. * mm);
     let mut rms = record
         .sound_field(
-            Range {
+            RangeXY {
                 x: point.x - 100.0..=point.x + 100.0,
                 y: point.y - 100.0..=point.y + 100.0,
-                z: point.z..=point.z,
+                z: point.z,
                 resolution: 100.,
             },
             RmsRecordOption::default(),

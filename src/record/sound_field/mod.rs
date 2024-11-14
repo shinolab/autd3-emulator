@@ -11,14 +11,14 @@ pub trait SoundFieldOption<'a> {
     fn sound_field(
         self,
         record: &'a Record,
-        range: Range,
+        range: impl Range,
     ) -> impl std::future::Future<Output = Result<Self::Output, EmulatorError>>;
 }
 
 impl Record {
     pub async fn sound_field<'a, T: SoundFieldOption<'a>>(
         &'a self,
-        range: Range,
+        range: impl Range,
         option: T,
     ) -> Result<T::Output, EmulatorError> {
         option.sound_field(self, range).await
