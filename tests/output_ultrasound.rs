@@ -1,5 +1,6 @@
 use autd3::prelude::*;
 use autd3_emulator::*;
+use polars::prelude::Column;
 
 #[tokio::test]
 async fn record_output_ultrasound() -> anyhow::Result<()> {
@@ -18,24 +19,76 @@ async fn record_output_ultrasound() -> anyhow::Result<()> {
         .await?;
 
     let df = record.output_ultrasound();
-    df["time[25us/256]"]
-        .u64()?
-        .into_no_null_iter()
+
+    assert_eq!((emulator.num_transducers(), 5 + 30 * 256), df.shape());
+
+    df.get_column_names()
+        .into_iter()
+        .skip(5)
         .enumerate()
-        .for_each(|(i, t)| assert_eq!(i as u64, t));
-    emulator.iter().for_each(|dev| {
-        dev.iter().for_each(|tr| {
-            // TODO: check the value
+        .for_each(|(i, n)| {
             assert_eq!(
-                30 * 256,
-                df[format!("p_{}_{}[a.u.]", tr.dev_idx(), tr.idx()).as_str()]
-                    .f32()
+                i,
+                n.as_str()
+                    .replace("p[a.u.]@", "")
+                    .replace("[25us/256]", "")
+                    .parse::<usize>()
                     .unwrap()
-                    .iter()
-                    .count()
-            );
+            )
         });
-    });
+
+    assert_eq!(
+        &Column::new(
+            "dev_idx".into(),
+            &emulator
+                .iter()
+                .flat_map(|dev| dev.iter().map(|tr| tr.dev_idx() as u16))
+                .collect::<Vec<_>>()
+        ),
+        &df[0]
+    );
+    assert_eq!(
+        &Column::new(
+            "tr_idx".into(),
+            &emulator
+                .iter()
+                .flat_map(|dev| dev.iter().map(|tr| tr.idx() as u8))
+                .collect::<Vec<_>>()
+        ),
+        &df[1]
+    );
+    assert_eq!(
+        &Column::new(
+            "x[mm]".into(),
+            &emulator
+                .iter()
+                .flat_map(|dev| dev.iter().map(|tr| tr.position().x))
+                .collect::<Vec<_>>()
+        ),
+        &df[2]
+    );
+    assert_eq!(
+        &Column::new(
+            "y[mm]".into(),
+            &emulator
+                .iter()
+                .flat_map(|dev| dev.iter().map(|tr| tr.position().y))
+                .collect::<Vec<_>>()
+        ),
+        &df[3]
+    );
+    assert_eq!(
+        &Column::new(
+            "z[mm]".into(),
+            &emulator
+                .iter()
+                .flat_map(|dev| dev.iter().map(|tr| tr.position().z))
+                .collect::<Vec<_>>()
+        ),
+        &df[4]
+    );
+
+    // TODO: check the value
 
     Ok(())
 }

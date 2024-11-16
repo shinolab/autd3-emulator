@@ -5,6 +5,7 @@ use anyhow::Result;
 use autd3::prelude::*;
 use autd3_emulator::*;
 
+use polars::prelude::AnyValue;
 use textplots::{Chart, Plot, Shape};
 
 #[tokio::main]
@@ -27,17 +28,24 @@ async fn main() -> Result<()> {
             .await?;
 
         let df = record.output_voltage();
-        let t = df["time[25us/256]"].u64()?;
-        dbg!(&t);
-        let v = df["voltage_0_0[V]"].f32()?; // voltage_<device idx>_<transducer idx>
+
+        let t = df.get_column_names().into_iter().skip(5).map(|n| {
+            n.as_str()
+                .replace("voltage[V]@", "")
+                .replace("[25us/256]", "")
+                .parse::<f32>()
+                .unwrap()
+                * 0.025
+                / 256.
+        });
+        let v = df.get_row(0)?.0.into_iter().skip(5).map(|v| match v {
+            AnyValue::Float32(v) => v,
+            _ => panic!(),
+        });
         println!("output voltage");
+        dbg!(&df);
         Chart::new(300, 40, 0.0, 1.0)
-            .lineplot(&Shape::Lines(
-                &t.into_no_null_iter()
-                    .zip(v.into_no_null_iter())
-                    .map(|(t, v)| (t as f32 * 0.025 / 256., v))
-                    .collect::<Vec<_>>(),
-            ))
+            .lineplot(&Shape::Lines(&t.zip(v).collect::<Vec<_>>()))
             .display();
     };
 
@@ -57,16 +65,24 @@ async fn main() -> Result<()> {
             .await?;
 
         let df = record.output_ultrasound();
-        let t = df["time[25us/256]"].u64()?;
-        let v = df["p_0_0[a.u.]"].f32()?;
+
+        let t = df.get_column_names().into_iter().skip(5).map(|n| {
+            n.as_str()
+                .replace("p[a.u.]@", "")
+                .replace("[25us/256]", "")
+                .parse::<f32>()
+                .unwrap()
+                * 0.025
+                / 256.
+        });
+        let v = df.get_row(0)?.0.into_iter().skip(5).map(|v| match v {
+            AnyValue::Float32(v) => v,
+            _ => panic!(),
+        });
         println!("output ultrasound");
+        dbg!(&df);
         Chart::new(300, 40, 0.0, 1.0)
-            .lineplot(&Shape::Lines(
-                &t.into_no_null_iter()
-                    .zip(v.into_no_null_iter())
-                    .map(|(t, v)| (t as f32 * 0.025 / 256., v))
-                    .collect::<Vec<_>>(),
-            ))
+            .lineplot(&Shape::Lines(&t.zip(v).collect::<Vec<_>>()))
             .display();
     };
 

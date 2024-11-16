@@ -13,7 +13,7 @@ repository = "https://github.com/shinolab/autd3-emulator"
 autd3 = { version = "29.0.0-rc.9" }
 autd3-firmware-emulator = { version = "29.0.0-rc.9" }
 derive_more = { version = "1.0.0", features = ["deref"] }
-polars = { version = "0.44.0", features = ["dtype-u8"], default-features = false }
+polars = { version = "0.44.0", features = ["dtype-u8", "dtype-u16"], default-features = false }
 indicatif = "0.17.8"
 itertools = "0.13.0"
 thiserror = "2.0.0"

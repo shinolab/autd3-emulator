@@ -164,22 +164,20 @@ impl Record {
         range: impl Range,
         option: RmsRecordOption,
     ) -> Result<Rms, EmulatorError> {
-        let max_frame = self.records[0].records[0].pulse_width.len();
+        let max_frame = self.records[0].pulse_width.len();
 
         let (x, y, z): (Vec<_>, Vec<_>, Vec<_>) = range.points().unzip3();
 
         let records = self
             .records
             .iter()
-            .flat_map(|r| {
-                r.records.iter().map(|tr| RmsTransducerRecord {
-                    amp: (tr
-                        .pulse_width
-                        .iter()
-                        .map(|&w| Self::P0 * (PI * w as f32 / ULTRASOUND_PERIOD_COUNT as f32).sin())
-                        .collect()),
-                    phase: tr.phase.iter().map(|&p| Phase::new(p).radian()).collect(),
-                })
+            .map(|tr| RmsTransducerRecord {
+                amp: (tr
+                    .pulse_width
+                    .iter()
+                    .map(|&w| Self::P0 * (PI * w as f32 / ULTRASOUND_PERIOD_COUNT as f32).sin())
+                    .collect()),
+                phase: tr.phase.iter().map(|&p| Phase::new(p).radian()).collect(),
             })
             .collect();
 
@@ -190,9 +188,7 @@ impl Record {
                     &x,
                     &y,
                     &z,
-                    self.records
-                        .iter()
-                        .flat_map(|dev| dev.records.iter().map(|tr| *tr.tr.position())),
+                    self.records.iter().map(|tr| *tr.tr.position()),
                     records,
                 )
                 .await?,
@@ -202,9 +198,7 @@ impl Record {
                 &x,
                 &y,
                 &z,
-                self.records
-                    .iter()
-                    .flat_map(|dev| dev.records.iter().map(|tr| *tr.tr.position())),
+                self.records.iter().map(|tr| *tr.tr.position()),
                 records,
             ))
         };
@@ -213,9 +207,7 @@ impl Record {
             &x,
             &y,
             &z,
-            self.records
-                .iter()
-                .flat_map(|dev| dev.records.iter().map(|tr| *tr.tr.position())),
+            self.records.iter().map(|tr| *tr.tr.position()),
             records,
         ));
 
