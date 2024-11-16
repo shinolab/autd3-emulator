@@ -6,27 +6,10 @@ impl TransducerRecord {
     pub(crate) const TS: f32 = 1. / (ULTRASOUND_FREQ.hz() as f32 * ULTRASOUND_PERIOD_COUNT as f32);
     pub(crate) const V: f32 = 12.0;
 
-    pub(crate) fn output_times_inplace(&self, start: usize, n: usize, time: &mut [u64]) {
-        (start..)
-            .take(n)
-            .flat_map(|i| {
-                (0..ULTRASOUND_PERIOD_COUNT).map(move |j| i * ULTRASOUND_PERIOD_COUNT + j)
-            })
-            .zip(time.iter_mut())
-            .for_each(|(src, dst)| *dst = src as _);
-    }
-
-    pub(crate) fn output_times(&self, start: usize, n: usize) -> Vec<u64> {
-        let mut time = vec![0; n * ULTRASOUND_PERIOD_COUNT];
-        self.output_times_inplace(start, n, &mut time);
-        time
-    }
-
     pub(crate) fn _output_voltage_within_inplace(&self, start: usize, n: usize, v: &mut [f32]) {
-        self.pulse_width
+        self.pulse_width[start..]
             .iter()
-            .zip(self.phase.iter())
-            .skip(start)
+            .zip(self.phase[start..].iter())
             .take(n)
             .flat_map(|(pw, phase)| {
                 let rise = phase.wrapping_sub(pw / 2);

@@ -6,7 +6,6 @@ mod option;
 use std::time::Duration;
 
 use autd3::{driver::defined::ULTRASOUND_PERIOD_COUNT, prelude::ULTRASOUND_PERIOD};
-use bvh::aabb::Aabb;
 use indicatif::ProgressBar;
 use polars::{df, frame::DataFrame, prelude::Column};
 use unzip3::Unzip3;
@@ -245,27 +244,22 @@ impl Record {
             return Err(EmulatorError::InvalidTimeStep);
         }
 
-        let max_frame = self.records[0].records[0].pulse_width.len();
+        let max_frame = self.records[0].pulse_width.len();
 
         let num_points_in_frame =
             (ULTRASOUND_PERIOD.as_nanos() / option.time_step.as_nanos()) as usize;
 
         let (x, y, z): (Vec<_>, Vec<_>, Vec<_>) = range.points().unzip3();
 
-        let aabb = self
-            .records
-            .iter()
-            .fold(Aabb::empty(), |acc, dev| acc.join(&dev.aabb));
-
-        let min_dist = crate::utils::aabb::aabb_min_dist(&aabb, &range.aabb());
-        let max_dist = crate::utils::aabb::aabb_max_dist(&aabb, &range.aabb());
+        let min_dist = crate::utils::aabb::aabb_min_dist(&self.aabb, &range.aabb());
+        let max_dist = crate::utils::aabb::aabb_max_dist(&self.aabb, &range.aabb());
 
         let required_frame_size = (max_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32())
             .ceil() as usize
             - (min_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32()).floor() as usize;
 
         let frame_window_size = {
-            let num_transducers = self.records.iter().map(|r| r.records.len()).sum::<usize>();
+            let num_transducers = self.records.len();
 
             let mem_usage = x.len() * size_of::<f32>()
                 + y.len() * size_of::<f32>()
@@ -301,7 +295,7 @@ impl Record {
         let output_ultrasound = self
             .records
             .iter()
-            .flat_map(|dev| dev.records.iter().map(|tr| tr.output_ultrasound()))
+            .map(|tr| tr.output_ultrasound())
             .collect::<Vec<_>>();
         let cache_size = (required_frame_size + frame_window_size) as isize;
 
@@ -312,9 +306,7 @@ impl Record {
                     &x,
                     &y,
                     &z,
-                    self.records
-                        .iter()
-                        .flat_map(|dev| dev.records.iter().map(|tr| *tr.tr.position())),
+                    self.records.iter().map(|tr| *tr.tr.position()),
                     output_ultrasound,
                     frame_window_size,
                     num_points_in_frame,
@@ -327,9 +319,7 @@ impl Record {
                 &x,
                 &y,
                 &z,
-                self.records
-                    .iter()
-                    .flat_map(|dev| dev.records.iter().map(|tr| *tr.tr.position())),
+                self.records.iter().map(|tr| *tr.tr.position()),
                 output_ultrasound,
                 frame_window_size,
                 num_points_in_frame,
@@ -340,9 +330,7 @@ impl Record {
             &x,
             &y,
             &z,
-            self.records
-                .iter()
-                .flat_map(|dev| dev.records.iter().map(|tr| *tr.tr.position())),
+            self.records.iter().map(|tr| *tr.tr.position()),
             output_ultrasound,
             frame_window_size,
             num_points_in_frame,

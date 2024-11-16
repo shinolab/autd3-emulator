@@ -5,9 +5,10 @@ mod utils;
 
 use autd3::controller::timer::TimerStrategy;
 use autd3::controller::ControllerBuilder;
+use bvh::aabb::Aabb;
 pub use error::EmulatorError;
 pub use option::*;
-use record::{DeviceRecord, TransducerRecord};
+use record::TransducerRecord;
 pub use record::{Instant, InstantRecordOption, Record, Rms, RmsRecordOption};
 
 use std::time::Duration;
@@ -256,16 +257,19 @@ impl Emulator {
             std::mem::swap(&mut tmp, recorder.geometry_mut());
             tmp
         };
+
+        let aabb = devices
+            .iter()
+            .fold(Aabb::empty(), |aabb, dev| aabb.join(dev.aabb()));
+
         let records = recorder
             .link_mut()
             .record
             .records
             .drain(..)
             .zip(devices.into_iter())
-            .map(|(rd, dev)| DeviceRecord {
-                aabb: *dev.aabb(),
-                records: rd
-                    .records
+            .flat_map(|(rd, dev)| {
+                rd.records
                     .into_iter()
                     .zip(dev.into_iter())
                     .map(|(r, tr)| TransducerRecord {
@@ -273,7 +277,6 @@ impl Emulator {
                         phase: r.phase,
                         tr,
                     })
-                    .collect(),
             })
             .collect();
 
@@ -283,6 +286,7 @@ impl Emulator {
             records,
             start,
             end,
+            aabb,
         })
     }
 }

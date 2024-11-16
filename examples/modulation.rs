@@ -26,19 +26,29 @@ async fn main() -> Result<()> {
             })
             .await?;
 
-        let df = record.drive();
-        let t = df["time[ns]"].u64()?;
-        let pulse_width = df["pulsewidth_0_0"].u8()?; // pulsewidth_<device idx>_<transducer idx>
+        let df = record.pulse_width();
+
+        let t = df.get_column_names().into_iter().skip(5).map(|n| {
+            n.as_str()
+                .replace("pulse_width@", "")
+                .replace("[ns]", "")
+                .parse::<f32>()
+                .unwrap()
+        });
+        let pulse_width = df.get_row(0)?.0.into_iter().skip(5).map(|v| match v {
+            AnyValue::UInt8(v) => v,
+            _ => panic!(),
+        });
         println!("pulse width under 200Hz sine modulation with silencer");
+        dbg!(&df);
         Chart::new(180, 40, 5.0, 10.0)
             .lineplot(&Shape::Lines(
-                &t.into_no_null_iter()
-                    .zip(pulse_width.into_no_null_iter())
-                    .map(|(t, v)| (t as f32 / 1_000_000., v as f32))
+                &t.zip(pulse_width)
+                    .map(|(t, v)| (t / 1_000_000., v as f32))
                     .collect::<Vec<_>>(),
             ))
             .display();
-    };
+    }
 
     // pulse width under 200Hz sine modulation without silencer
     {
@@ -52,19 +62,29 @@ async fn main() -> Result<()> {
             })
             .await?;
 
-        let df = record.drive();
-        let t = df["time[ns]"].u64()?;
-        let pulse_width = df["pulsewidth_0_0"].u8()?; // pulsewidth_<device idx>_<transducer idx>
+        let df = record.pulse_width();
+
+        let t = df.get_column_names().into_iter().skip(5).map(|n| {
+            n.as_str()
+                .replace("pulse_width@", "")
+                .replace("[ns]", "")
+                .parse::<f32>()
+                .unwrap()
+        });
+        let pulse_width = df.get_row(0)?.0.into_iter().skip(5).map(|v| match v {
+            AnyValue::UInt8(v) => v,
+            _ => panic!(),
+        });
         println!("pulse width under 200Hz sine modulation without silencer");
+        dbg!(&df);
         Chart::new(180, 40, 5.0, 10.0)
             .lineplot(&Shape::Lines(
-                &t.into_no_null_iter()
-                    .zip(pulse_width.into_no_null_iter())
-                    .map(|(t, v)| (t as f32 / 1_000_000., v as f32))
+                &t.zip(pulse_width)
+                    .map(|(t, v)| (t / 1_000_000., v as f32))
                     .collect::<Vec<_>>(),
             ))
             .display();
-    };
+    }
 
     // plot sound pressure at focus under 200Hz sin modulation with silencer
     {
@@ -105,6 +125,7 @@ async fn main() -> Result<()> {
             _ => panic!(),
         });
         println!("sound pressure at focus under 200Hz sin modulation with silencer");
+        dbg!(&df);
         Chart::new(180, 40, 0.0, 20.0)
             .lineplot(&Shape::Lines(
                 &t.zip(p)
