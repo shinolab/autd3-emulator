@@ -28,18 +28,15 @@ impl Record {
     }
 
     pub fn output_voltage(&self) -> DataFrame {
-        let mut df = self.drive_df();
-        let time = (0..self.output_cols())
-            .map(|i| i as u64)
-            .collect::<Vec<_>>();
         let mut v = vec![vec![0.; self.drive_rows()]; self.output_cols()];
         self.output_voltage_inplace(v.iter_mut().map(|v| v.as_mut_ptr()));
-        let colmuns = time
-            .iter()
-            .zip(v.iter())
-            .map(|(t, v)| Column::new(format!("voltage[V]@{}[25us/256]", t).into(), &v))
-            .collect::<Vec<_>>();
-        df.hstack_mut(&colmuns).unwrap();
-        df
+        DataFrame::new(
+            (0..self.output_cols())
+                .map(|i| i as u64)
+                .zip(v.iter())
+                .map(|(t, v)| Column::new(format!("voltage[V]@{}[25us/256]", t).into(), &v))
+                .collect(),
+        )
+        .unwrap()
     }
 }

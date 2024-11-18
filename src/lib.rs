@@ -8,6 +8,7 @@ use autd3::controller::ControllerBuilder;
 use bvh::aabb::Aabb;
 pub use error::EmulatorError;
 pub use option::*;
+use polars::{df, frame::DataFrame};
 use record::TransducerRecord;
 pub use record::{Instant, InstantRecordOption, Record, Rms, RmsRecordOption};
 
@@ -74,6 +75,7 @@ impl LinkBuilder for RecorderBuilder {
         let emulators = geometry
             .iter()
             .enumerate()
+            .filter(|(_, dev)| dev.enable)
             .map(|(i, dev)| CPUEmulator::new(i, dev.num_transducers()))
             .collect::<Vec<_>>();
         let record = RawRecord {
@@ -99,7 +101,7 @@ impl LinkBuilder for RecorderBuilder {
             is_open: true,
             emulators,
             geometry: Geometry::new(
-                geometry.iter().map(clone_device).collect(),
+                geometry.devices().map(clone_device).collect(),
                 geometry.fallback_parallel_threshold(),
             ),
             record,
@@ -260,6 +262,7 @@ impl Emulator {
 
         let aabb = devices
             .iter()
+            .filter(|dev| dev.enable)
             .fold(Aabb::empty(), |aabb, dev| aabb.join(dev.aabb()));
 
         let records = recorder
@@ -267,7 +270,7 @@ impl Emulator {
             .record
             .records
             .drain(..)
-            .zip(devices.into_iter())
+            .zip(devices.into_iter().filter(|dev| dev.enable))
             .flat_map(|(rd, dev)| {
                 rd.records
                     .into_iter()
@@ -288,6 +291,82 @@ impl Emulator {
             end,
             aabb,
         })
+    }
+
+    fn transducers(&self) -> impl Iterator<Item = &Transducer> {
+        self.geometry.devices().flat_map(|dev| dev.iter())
+    }
+
+    #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    fn transducer_table_rows(&self) -> usize {
+        self.geometry.num_transducers()
+    }
+
+    #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    fn dev_indices_inplace(&self, dev_indices: &mut [u16]) {
+        self.transducers()
+            .zip(dev_indices.iter_mut())
+            .for_each(|(tr, dst)| *dst = tr.dev_idx() as u16);
+    }
+
+    #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    fn tr_indices_inplace(&self, tr_indices: &mut [u8]) {
+        self.transducers()
+            .zip(tr_indices.iter_mut())
+            .for_each(|(tr, dst)| *dst = tr.idx() as u8);
+    }
+
+    #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    fn tr_positions_inplace(&self, x: &mut [f32], y: &mut [f32], z: &mut [f32]) {
+        self.transducers()
+            .zip(x.iter_mut())
+            .zip(y.iter_mut())
+            .zip(z.iter_mut())
+            .for_each(|(((tr, x), y), z)| {
+                *x = tr.position().x;
+                *y = tr.position().y;
+                *z = tr.position().z;
+            });
+    }
+
+    #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    fn tr_dir_inplace(&self, x: &mut [f32], y: &mut [f32], z: &mut [f32]) {
+        self.transducers()
+            .zip(x.iter_mut())
+            .zip(y.iter_mut())
+            .zip(z.iter_mut())
+            .for_each(|(((tr, x), y), z)| {
+                *x = self.geometry[tr.dev_idx()].axial_direction().x;
+                *y = self.geometry[tr.dev_idx()].axial_direction().y;
+                *z = self.geometry[tr.dev_idx()].axial_direction().z;
+            });
+    }
+
+    pub fn transducer_table(&self) -> DataFrame {
+        let n = self.transducer_table_rows();
+        let mut dev_indices = vec![0; n];
+        let mut tr_indices = vec![0; n];
+        let mut x = vec![0.0; n];
+        let mut y = vec![0.0; n];
+        let mut z = vec![0.0; n];
+        let mut nx = vec![0.0; n];
+        let mut ny = vec![0.0; n];
+        let mut nz = vec![0.0; n];
+        self.dev_indices_inplace(&mut dev_indices);
+        self.tr_indices_inplace(&mut tr_indices);
+        self.tr_positions_inplace(&mut x, &mut y, &mut z);
+        self.tr_dir_inplace(&mut nx, &mut ny, &mut nz);
+        df!(
+            "dev_idx" => &dev_indices,
+            "tr_idx" => &tr_indices,
+            "x[mm]" => &x,
+            "y[mm]" => &y,
+            "z[mm]" => &z,
+            "nx" => &nx,
+            "ny" => &ny,
+            "nz" => &nz,
+        )
+        .unwrap()
     }
 }
 
