@@ -1,6 +1,5 @@
 use autd3::prelude::*;
 use autd3_emulator::*;
-use polars::prelude::Column;
 
 #[tokio::test]
 async fn record_output_voltage() -> anyhow::Result<()> {
@@ -37,11 +36,10 @@ async fn record_output_voltage() -> anyhow::Result<()> {
 
     let df = record.output_voltage();
 
-    assert_eq!((emulator.num_transducers(), 5 + 4 * 256), df.shape());
+    assert_eq!((emulator.num_transducers(), 4 * 256), df.shape());
 
     df.get_column_names()
         .into_iter()
-        .skip(5)
         .enumerate()
         .for_each(|(i, n)| {
             assert_eq!(
@@ -54,68 +52,14 @@ async fn record_output_voltage() -> anyhow::Result<()> {
             )
         });
 
-    assert_eq!(
-        &Column::new(
-            "dev_idx".into(),
-            &emulator
-                .iter()
-                .flat_map(|dev| dev.iter().map(|tr| tr.dev_idx() as u16))
-                .collect::<Vec<_>>()
-        ),
-        &df[0]
-    );
-    assert_eq!(
-        &Column::new(
-            "tr_idx".into(),
-            &emulator
-                .iter()
-                .flat_map(|dev| dev.iter().map(|tr| tr.idx() as u8))
-                .collect::<Vec<_>>()
-        ),
-        &df[1]
-    );
-    assert_eq!(
-        &Column::new(
-            "x[mm]".into(),
-            &emulator
-                .iter()
-                .flat_map(|dev| dev.iter().map(|tr| tr.position().x))
-                .collect::<Vec<_>>()
-        ),
-        &df[2]
-    );
-    assert_eq!(
-        &Column::new(
-            "y[mm]".into(),
-            &emulator
-                .iter()
-                .flat_map(|dev| dev.iter().map(|tr| tr.position().y))
-                .collect::<Vec<_>>()
-        ),
-        &df[3]
-    );
-    assert_eq!(
-        &Column::new(
-            "z[mm]".into(),
-            &emulator
-                .iter()
-                .flat_map(|dev| dev.iter().map(|tr| tr.position().z))
-                .collect::<Vec<_>>()
-        ),
-        &df[4]
-    );
-
     let expect_1 = [vec![12.; 64], vec![-12.; 128], vec![12.; 64]].concat();
     let expect_2 = [vec![-12.; 64], vec![12.; 128], vec![-12.; 64]].concat();
     let expect_3 = [vec![-12.; 96], vec![12.; 64], vec![-12.; 96]].concat();
     let expect_4 = vec![-12.; 256];
     let expect = [expect_1, expect_2, expect_3, expect_4].concat();
-    df.iter()
-        .skip(5)
-        .zip(expect.into_iter())
-        .for_each(|(c, expect)| {
-            assert!(c.f32().unwrap().into_no_null_iter().all(|v| v == expect));
-        });
+    df.iter().zip(expect.into_iter()).for_each(|(c, expect)| {
+        assert!(c.f32().unwrap().into_no_null_iter().all(|v| v == expect));
+    });
 
     Ok(())
 }

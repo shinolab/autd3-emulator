@@ -28,14 +28,14 @@ async fn main() -> Result<()> {
 
         let df = record.pulse_width();
 
-        let t = df.get_column_names().into_iter().skip(5).map(|n| {
+        let t = df.get_column_names().into_iter().map(|n| {
             n.as_str()
                 .replace("pulse_width@", "")
                 .replace("[ns]", "")
                 .parse::<f32>()
                 .unwrap()
         });
-        let pulse_width = df.get_row(0)?.0.into_iter().skip(5).map(|v| match v {
+        let pulse_width = df.get_row(0)?.0.into_iter().map(|v| match v {
             AnyValue::UInt8(v) => v,
             _ => panic!(),
         });
@@ -64,14 +64,14 @@ async fn main() -> Result<()> {
 
         let df = record.pulse_width();
 
-        let t = df.get_column_names().into_iter().skip(5).map(|n| {
+        let t = df.get_column_names().into_iter().map(|n| {
             n.as_str()
                 .replace("pulse_width@", "")
                 .replace("[ns]", "")
                 .parse::<f32>()
                 .unwrap()
         });
-        let pulse_width = df.get_row(0)?.0.into_iter().skip(5).map(|v| match v {
+        let pulse_width = df.get_row(0)?.0.into_iter().map(|v| match v {
             AnyValue::UInt8(v) => v,
             _ => panic!(),
         });
@@ -113,6 +113,7 @@ async fn main() -> Result<()> {
 
         let df = sound_field.next(Duration::from_millis(20)).await?;
 
+        // First 3 columns are used for recording position
         let t = df.get_column_names().into_iter().skip(3).map(|n| {
             n.as_str()
                 .replace("p[Pa]@", "")

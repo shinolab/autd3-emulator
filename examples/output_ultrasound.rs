@@ -29,7 +29,7 @@ async fn main() -> Result<()> {
 
         let df = record.output_voltage();
 
-        let t = df.get_column_names().into_iter().skip(5).map(|n| {
+        let t = df.get_column_names().into_iter().map(|n| {
             n.as_str()
                 .replace("voltage[V]@", "")
                 .replace("[25us/256]", "")
@@ -38,7 +38,7 @@ async fn main() -> Result<()> {
                 * 0.025
                 / 256.
         });
-        let v = df.get_row(0)?.0.into_iter().skip(5).map(|v| match v {
+        let v = df.get_row(0)?.0.into_iter().map(|v| match v {
             AnyValue::Float32(v) => v,
             _ => panic!(),
         });
@@ -66,7 +66,7 @@ async fn main() -> Result<()> {
 
         let df = record.output_ultrasound();
 
-        let t = df.get_column_names().into_iter().skip(5).map(|n| {
+        let t = df.get_column_names().into_iter().map(|n| {
             n.as_str()
                 .replace("p[a.u.]@", "")
                 .replace("[25us/256]", "")
@@ -75,7 +75,7 @@ async fn main() -> Result<()> {
                 * 0.025
                 / 256.
         });
-        let v = df.get_row(0)?.0.into_iter().skip(5).map(|v| match v {
+        let v = df.get_row(0)?.0.into_iter().map(|v| match v {
             AnyValue::Float32(v) => v,
             _ => panic!(),
         });

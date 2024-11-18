@@ -1,7 +1,7 @@
 use autd3::{derive::Datagram, gain, prelude::*};
 use autd3_emulator::*;
 
-use polars::prelude::{df, Column};
+use polars::{frame::DataFrame, prelude::Column};
 
 #[rstest::rstest]
 #[case(Silencer::disable())]
@@ -12,31 +12,25 @@ async fn record_phase(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
         Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
             .into_emulator();
 
-    let mut expect = df!(
-        "dev_idx" => &emulator.iter().flat_map(|dev| dev.iter().map(|tr| tr.dev_idx() as u16)).collect::<Vec<_>>(),
-        "tr_idx" => &emulator.iter().flat_map(|dev| dev.iter().map(|tr| tr.idx() as u8)).collect::<Vec<_>>(),
-        "x[mm]" => &emulator.iter().flat_map(|dev| dev.iter().map(|tr| tr.position().x)).collect::<Vec<_>>(),
-        "y[mm]" => &emulator.iter().flat_map(|dev| dev.iter().map(|tr| tr.position().y)).collect::<Vec<_>>(),
-        "z[mm]" => &emulator.iter().flat_map(|dev| dev.iter().map(|tr| tr.position().z)).collect::<Vec<_>>(),
+    let expect = DataFrame::new(
+        [0, 25000, 50000]
+            .iter()
+            .zip([0, 1, 1])
+            .map(|(t, o)| {
+                Column::new(
+                    format!("pulse_width@{}[ns]", t).into(),
+                    emulator
+                        .iter()
+                        .flat_map(|dev| {
+                            dev.iter()
+                                .map(|tr| (Phase::new(o) + Phase::new(tr.dev_idx() as _)).value())
+                        })
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect(),
     )
     .unwrap();
-    let columns = [0, 25000, 50000]
-        .iter()
-        .zip([0, 1, 1])
-        .map(|(t, o)| {
-            Column::new(
-                format!("pulse_width@{}[ns]", t).into(),
-                emulator
-                    .iter()
-                    .flat_map(|dev| {
-                        dev.iter()
-                            .map(|tr| (Phase::new(o) + Phase::new(tr.dev_idx() as _)).value())
-                    })
-                    .collect::<Vec<_>>(),
-            )
-        })
-        .collect::<Vec<_>>();
-    expect.hstack_mut(&columns).unwrap();
 
     let record = emulator
         .record(|mut autd| async {
@@ -68,6 +62,8 @@ async fn record_phase(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
 #[case(Silencer::disable().with_target(SilencerTarget::PulseWidth))]
 #[tokio::test]
 async fn record_pulse_width(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
+    use polars::frame::DataFrame;
+
     let emulator =
         Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
             .into_emulator();
@@ -76,28 +72,23 @@ async fn record_pulse_width(#[case] silencer: impl Datagram) -> anyhow::Result<(
         let i = (a as usize * b) / 255;
         ((((i as f32) / 255.).asin() / PI) * 256.).round() as u8
     };
-    let mut expect = df!(
-        "dev_idx" => &emulator.iter().flat_map(|dev| dev.iter().map(|tr| tr.dev_idx() as u16)).collect::<Vec<_>>(),
-        "tr_idx" => &emulator.iter().flat_map(|dev| dev.iter().map(|tr| tr.idx() as u8)).collect::<Vec<_>>(),
-        "x[mm]" => &emulator.iter().flat_map(|dev| dev.iter().map(|tr| tr.position().x)).collect::<Vec<_>>(),
-        "y[mm]" => &emulator.iter().flat_map(|dev| dev.iter().map(|tr| tr.position().y)).collect::<Vec<_>>(),
-        "z[mm]" => &emulator.iter().flat_map(|dev| dev.iter().map(|tr| tr.position().z)).collect::<Vec<_>>(),
+
+    let expect = DataFrame::new(
+        [0, 25000, 50000]
+            .iter()
+            .zip([100, 200, 200])
+            .map(|(t, i)| {
+                Column::new(
+                    format!("pulse_width@{}[ns]", t).into(),
+                    emulator
+                        .iter()
+                        .flat_map(|dev| dev.iter().map(|tr| to_pulse_width(i, tr.idx())))
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect(),
     )
     .unwrap();
-    let columns = [0, 25000, 50000]
-        .iter()
-        .zip([100, 200, 200])
-        .map(|(t, i)| {
-            Column::new(
-                format!("pulse_width@{}[ns]", t).into(),
-                emulator
-                    .iter()
-                    .flat_map(|dev| dev.iter().map(|tr| to_pulse_width(i, tr.idx())))
-                    .collect::<Vec<_>>(),
-            )
-        })
-        .collect::<Vec<_>>();
-    expect.hstack_mut(&columns).unwrap();
 
     let record = emulator
         .record(|mut autd| async {
