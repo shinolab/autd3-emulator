@@ -42,8 +42,14 @@ async fn main() -> Result<()> {
                 },
             )
             .await?;
-        let mut df = sound_field.next(Duration::from_millis(1)).await?;
 
+        let mut df = polars::functions::concat_df_horizontal(
+            &[
+                sound_field.observe_points(),
+                sound_field.next(Duration::from_millis(1)).await?,
+            ],
+            false,
+        )?;
         CsvWriter::new(std::fs::File::create("sound_field_around_focus.csv")?)
             .include_header(true)
             .finish(&mut df)?;
@@ -89,7 +95,14 @@ async fn main() -> Result<()> {
                 },
             )
             .await?;
-        let mut df = sound_field.next(Duration::from_millis(5)).await?;
+
+        let mut df = polars::functions::concat_df_horizontal(
+            &[
+                sound_field.observe_points(),
+                sound_field.next(Duration::from_millis(5)).await?,
+            ],
+            false,
+        )?;
         CsvWriter::new(std::fs::File::create("sound_field_stm.csv")?)
             .include_header(true)
             .finish(&mut df)?;

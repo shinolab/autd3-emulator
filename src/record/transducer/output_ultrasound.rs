@@ -9,7 +9,7 @@ pub struct OutputUltrasound<'a> {
     model: T4010A1BVDModel,
 }
 
-impl<'a> OutputUltrasound<'a> {
+impl OutputUltrasound<'_> {
     pub(crate) fn _next_inplace(&mut self, n: usize, v: &mut [f32]) -> Option<()> {
         let output_volage = self.record._output_voltage_within(self.cursor, n)?;
         self.cursor += n;
