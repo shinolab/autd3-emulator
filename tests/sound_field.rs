@@ -130,23 +130,10 @@ async fn record_sound_field_resume(
         z: point.z,
         resolution: 1.,
     };
-    let expect = record
-        .sound_field(
-            range.clone(),
-            InstantRecordOption {
-                time_step: Duration::from_micros(1),
-                #[cfg(feature = "gpu")]
-                gpu,
-                ..Default::default()
-            },
-        )
-        .await?
-        .next(10 * ULTRASOUND_PERIOD)
-        .await?;
 
     let mut sound_field = record
         .sound_field(
-            range,
+            range.clone(),
             InstantRecordOption {
                 time_step: Duration::from_micros(1),
                 memory_limits_hint_mb,
@@ -156,12 +143,28 @@ async fn record_sound_field_resume(
             },
         )
         .await?;
-    let mut v1 = sound_field.next(5 * ULTRASOUND_PERIOD).await?;
-    let v2 = sound_field.next(5 * ULTRASOUND_PERIOD).await?;
-    let columns = v2.get_columns();
-    v1.hstack_mut(&columns).unwrap();
-
-    assert_eq!(expect, v1);
+    assert_eq!(
+        record
+            .sound_field(
+                range,
+                InstantRecordOption {
+                    time_step: Duration::from_micros(1),
+                    #[cfg(feature = "gpu")]
+                    gpu,
+                    ..Default::default()
+                },
+            )
+            .await?
+            .next(10 * ULTRASOUND_PERIOD)
+            .await?,
+        polars::functions::concat_df_horizontal(
+            &[
+                sound_field.next(5 * ULTRASOUND_PERIOD).await?,
+                sound_field.next(5 * ULTRASOUND_PERIOD).await?,
+            ],
+            false,
+        )?
+    );
 
     Ok(())
 }
