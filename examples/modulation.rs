@@ -114,14 +114,14 @@ async fn main() -> Result<()> {
         let df = sound_field.next(Duration::from_millis(20)).await?;
 
         // First 3 columns are used for recording position
-        let t = df.get_column_names().into_iter().skip(3).map(|n| {
+        let t = df.get_column_names().into_iter().map(|n| {
             n.as_str()
                 .replace("p[Pa]@", "")
                 .replace("[ns]", "")
                 .parse::<u64>()
                 .unwrap()
         });
-        let p = df.get_row(0)?.0.into_iter().skip(3).map(|v| match v {
+        let p = df.get_row(0)?.0.into_iter().map(|v| match v {
             AnyValue::Float32(v) => v,
             _ => panic!(),
         });

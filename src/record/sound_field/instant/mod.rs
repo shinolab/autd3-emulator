@@ -90,6 +90,15 @@ pub struct Instant<'a> {
 }
 
 impl<'a> Instant<'a> {
+    pub fn observe_points(&self) -> DataFrame {
+        df!(
+            "x[mm]" => &self.x,
+            "y[mm]" => &self.y,
+            "z[mm]" => &self.z,
+        )
+        .unwrap()
+    }
+
     pub async fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
         let n = self.next_time_len(duration);
         let mut time = vec![0; n];
@@ -102,21 +111,13 @@ impl<'a> Instant<'a> {
         )
         .await?;
 
-        let columns = time
-            .iter()
-            .zip(v.iter())
-            .map(|(t, v)| Column::new(format!("p[Pa]@{}[ns]", t).into(), v))
-            .collect::<Vec<_>>();
-
-        let mut df = df!(
-            "x[mm]" => &self.x,
-            "y[mm]" => &self.y,
-            "z[mm]" => &self.z,
+        Ok(DataFrame::new(
+            time.iter()
+                .zip(v.iter())
+                .map(|(t, v)| Column::new(format!("p[Pa]@{}[ns]", t).into(), v))
+                .collect::<Vec<_>>(),
         )
-        .unwrap();
-        df.hstack_mut(&columns).unwrap();
-
-        Ok(df)
+        .unwrap())
     }
 
     pub async fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {

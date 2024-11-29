@@ -44,8 +44,7 @@ async fn record_sound_field(
         )
         .await?;
 
-    let df = sound_field.next(100 * ULTRASOUND_PERIOD).await?;
-
+    let df = sound_field.observe_points();
     assert_eq!(
         vec![-100.0, 0.0, 100.0, -100.0, 0.0, 100.0, -100.0, 0.0, 100.0],
         df["x[mm]"].f32()?.into_no_null_iter().collect::<Vec<_>>()
@@ -58,7 +57,9 @@ async fn record_sound_field(
         vec![300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0],
         df["z[mm]"].f32()?.into_no_null_iter().collect::<Vec<_>>()
     );
+
     // TODO: check the value
+    let _df = sound_field.next(100 * ULTRASOUND_PERIOD).await?;
 
     assert!(record
         .sound_field(
@@ -158,7 +159,7 @@ async fn record_sound_field_resume(
     let mut v1 = sound_field.next(5 * ULTRASOUND_PERIOD).await?;
     let v2 = sound_field.next(5 * ULTRASOUND_PERIOD).await?;
     let columns = v2.get_columns();
-    v1.hstack_mut(&columns[3..]).unwrap();
+    v1.hstack_mut(&columns).unwrap();
 
     assert_eq!(expect, v1);
 
@@ -271,8 +272,7 @@ async fn record_sound_field_with_limit(
         )
         .await?;
 
-    let df = sound_field.next(100 * ULTRASOUND_PERIOD).await?;
-
+    let df = sound_field.observe_points();
     assert_eq!(
         vec![-100.0, 0.0, 100.0, -100.0, 0.0, 100.0, -100.0, 0.0, 100.0],
         df["x[mm]"].f32()?.into_no_null_iter().collect::<Vec<_>>()
@@ -285,7 +285,9 @@ async fn record_sound_field_with_limit(
         vec![300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0],
         df["z[mm]"].f32()?.into_no_null_iter().collect::<Vec<_>>()
     );
+
     // TODO: check the value
+    let _df = sound_field.next(100 * ULTRASOUND_PERIOD).await?;
 
     Ok(())
 }
