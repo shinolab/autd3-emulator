@@ -13,7 +13,7 @@ repository = "https://github.com/shinolab/autd3-emulator"
 autd3 = { version = "29.0.0-rc.10" }
 autd3-firmware-emulator = { version = "29.0.0-rc.10" }
 derive_more = { version = "1.0.0", default-features = false }
-polars = { version = "0.44.0", features = ["dtype-u16", "dtype-u8"], default-features = false }
+polars = { version = "0.45.1", features = ["dtype-u16", "dtype-u8"], default-features = false }
 indicatif = { version = "0.17.9", default-features = false }
 itertools = { version = "0.13.0", default-features = false }
 thiserror = { version = "2.0.3", default-features = false }
@@ -32,7 +32,7 @@ approx = { version = "0.5.1", default-features = false }
 rstest = { version = "0.23.0", default-features = false }
 textplots = "0.8.6"
 tokio = { version = "1.40.0", features = ["macros"] }
-polars = { version = "0.44.0", features = ["csv", "fmt"], default-features = false }
+polars = { version = "0.45.1", features = ["csv", "fmt"], default-features = false }
 rand = { version = "0.8.5", default-features = false }
 
 [features]
