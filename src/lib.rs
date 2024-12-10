@@ -102,7 +102,7 @@ impl LinkBuilder for RecorderBuilder {
             emulators,
             geometry: Geometry::new(
                 geometry.devices().map(clone_device).collect(),
-                geometry.fallback_parallel_threshold(),
+                geometry.default_parallel_threshold(),
             ),
             record,
         })
@@ -213,7 +213,7 @@ pub struct Emulator {
     #[deref_mut]
     geometry: Geometry,
     #[get]
-    fallback_timeout: Duration,
+    default_timeout: Duration,
     #[get]
     send_interval: Duration,
     #[get]
@@ -242,8 +242,8 @@ impl Emulator {
         F: std::future::Future<Output = Result<Controller<Recorder>, EmulatorError>>,
     {
         let builder = Controller::builder(self.geometry.iter().map(clone_device))
-            .with_fallback_parallel_threshold(self.geometry.fallback_parallel_threshold())
-            .with_fallback_timeout(self.fallback_timeout)
+            .with_default_parallel_threshold(self.geometry.default_parallel_threshold())
+            .with_default_timeout(self.default_timeout)
             .with_receive_interval(self.receive_interval)
             .with_send_interval(self.send_interval)
             .with_timer_strategy(self.timer_strategy);
@@ -376,14 +376,14 @@ pub trait ControllerBuilderIntoEmulatorExt {
 
 impl ControllerBuilderIntoEmulatorExt for ControllerBuilder {
     fn into_emulator(self) -> Emulator {
-        let fallback_parallel_threshold = self.fallback_parallel_threshold();
-        let fallback_timeout = self.fallback_timeout();
+        let default_parallel_threshold = self.default_parallel_threshold();
+        let default_timeout = self.default_timeout();
         let send_interval = self.send_interval();
         let receive_interval = self.receive_interval();
         let timer_strategy = *self.timer_strategy();
         Emulator {
-            geometry: Geometry::new(self.devices(), fallback_parallel_threshold),
-            fallback_timeout,
+            geometry: Geometry::new(self.devices(), default_parallel_threshold),
+            default_timeout,
             send_interval,
             receive_interval,
             timer_strategy,
