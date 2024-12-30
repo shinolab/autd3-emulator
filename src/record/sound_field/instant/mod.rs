@@ -131,32 +131,38 @@ impl<'a> Instant<'a> {
     }
 
     #[cfg(feature = "inplace")]
+    #[doc(hidden)]
     pub fn x_inplace(&self, x: &mut [f32]) {
         x.copy_from_slice(&self.x);
     }
 
     #[cfg(feature = "inplace")]
+    #[doc(hidden)]
     pub fn y_inplace(&self, y: &mut [f32]) {
         y.copy_from_slice(&self.y);
     }
 
     #[cfg(feature = "inplace")]
+    #[doc(hidden)]
     pub fn z_inplace(&self, z: &mut [f32]) {
         z.copy_from_slice(&self.z);
     }
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    #[doc(hidden)]
     fn next_time_len(&self, duration: Duration) -> usize {
         let num_frames = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
         num_frames * self.num_points_in_frame
     }
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    #[doc(hidden)]
     fn next_points_len(&self) -> usize {
         self.x.len()
     }
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    #[doc(hidden)]
     async fn next_inplace(
         &mut self,
         duration: Duration,

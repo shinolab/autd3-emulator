@@ -326,11 +326,13 @@ impl Emulator {
     }
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    #[doc(hidden)]
     fn transducer_table_rows(&self) -> usize {
         self.geometry.num_transducers()
     }
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    #[doc(hidden)]
     fn dev_indices_inplace(&self, dev_indices: &mut [u16]) {
         self.transducers()
             .zip(dev_indices.iter_mut())
@@ -338,6 +340,7 @@ impl Emulator {
     }
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    #[doc(hidden)]
     fn tr_indices_inplace(&self, tr_indices: &mut [u8]) {
         self.transducers()
             .zip(tr_indices.iter_mut())
@@ -345,6 +348,7 @@ impl Emulator {
     }
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    #[doc(hidden)]
     fn tr_positions_inplace(&self, x: &mut [f32], y: &mut [f32], z: &mut [f32]) {
         self.transducers()
             .zip(x.iter_mut())
@@ -358,6 +362,7 @@ impl Emulator {
     }
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    #[doc(hidden)]
     fn tr_dir_inplace(&self, x: &mut [f32], y: &mut [f32], z: &mut [f32]) {
         self.transducers()
             .zip(x.iter_mut())
