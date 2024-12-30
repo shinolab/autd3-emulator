@@ -9,7 +9,7 @@ use polars::{frame::DataFrame, prelude::Column};
 #[tokio::test]
 async fn record_phase(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
     let emulator =
-        Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
+        Controller::builder([AUTD3::new(Point3::origin()), AUTD3::new(Point3::origin())])
             .into_emulator();
 
     let expect = DataFrame::new(
@@ -65,7 +65,7 @@ async fn record_pulse_width(#[case] silencer: impl Datagram) -> anyhow::Result<(
     use polars::frame::DataFrame;
 
     let emulator =
-        Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
+        Controller::builder([AUTD3::new(Point3::origin()), AUTD3::new(Point3::origin())])
             .into_emulator();
 
     let to_pulse_width = |a, b| {

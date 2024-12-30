@@ -16,6 +16,7 @@ pub trait SoundFieldOption<'a> {
 }
 
 impl Record {
+    /// Calculate sound field.
     pub async fn sound_field<'a, T: SoundFieldOption<'a>>(
         &'a self,
         range: impl Range,

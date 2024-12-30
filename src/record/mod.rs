@@ -13,12 +13,15 @@ pub use sound_field::{
 };
 pub(crate) use transducer::TransducerRecord;
 
+/// A record of the ultrasound data.
 #[derive(Builder, Debug)]
 pub struct Record {
     pub(crate) records: Vec<TransducerRecord>,
     #[get]
+    /// The start time of the record.
     pub(crate) start: DcSysTime,
     #[get]
+    /// The end time of the record.
     pub(crate) end: DcSysTime,
     pub(crate) aabb: bvh::aabb::Aabb<f32, 3>,
 }
@@ -60,6 +63,7 @@ impl Record {
         })
     }
 
+    /// Returns the time series data of the phase parameter for each transducer.
     pub fn phase(&self) -> DataFrame {
         let mut time = vec![0; self.drive_cols()];
         let mut phase = vec![vec![0; self.drive_rows()]; self.drive_cols()];
@@ -73,6 +77,7 @@ impl Record {
         .unwrap()
     }
 
+    /// Returns the time series data of the pulse width for each transducer.
     pub fn pulse_width(&self) -> DataFrame {
         let mut time = vec![0; self.drive_cols()];
         let mut pulse_width = vec![vec![0; self.drive_rows()]; self.drive_cols()];

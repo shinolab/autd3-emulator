@@ -1,13 +1,13 @@
-use autd3::driver::geometry::Vector3;
+use autd3::driver::geometry::{Point3, Vector3};
 use bvh::aabb::Aabb;
 
-fn corners(aabb: &Aabb<f32, 3>) -> Vec<Vector3> {
+fn corners(aabb: &Aabb<f32, 3>) -> Vec<Point3> {
     itertools::iproduct!(
         [aabb.min.x, aabb.max.x],
         [aabb.min.y, aabb.max.y],
         [aabb.min.z, aabb.max.z]
     )
-    .map(|(x, y, z)| Vector3::new(x, y, z))
+    .map(|(x, y, z)| Point3::new(x, y, z))
     .collect()
 }
 
@@ -34,6 +34,7 @@ mod tests {
     use std::f32::consts::PI;
 
     use autd3::driver::geometry::IntoDevice;
+
     use autd3::{
         derive::Geometry,
         prelude::{rad, EulerAngle, AUTD3},
@@ -47,7 +48,7 @@ mod tests {
     fn aabb_max_dist_naive(geo: &Geometry, range: &impl Range) -> f32 {
         let points = range
             .points()
-            .map(|(x, y, z)| Vector3::new(x, y, z))
+            .map(|(x, y, z)| Point3::new(x, y, z))
             .collect::<Vec<_>>();
         itertools::iproduct!(
             geo.iter()
@@ -63,7 +64,7 @@ mod tests {
     fn aabb_min_dist_naive(geo: &Geometry, range: &impl Range) -> f32 {
         let points = range
             .points()
-            .map(|(x, y, z)| Vector3::new(x, y, z))
+            .map(|(x, y, z)| Point3::new(x, y, z))
             .collect::<Vec<_>>();
         itertools::iproduct!(
             geo.iter()
@@ -89,8 +90,8 @@ mod tests {
     fn test_aabb_max_dist(#[case] range: impl Range) {
         let geo = Geometry::new(
             vec![
-                AUTD3::new(Vector3::zeros()).into_device(0),
-                AUTD3::new(Vector3::new(0., 0., 50.)).into_device(0),
+                AUTD3::new(Point3::origin()).into_device(0),
+                AUTD3::new(Point3::new(0., 0., 50.)).into_device(0),
             ],
             4,
         );
@@ -113,8 +114,8 @@ mod tests {
     fn test_aabb_min_dist(#[case] range: impl Range) {
         let geo = Geometry::new(
             vec![
-                AUTD3::new(Vector3::zeros()).into_device(0),
-                AUTD3::new(Vector3::new(0., 0., 50.)).into_device(0),
+                AUTD3::new(Point3::origin()).into_device(0),
+                AUTD3::new(Point3::new(0., 0., 50.)).into_device(0),
             ],
             4,
         );
@@ -135,7 +136,7 @@ mod tests {
         };
         for _ in 0..10 {
             let geo = Geometry::new(
-                vec![AUTD3::new(Vector3::new(
+                vec![AUTD3::new(Point3::new(
                     rng.gen_range(-300.0..300.0),
                     rng.gen_range(-300.0..300.0),
                     rng.gen_range(-300.0..300.0),

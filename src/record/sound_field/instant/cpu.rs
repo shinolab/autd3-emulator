@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, time::Duration};
 
-use autd3::{driver::defined::ULTRASOUND_PERIOD_COUNT, prelude::Vector3};
+use autd3::{driver::defined::ULTRASOUND_PERIOD_COUNT, prelude::Point3};
 use indicatif::ProgressBar;
 
 use crate::record::{transducer::output_ultrasound::OutputUltrasound, TransducerRecord};
@@ -24,14 +24,14 @@ impl<'a> Cpu<'a> {
         x: &[f32],
         y: &[f32],
         z: &[f32],
-        transducer_positions: impl Iterator<Item = Vector3>,
+        transducer_positions: impl Iterator<Item = Point3>,
         output_ultrasound: Vec<OutputUltrasound<'a>>,
         frame_window_size: usize,
         num_points_in_frame: usize,
     ) -> Self {
         let transducer_positions = transducer_positions.collect::<Vec<_>>();
         let dists = itertools::izip!(x.iter(), y.iter(), z.iter())
-            .map(|(&x, &y, &z)| Vector3::new(x, y, z))
+            .map(|(&x, &y, &z)| Point3::new(x, y, z))
             .map(|p| {
                 transducer_positions
                     .iter()

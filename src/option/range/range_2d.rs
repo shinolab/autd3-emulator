@@ -9,11 +9,16 @@ use super::Range;
 macro_rules! make_range_2d {
     ($first:ident, $second:ident, $third:ident) => {
         paste! {
+            #[doc = concat!("A range of 2D space iterating in the order of ", stringify!($first), "-", stringify!($second), ".")]
             #[derive(Clone, Debug)]
             pub struct [<Range $first:upper $second:upper>] {
+                #[doc = concat!("The range of the ", stringify!($first), " axis.")]
                 pub $first: std::ops::RangeInclusive<f32>,
+                #[doc = concat!("The range of the ", stringify!($second), " axis.")]
                 pub $second: std::ops::RangeInclusive<f32>,
+                #[doc = concat!("The coordinate of the ", stringify!($third), " axis.")]
                 pub $third: f32,
+                /// The resolution of the range.
                 pub resolution: f32,
             }
 
@@ -22,11 +27,11 @@ macro_rules! make_range_2d {
                     ((range.end() - range.start()) / resolution).floor() as usize + 1
                 }
 
-                pub fn [<n $first>](&self) -> usize {
+                fn [<n $first>](&self) -> usize {
                     Self::n(&self.$first, self.resolution)
                 }
 
-                pub fn [<n $second>](&self) -> usize {
+                fn [<n $second>](&self) -> usize {
                     Self::n(&self.$second, self.resolution)
                 }
 

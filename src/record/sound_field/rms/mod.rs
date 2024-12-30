@@ -44,6 +44,7 @@ impl ComputeDevice {
     }
 }
 
+/// An interface to calculate RMS of the sound field.
 #[derive(Debug)]
 pub struct Rms {
     option: RmsRecordOption,
@@ -56,6 +57,7 @@ pub struct Rms {
 }
 
 impl Rms {
+    /// Returns the observed points.
     pub fn observe_points(&self) -> DataFrame {
         df!(
             "x[mm]" => &self.x,
@@ -65,6 +67,7 @@ impl Rms {
         .unwrap()
     }
 
+    /// Progresses by the specified time and calculates the RMS of the sound field during that time.
     pub async fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
         let n = self.next_time_len(duration);
         let mut time = vec![0; n];
@@ -86,6 +89,7 @@ impl Rms {
         .unwrap())
     }
 
+    /// Progresses by the specified time.
     pub async fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {
         self.next_inplace(duration, true, &mut [], std::iter::empty())
             .await?;

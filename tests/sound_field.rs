@@ -13,7 +13,7 @@ async fn record_sound_field(
     gpu: bool,
 ) -> anyhow::Result<()> {
     let emulator =
-        Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
+        Controller::builder([AUTD3::new(Point3::origin()), AUTD3::new(Point3::origin())])
             .into_emulator();
 
     let record = emulator
@@ -111,7 +111,7 @@ async fn record_sound_field_resume(
     gpu: bool,
     #[case] memory_limits_hint_mb: usize,
 ) -> anyhow::Result<()> {
-    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
+    let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
 
     let record = emulator
         .record(|mut autd| async {
@@ -171,7 +171,7 @@ async fn record_sound_field_resume(
 
 #[tokio::test]
 async fn record_sound_field_skip() -> anyhow::Result<()> {
-    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
+    let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
 
     let record = emulator
         .record(|mut autd| async {
@@ -243,7 +243,7 @@ async fn record_sound_field_with_limit(
     #[case] memory_limits_hint_mb: usize,
 ) -> anyhow::Result<()> {
     let emulator =
-        Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
+        Controller::builder([AUTD3::new(Point3::origin()), AUTD3::new(Point3::origin())])
             .into_emulator();
 
     let record = emulator
@@ -298,7 +298,7 @@ async fn record_sound_field_with_limit(
 #[cfg(feature = "gpu")]
 #[tokio::test]
 async fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
-    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
+    let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
 
     let record = emulator
         .record(|mut autd| async {
@@ -364,7 +364,7 @@ async fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn not_recorded() -> anyhow::Result<()> {
-    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
+    let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
 
     let record = emulator
         .record(|mut autd| async {

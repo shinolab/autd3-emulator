@@ -1,4 +1,4 @@
-use autd3::{driver::defined::Complex, prelude::Vector3};
+use autd3::{driver::defined::Complex, prelude::Point3};
 
 use rayon::prelude::*;
 
@@ -16,12 +16,12 @@ impl Cpu {
         x: &[f32],
         y: &[f32],
         z: &[f32],
-        transducer_positions: impl Iterator<Item = Vector3>,
+        transducer_positions: impl Iterator<Item = Point3>,
         records: Vec<RmsTransducerRecord>,
     ) -> Self {
         let transducer_positions = transducer_positions.collect::<Vec<_>>();
         let dists = itertools::izip!(x.iter(), y.iter(), z.iter())
-            .map(|(&x, &y, &z)| Vector3::new(x, y, z))
+            .map(|(&x, &y, &z)| Point3::new(x, y, z))
             .map(|p| {
                 transducer_positions
                     .iter()

@@ -8,7 +8,7 @@ use polars::{io::SerWriter, prelude::CsvWriter};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
+    let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
 
     let focus = emulator.center() + Vector3::new(0., 0., 150. * mm);
 

@@ -73,6 +73,7 @@ impl<'a> ComputeDevice<'a> {
     }
 }
 
+/// An interface to calculate the instant sound field.
 #[derive(Debug)]
 pub struct Instant<'a> {
     pub(crate) cursor: isize,
@@ -90,6 +91,7 @@ pub struct Instant<'a> {
 }
 
 impl<'a> Instant<'a> {
+    /// Returns the observed points.
     pub fn observe_points(&self) -> DataFrame {
         df!(
             "x[mm]" => &self.x,
@@ -99,6 +101,7 @@ impl<'a> Instant<'a> {
         .unwrap()
     }
 
+    /// Progresses by the specified time and calculates the instant sound field during that time.
     pub async fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
         let n = self.next_time_len(duration);
         let mut time = vec![0; n];
@@ -120,6 +123,7 @@ impl<'a> Instant<'a> {
         .unwrap())
     }
 
+    /// Progresses by the specified time.
     pub async fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {
         self.next_inplace(duration, true, &mut [], std::iter::empty())
             .await?;

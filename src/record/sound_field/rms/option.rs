@@ -1,10 +1,15 @@
 use autd3::prelude::mm;
 
+/// Options for RMS recording.
 #[derive(Debug, Clone, Copy)]
 pub struct RmsRecordOption {
+    /// Sound speed [mm/s].
     pub sound_speed: f32,
+    /// If true, print progress bar.
     pub print_progress: bool,
+    #[cfg_attr(docsrs, doc(cfg(feature = "remote")))]
     #[cfg(feature = "gpu")]
+    /// If true, use GPU for computation.
     pub gpu: bool,
 }
 

@@ -21,7 +21,7 @@ impl autd3::driver::geometry::IntoDevice for CustomDevice {
                 .map(|(i, (x, y))| {
                     let x = x as f32 * self.pitch;
                     let y = y as f32 * self.pitch;
-                    Transducer::new(i as u8, dev_idx, Vector3::new(x, y, 0.))
+                    Transducer::new(i as u8, dev_idx, Point3::new(x, y, 0.))
                 })
                 .collect(),
         )
