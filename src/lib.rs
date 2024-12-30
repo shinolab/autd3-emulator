@@ -173,7 +173,9 @@ impl Link for Recorder {
 }
 
 impl Recorder {
-    pub(crate) fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError> {
+    /// Progresses by the specified time.
+    pub fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError> {
+        // This function must be public for capi.
         if tick.is_zero() || tick.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
             return Err(EmulatorError::InvalidTick);
         }
