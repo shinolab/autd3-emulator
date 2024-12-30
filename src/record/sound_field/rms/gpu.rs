@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::EmulatorError;
 
-use autd3::prelude::Vector3;
+use autd3::prelude::Point3;
 
 use bytemuck::NoUninit;
 use wgpu::{util::DeviceExt, Buffer, BufferAddress};
@@ -19,8 +19,8 @@ struct Vec3 {
     _pad: f32,
 }
 
-impl From<Vector3> for Vec3 {
-    fn from(v: Vector3) -> Self {
+impl From<Point3> for Vec3 {
+    fn from(v: Point3) -> Self {
         Self {
             x: v.x,
             y: v.y,
@@ -58,7 +58,7 @@ impl Gpu {
         x: &[f32],
         y: &[f32],
         z: &[f32],
-        transducer_positions: impl Iterator<Item = Vector3>,
+        transducer_positions: impl Iterator<Item = Point3>,
         records: Vec<RmsTransducerRecord>,
     ) -> Result<Self, EmulatorError> {
         let stride = records[0].amp.len();

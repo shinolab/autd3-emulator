@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::VecDeque, time::Duration};
 
 use crate::{record::transducer::output_ultrasound::OutputUltrasound, EmulatorError};
 
-use autd3::{driver::defined::ULTRASOUND_PERIOD_COUNT, prelude::Vector3};
+use autd3::{driver::defined::ULTRASOUND_PERIOD_COUNT, prelude::Point3};
 
 use bytemuck::NoUninit;
 use indicatif::ProgressBar;
@@ -19,8 +19,8 @@ struct Vec3 {
     _pad: f32,
 }
 
-impl From<Vector3> for Vec3 {
-    fn from(v: Vector3) -> Self {
+impl From<Point3> for Vec3 {
+    fn from(v: Point3) -> Self {
         Self {
             x: v.x,
             y: v.y,
@@ -67,7 +67,7 @@ impl<'a> Gpu<'a> {
         x: &[f32],
         y: &[f32],
         z: &[f32],
-        transducer_positions: impl Iterator<Item = Vector3>,
+        transducer_positions: impl Iterator<Item = Point3>,
         output_ultrasound: Vec<OutputUltrasound<'a>>,
         frame_window_size: usize,
         num_points_in_frame: usize,
