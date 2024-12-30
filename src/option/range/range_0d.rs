@@ -1,9 +1,9 @@
-use autd3::{driver::geometry::Point3, prelude::Vector3};
+use autd3::driver::geometry::Point3;
 use bvh::aabb::Aabb;
 
 use super::Range;
 
-impl Range for Vector3 {
+impl Range for Point3 {
     fn points(&self) -> impl Iterator<Item = (f32, f32, f32)> {
         std::iter::once((self.x, self.y, self.z))
     }
@@ -25,13 +25,13 @@ mod tests {
         use unzip3::Unzip3;
         assert_eq!(
             (vec![0.], vec![1.], vec![2.]),
-            Vector3::new(0., 1., 2.).points().unzip3()
+            Point3::new(0., 1., 2.).points().unzip3()
         );
     }
 
     #[test]
     fn test_aabb() {
-        assert_eq!(Point3::new(0., 1., 2.), Vector3::new(0., 1., 2.).aabb().min);
-        assert_eq!(Point3::new(0., 1., 2.), Vector3::new(0., 1., 2.).aabb().max);
+        assert_eq!(Point3::new(0., 1., 2.), Point3::new(0., 1., 2.).aabb().min);
+        assert_eq!(Point3::new(0., 1., 2.), Point3::new(0., 1., 2.).aabb().max);
     }
 }

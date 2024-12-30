@@ -4,7 +4,7 @@ use autd3_emulator::*;
 #[tokio::test]
 async fn record_output_ultrasound() -> anyhow::Result<()> {
     let emulator =
-        Controller::builder([AUTD3::new(Vector3::zeros()), AUTD3::new(Vector3::zeros())])
+        Controller::builder([AUTD3::new(Point3::origin()), AUTD3::new(Point3::origin())])
             .into_emulator();
 
     let record = emulator

@@ -52,8 +52,13 @@ def rust_lint(args) -> None:  # noqa: ANN001
     command = config.cargo_command(["clippy", "--tests"])
     if not config.no_examples:
         command.append("--examples")
-    command.extend(["--", "-D", "warnings"])
+    command.extend(["--", "-D", "warnings", "-W", "clippy::all"])
     run_command(command)
+
+
+def rust_doc(_) -> None:  # noqa: ANN001
+    with with_env(RUSTDOCFLAGS="--cfg docsrs -D warnings"):
+        run_command(["cargo", "+nightly", "doc", "--no-deps"])
 
 
 def rust_test(args) -> None:  # noqa: ANN001
@@ -180,6 +185,10 @@ if __name__ == "__main__":
         parser_lint.add_argument("--features", help="additional features", default=None)
         parser_lint.add_argument("--no-examples", action="store_true", help="skip examples")
         parser_lint.set_defaults(handler=rust_lint)
+
+        # doc
+        parser_doc = subparsers.add_parser("doc", help="see `doc -h`")
+        parser_doc.set_defaults(handler=rust_doc)
 
         # test
         parser_test = subparsers.add_parser("test", help="see `test -h`")

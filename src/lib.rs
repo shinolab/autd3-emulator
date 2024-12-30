@@ -1,3 +1,10 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![warn(missing_docs)]
+#![warn(rustdoc::missing_crate_level_docs)]
+#![warn(rustdoc::unescaped_backticks)]
+
+//! This crate provides a emulator for autd3 that calculates sound field, emulates of firmware, etc.
+
 mod error;
 mod option;
 mod record;
@@ -55,6 +62,7 @@ pub(crate) struct RawRecord {
     pub current: DcSysTime,
 }
 
+/// A recorder for the sound field.
 pub struct Recorder {
     is_open: bool,
     emulators: Vec<CPUEmulator>,
@@ -62,6 +70,7 @@ pub struct Recorder {
     record: RawRecord,
 }
 
+/// A builder for the recorder.
 #[derive(Builder)]
 pub struct RecorderBuilder {
     start_time: DcSysTime,
@@ -71,7 +80,7 @@ pub struct RecorderBuilder {
 impl LinkBuilder for RecorderBuilder {
     type L = Recorder;
 
-    async fn open(self, geometry: &Geometry) -> Result<Self::L, AUTDInternalError> {
+    async fn open(self, geometry: &Geometry) -> Result<Self::L, AUTDDriverError> {
         let emulators = geometry
             .iter()
             .enumerate()
@@ -111,12 +120,12 @@ impl LinkBuilder for RecorderBuilder {
 
 #[cfg_attr(feature = "async-trait", autd3::driver::async_trait)]
 impl Link for Recorder {
-    async fn close(&mut self) -> Result<(), AUTDInternalError> {
+    async fn close(&mut self) -> Result<(), AUTDDriverError> {
         self.is_open = false;
         Ok(())
     }
 
-    async fn send(&mut self, tx: &[TxMessage]) -> Result<bool, AUTDInternalError> {
+    async fn send(&mut self, tx: &[TxMessage]) -> Result<bool, AUTDDriverError> {
         self.emulators
             .iter_mut()
             .zip(self.record.records.iter_mut())
@@ -149,7 +158,7 @@ impl Link for Recorder {
         Ok(true)
     }
 
-    async fn receive(&mut self, rx: &mut [RxMessage]) -> Result<bool, AUTDInternalError> {
+    async fn receive(&mut self, rx: &mut [RxMessage]) -> Result<bool, AUTDDriverError> {
         self.emulators.iter_mut().for_each(|cpu| {
             cpu.update_with_sys_time(self.record.current);
             rx[cpu.idx()] = cpu.rx();
@@ -164,7 +173,7 @@ impl Link for Recorder {
 }
 
 impl Recorder {
-    pub fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError> {
+    pub(crate) fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError> {
         if tick.is_zero() || tick.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
             return Err(EmulatorError::InvalidTick);
         }
@@ -206,23 +215,41 @@ impl Recorder {
     }
 }
 
+/// A emulator for the AUTD devices.
 #[derive(Builder, Deref, DerefMut)]
 pub struct Emulator {
-    #[get(ref, ref_mut)]
+    #[get(ref, ref_mut, no_doc)]
     #[deref]
     #[deref_mut]
     geometry: Geometry,
-    #[get]
     default_timeout: Duration,
-    #[get]
     send_interval: Duration,
-    #[get]
     receive_interval: Duration,
-    #[get(ref)]
     timer_strategy: TimerStrategy,
 }
 
 impl Emulator {
+    /// Records the sound field.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use autd3::prelude::*;
+    /// # use autd3_emulator::*;
+    /// # use std::time::Duration;
+    /// # async fn example() -> Result<(), EmulatorError> {
+    /// let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
+    /// let record = emulator
+    ///      .record(|mut autd| async {
+    ///          autd.send(Silencer::default()).await?;
+    ///          autd.send((Sine::new(200. * Hz), Uniform::new(EmitIntensity::new(0xFF)))).await?;
+    ///          autd.tick(Duration::from_millis(10))?;
+    ///          Ok(autd)
+    ///      })
+    ///      .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn record<F>(
         &self,
         f: impl FnOnce(Controller<Recorder>) -> F,
@@ -233,6 +260,7 @@ impl Emulator {
         self.record_from(DcSysTime::ZERO, f).await
     }
 
+    /// Records the sound field from the specified time.
     pub async fn record_from<F>(
         &self,
         start_time: DcSysTime,
@@ -342,6 +370,7 @@ impl Emulator {
             });
     }
 
+    /// Returns properties of transducers.
     pub fn transducer_table(&self) -> DataFrame {
         let n = self.transducer_table_rows();
         let mut dev_indices = vec![0; n];
@@ -370,7 +399,9 @@ impl Emulator {
     }
 }
 
+/// A trait to convert [`ControllerBuilder`] into [`Emulator`].
 pub trait ControllerBuilderIntoEmulatorExt {
+    /// Converts [`ControllerBuilder`] into [`Emulator`].
     fn into_emulator(self) -> Emulator;
 }
 
@@ -391,7 +422,9 @@ impl ControllerBuilderIntoEmulatorExt for ControllerBuilder {
     }
 }
 
+/// A extension trait for `Controller<Recorder>`.
 pub trait RecorderControllerExt {
+    /// Progresses by the specified time.
     fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError>;
 }
 

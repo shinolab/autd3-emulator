@@ -38,3 +38,18 @@ jobs:
           python3 build.py test --features "${{ matrix.features }}"
           python3 build.py lint --features "${{ matrix.features }}"
         shell: bash
+
+  build-docs:
+    name: build-docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: ./.github/actions/setup-build
+        with:
+          toolchain: nightly
+      - run: python3 build.py doc
+      - uses: dtolnay/install@cargo-docs-rs
+      - run: | 
+          cargo +nightly docs-rs

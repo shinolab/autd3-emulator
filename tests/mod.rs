@@ -10,7 +10,7 @@ use polars::prelude::Column;
 
 #[tokio::test]
 async fn invalid_tick() -> anyhow::Result<()> {
-    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
+    let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
 
     let record = emulator
         .record(|mut autd| async {
@@ -27,7 +27,7 @@ async fn invalid_tick() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn transducer_table() {
-    let emulator = Controller::builder([AUTD3::new(Vector3::zeros())]).into_emulator();
+    let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
 
     let df = emulator.transducer_table();
 

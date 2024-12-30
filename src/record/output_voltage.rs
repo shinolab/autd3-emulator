@@ -27,6 +27,7 @@ impl Record {
         })
     }
 
+    /// Returns the time series data of the applied voltage for each transducer.
     pub fn output_voltage(&self) -> DataFrame {
         let mut v = vec![vec![0.; self.drive_rows()]; self.output_cols()];
         self.output_voltage_inplace(v.iter_mut().map(|v| v.as_mut_ptr()));
