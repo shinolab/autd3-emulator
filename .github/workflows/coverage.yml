@@ -22,7 +22,10 @@ jobs:
       - uses: ./.github/actions/setup-build
         with:
           components: llvm-tools
-      - run: cargo install grcov
+      - uses: SierraSoftworks/setup-grcov@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
       - run: |
           python3 build.py cov
       - uses: codecov/codecov-action@v4
