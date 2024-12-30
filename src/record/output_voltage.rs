@@ -5,11 +5,13 @@ use super::Record;
 
 impl Record {
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    #[doc(hidden)]
     pub(crate) fn output_cols(&self) -> usize {
         self.records[0].pulse_width.len() * ULTRASOUND_PERIOD_COUNT
     }
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
+    #[doc(hidden)]
     fn output_voltage_inplace(&self, mut v: impl Iterator<Item = *mut f32>) {
         let cols = self.drive_cols();
         let rows = self.drive_rows();
