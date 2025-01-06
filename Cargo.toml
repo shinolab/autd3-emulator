@@ -15,7 +15,7 @@ autd3-firmware-emulator = { version = "29.0.0-rc.12" }
 derive_more = { version = "1.0.0", default-features = false }
 polars = { version = "0.45.1", features = ["dtype-u16", "dtype-u8"], default-features = false }
 indicatif = { version = "0.17.9", default-features = false }
-itertools = { version = "0.13.0", default-features = false }
+itertools = { version = "0.14.0", default-features = false }
 thiserror = { version = "2.0.9", default-features = false }
 unzip3 = "1.0.0"
 bvh = { version = "0.10.0", default-features = false }
