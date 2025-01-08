@@ -5,7 +5,7 @@ mod option;
 
 use std::time::Duration;
 
-use autd3::{driver::defined::ULTRASOUND_PERIOD_COUNT, prelude::ULTRASOUND_PERIOD};
+use autd3::driver::defined::{ultrasound_period, ULTRASOUND_PERIOD_COUNT};
 use indicatif::ProgressBar;
 use polars::{df, frame::DataFrame, prelude::Column};
 use unzip3::Unzip3;
@@ -151,7 +151,7 @@ impl<'a> Instant<'a> {
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
     fn next_time_len(&self, duration: Duration) -> usize {
-        let num_frames = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
+        let num_frames = (duration.as_nanos() / ultrasound_period().as_nanos()) as usize;
         num_frames * self.num_points_in_frame
     }
 
@@ -170,10 +170,10 @@ impl<'a> Instant<'a> {
         time: &mut [u64],
         mut v: impl Iterator<Item = *mut f32>,
     ) -> Result<(), EmulatorError> {
-        if duration.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
+        if duration.as_nanos() % ultrasound_period().as_nanos() != 0 {
             return Err(EmulatorError::InvalidDuration);
         }
-        let num_frames = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
+        let num_frames = (duration.as_nanos() / ultrasound_period().as_nanos()) as usize;
 
         if self.last_frame + num_frames > self.max_frame {
             return Err(EmulatorError::NotRecorded);
@@ -212,7 +212,7 @@ impl<'a> Instant<'a> {
             if !skip {
                 let offset = (self.cursor - self.cache_size) * ULTRASOUND_PERIOD_COUNT as isize;
                 for i in 0..num_frames {
-                    let start_time = (cur_frame + i) as u32 * ULTRASOUND_PERIOD;
+                    let start_time = (cur_frame + i) as u32 * ultrasound_period();
                     let r = self
                         .compute_device
                         .compute(
@@ -251,23 +251,24 @@ impl Record {
         range: impl Range,
         option: InstantRecordOption,
     ) -> Result<Instant, EmulatorError> {
-        if ULTRASOUND_PERIOD.as_nanos() % option.time_step.as_nanos() != 0 {
+        if ultrasound_period().as_nanos() % option.time_step.as_nanos() != 0 {
             return Err(EmulatorError::InvalidTimeStep);
         }
 
         let max_frame = self.records[0].pulse_width.len();
 
         let num_points_in_frame =
-            (ULTRASOUND_PERIOD.as_nanos() / option.time_step.as_nanos()) as usize;
+            (ultrasound_period().as_nanos() / option.time_step.as_nanos()) as usize;
 
         let (x, y, z): (Vec<_>, Vec<_>, Vec<_>) = range.points().unzip3();
 
         let min_dist = crate::utils::aabb::aabb_min_dist(&self.aabb, &range.aabb());
         let max_dist = crate::utils::aabb::aabb_max_dist(&self.aabb, &range.aabb());
 
-        let required_frame_size = (max_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32())
-            .ceil() as usize
-            - (min_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32()).floor() as usize;
+        let required_frame_size =
+            (max_dist / option.sound_speed / ultrasound_period().as_secs_f32()).ceil() as usize
+                - (min_dist / option.sound_speed / ultrasound_period().as_secs_f32()).floor()
+                    as usize;
 
         let frame_window_size = {
             let num_transducers = self.records.len();
@@ -294,14 +295,14 @@ impl Record {
 
             let frame_window_size_time =
                 ((Duration::from_nanos(self.end.sys_time() - self.start.sys_time()).as_nanos()
-                    / ULTRASOUND_PERIOD.as_nanos()) as usize)
+                    / ultrasound_period().as_nanos()) as usize)
                     .max(1);
 
             frame_window_size_mem.min(frame_window_size_time)
         };
 
         let cursor =
-            -((max_dist / option.sound_speed / ULTRASOUND_PERIOD.as_secs_f32()).ceil() as isize);
+            -((max_dist / option.sound_speed / ultrasound_period().as_secs_f32()).ceil() as isize);
 
         let output_ultrasound = self
             .records

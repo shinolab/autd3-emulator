@@ -1,4 +1,4 @@
-use autd3::{derive::Datagram, gain, prelude::*};
+use autd3::{derive::Datagram, driver::defined::ultrasound_period, gain, prelude::*};
 use autd3_emulator::*;
 
 use polars::{frame::DataFrame, prelude::Column};
@@ -40,13 +40,13 @@ async fn record_phase(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
                 gain::Custom::new(|_| |tr| Phase::new(tr.dev_idx() as _)),
             ))
             .await?;
-            autd.tick(ULTRASOUND_PERIOD)?;
+            autd.tick(ultrasound_period())?;
             autd.send((
                 Static::with_intensity(200),
                 gain::Custom::new(|_| |tr| Phase::new(0x01) + Phase::new(tr.dev_idx() as _)),
             ))
             .await?;
-            autd.tick(2 * ULTRASOUND_PERIOD)?;
+            autd.tick(2 * ultrasound_period())?;
 
             Ok(autd)
         })
@@ -98,13 +98,13 @@ async fn record_pulse_width(#[case] silencer: impl Datagram) -> anyhow::Result<(
                 gain::Custom::new(|_| |tr| EmitIntensity::new(tr.idx() as _)),
             ))
             .await?;
-            autd.tick(ULTRASOUND_PERIOD)?;
+            autd.tick(ultrasound_period())?;
             autd.send((
                 Static::with_intensity(200),
                 gain::Custom::new(|_| |tr| EmitIntensity::new(tr.idx() as _)),
             ))
             .await?;
-            autd.tick(2 * ULTRASOUND_PERIOD)?;
+            autd.tick(2 * ultrasound_period())?;
 
             Ok(autd)
         })

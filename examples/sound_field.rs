@@ -87,7 +87,7 @@ async fn main() -> Result<()> {
                     resolution: 1.,
                 },
                 InstantRecordOption {
-                    time_step: ULTRASOUND_PERIOD / 10,
+                    time_step: Duration::from_micros(25) / 10,
                     print_progress: true,
                     #[cfg(feature = "gpu")]
                     gpu: true,

@@ -1,4 +1,4 @@
-use autd3::prelude::*;
+use autd3::{driver::defined::ultrasound_period, prelude::*};
 use autd3_emulator::*;
 
 #[tokio::test]
@@ -12,7 +12,7 @@ async fn record_output_ultrasound() -> anyhow::Result<()> {
             autd.send(Silencer::disable()).await?;
             autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(30 * ULTRASOUND_PERIOD)?;
+            autd.tick(30 * ultrasound_period())?;
             Ok(autd)
         })
         .await?;
