@@ -1,4 +1,4 @@
-use autd3::prelude::*;
+use autd3::{driver::defined::ultrasound_period, prelude::*};
 use autd3_emulator::*;
 
 use std::time::Duration;
@@ -21,7 +21,7 @@ async fn record_sound_field(
             autd.send(Silencer::disable()).await?;
             autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(100 * ULTRASOUND_PERIOD)?;
+            autd.tick(100 * ultrasound_period())?;
             Ok(autd)
         })
         .await?;
@@ -59,7 +59,7 @@ async fn record_sound_field(
     );
 
     // TODO: check the value
-    let _df = sound_field.next(100 * ULTRASOUND_PERIOD).await?;
+    let _df = sound_field.next(100 * ultrasound_period()).await?;
 
     assert!(record
         .sound_field(
@@ -118,7 +118,7 @@ async fn record_sound_field_resume(
             autd.send(Silencer::disable()).await?;
             autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(10 * ULTRASOUND_PERIOD)?;
+            autd.tick(10 * ultrasound_period())?;
             Ok(autd)
         })
         .await?;
@@ -155,12 +155,12 @@ async fn record_sound_field_resume(
                 },
             )
             .await?
-            .next(10 * ULTRASOUND_PERIOD)
+            .next(10 * ultrasound_period())
             .await?,
         polars::functions::concat_df_horizontal(
             &[
-                sound_field.next(5 * ULTRASOUND_PERIOD).await?,
-                sound_field.next(5 * ULTRASOUND_PERIOD).await?,
+                sound_field.next(5 * ultrasound_period()).await?,
+                sound_field.next(5 * ultrasound_period()).await?,
             ],
             false,
         )?
@@ -178,7 +178,7 @@ async fn record_sound_field_skip() -> anyhow::Result<()> {
             autd.send(Silencer::disable()).await?;
             autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(10 * ULTRASOUND_PERIOD)?;
+            autd.tick(10 * ultrasound_period())?;
             Ok(autd)
         })
         .await?;
@@ -199,8 +199,8 @@ async fn record_sound_field_skip() -> anyhow::Result<()> {
                 },
             )
             .await?;
-        sf.next(5 * ULTRASOUND_PERIOD).await?;
-        sf.next(5 * ULTRASOUND_PERIOD).await?
+        sf.next(5 * ultrasound_period()).await?;
+        sf.next(5 * ultrasound_period()).await?
     };
 
     let mut sound_field = record
@@ -219,9 +219,9 @@ async fn record_sound_field_skip() -> anyhow::Result<()> {
         )
         .await?;
     let v = sound_field
-        .skip(5 * ULTRASOUND_PERIOD)
+        .skip(5 * ultrasound_period())
         .await?
-        .next(5 * ULTRASOUND_PERIOD)
+        .next(5 * ultrasound_period())
         .await?;
 
     assert_eq!(expect, v);
@@ -251,7 +251,7 @@ async fn record_sound_field_with_limit(
             autd.send(Silencer::disable()).await?;
             autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(100 * ULTRASOUND_PERIOD)?;
+            autd.tick(100 * ultrasound_period())?;
             Ok(autd)
         })
         .await?;
@@ -290,7 +290,7 @@ async fn record_sound_field_with_limit(
     );
 
     // TODO: check the value
-    let _df = sound_field.next(100 * ULTRASOUND_PERIOD).await?;
+    let _df = sound_field.next(100 * ultrasound_period()).await?;
 
     Ok(())
 }
@@ -305,7 +305,7 @@ async fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
             autd.send(Silencer::disable()).await?;
             autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(10 * ULTRASOUND_PERIOD)?;
+            autd.tick(10 * ultrasound_period())?;
             Ok(autd)
         })
         .await?;
@@ -325,7 +325,7 @@ async fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
             },
         )
         .await?
-        .next(10 * ULTRASOUND_PERIOD)
+        .next(10 * ultrasound_period())
         .await?;
 
     let mut sound_field = record
@@ -343,7 +343,7 @@ async fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
             },
         )
         .await?;
-    let gpu = sound_field.next(10 * ULTRASOUND_PERIOD).await?;
+    let gpu = sound_field.next(10 * ultrasound_period()).await?;
 
     assert_eq!(cpu.shape(), gpu.shape());
     cpu.get_columns()
@@ -371,7 +371,7 @@ async fn not_recorded() -> anyhow::Result<()> {
             autd.send(Silencer::disable()).await?;
             autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(ULTRASOUND_PERIOD)?;
+            autd.tick(ultrasound_period())?;
             Ok(autd)
         })
         .await?;
@@ -392,7 +392,7 @@ async fn not_recorded() -> anyhow::Result<()> {
         )
         .await?;
 
-    assert!(sound_field.next(2 * ULTRASOUND_PERIOD).await.is_err());
+    assert!(sound_field.next(2 * ultrasound_period()).await.is_err());
 
     Ok(())
 }

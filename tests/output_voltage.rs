@@ -1,4 +1,4 @@
-use autd3::prelude::*;
+use autd3::{driver::defined::ultrasound_period, prelude::*};
 use autd3_emulator::*;
 
 #[tokio::test]
@@ -20,16 +20,16 @@ async fn record_output_voltage() -> anyhow::Result<()> {
             .await?;
             autd.send(Uniform::new((Phase::new(0x00), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(ULTRASOUND_PERIOD)?;
+            autd.tick(ultrasound_period())?;
             autd.send(Uniform::new((Phase::new(0x80), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(ULTRASOUND_PERIOD)?;
+            autd.tick(ultrasound_period())?;
             autd.send(Uniform::new((Phase::new(0x80), EmitIntensity::new(0x80))))
                 .await?;
-            autd.tick(ULTRASOUND_PERIOD)?;
+            autd.tick(ultrasound_period())?;
             autd.send(Uniform::new((Phase::new(0x00), EmitIntensity::new(0x00))))
                 .await?;
-            autd.tick(ULTRASOUND_PERIOD)?;
+            autd.tick(ultrasound_period())?;
             Ok(autd)
         })
         .await?;

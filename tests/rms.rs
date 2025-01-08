@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use autd3::prelude::*;
+use autd3::{driver::defined::ultrasound_period, prelude::*};
 use autd3_emulator::*;
 
 #[rstest::rstest]
@@ -21,7 +21,7 @@ async fn record_sound_field(
             autd.send(Silencer::disable()).await?;
             autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(100 * ULTRASOUND_PERIOD)?;
+            autd.tick(100 * ultrasound_period())?;
             Ok(autd)
         })
         .await?;
@@ -58,7 +58,7 @@ async fn record_sound_field(
     );
 
     // TODO: check the value
-    let _df = rms.next(100 * ULTRASOUND_PERIOD).await?;
+    let _df = rms.next(100 * ultrasound_period()).await?;
 
     assert!(record
         .sound_field(
@@ -98,7 +98,7 @@ async fn record_rms_resume(
             autd.send(Silencer::disable()).await?;
             autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(10 * ULTRASOUND_PERIOD)?;
+            autd.tick(10 * ultrasound_period())?;
             Ok(autd)
         })
         .await?;
@@ -132,12 +132,12 @@ async fn record_rms_resume(
                 },
             )
             .await?
-            .next(10 * ULTRASOUND_PERIOD)
+            .next(10 * ultrasound_period())
             .await?,
         polars::functions::concat_df_horizontal(
             &[
-                rms.next(5 * ULTRASOUND_PERIOD).await?,
-                rms.next(5 * ULTRASOUND_PERIOD).await?,
+                rms.next(5 * ultrasound_period()).await?,
+                rms.next(5 * ultrasound_period()).await?,
             ],
             false,
         )?
@@ -155,7 +155,7 @@ async fn record_rms_skip() -> anyhow::Result<()> {
             autd.send(Silencer::disable()).await?;
             autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(10 * ULTRASOUND_PERIOD)?;
+            autd.tick(10 * ultrasound_period())?;
             Ok(autd)
         })
         .await?;
@@ -173,8 +173,8 @@ async fn record_rms_skip() -> anyhow::Result<()> {
                 RmsRecordOption::default(),
             )
             .await?;
-        sf.next(5 * ULTRASOUND_PERIOD).await?;
-        sf.next(5 * ULTRASOUND_PERIOD).await?
+        sf.next(5 * ultrasound_period()).await?;
+        sf.next(5 * ultrasound_period()).await?
     };
 
     let mut rms = record
@@ -189,9 +189,9 @@ async fn record_rms_skip() -> anyhow::Result<()> {
         )
         .await?;
     let v = rms
-        .skip(5 * ULTRASOUND_PERIOD)
+        .skip(5 * ultrasound_period())
         .await?
-        .next(5 * ULTRASOUND_PERIOD)
+        .next(5 * ultrasound_period())
         .await?;
 
     assert_eq!(expect, v);
@@ -209,7 +209,7 @@ async fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
             autd.send(Silencer::disable()).await?;
             autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(10 * ULTRASOUND_PERIOD)?;
+            autd.tick(10 * ultrasound_period())?;
             Ok(autd)
         })
         .await?;
@@ -226,7 +226,7 @@ async fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
             RmsRecordOption::default(),
         )
         .await?
-        .next(10 * ULTRASOUND_PERIOD)
+        .next(10 * ultrasound_period())
         .await?;
 
     let mut rms = record
@@ -243,7 +243,7 @@ async fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
             },
         )
         .await?;
-    let gpu = rms.next(10 * ULTRASOUND_PERIOD).await?;
+    let gpu = rms.next(10 * ultrasound_period()).await?;
 
     assert_eq!(cpu.shape(), gpu.shape());
     cpu.get_columns()
@@ -271,7 +271,7 @@ async fn not_recorded() -> anyhow::Result<()> {
             autd.send(Silencer::disable()).await?;
             autd.send(Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))))
                 .await?;
-            autd.tick(ULTRASOUND_PERIOD)?;
+            autd.tick(ultrasound_period())?;
             Ok(autd)
         })
         .await?;
@@ -289,7 +289,7 @@ async fn not_recorded() -> anyhow::Result<()> {
         )
         .await?;
 
-    assert!(rms.next(2 * ULTRASOUND_PERIOD).await.is_err());
+    assert!(rms.next(2 * ultrasound_period()).await.is_err());
 
     Ok(())
 }
