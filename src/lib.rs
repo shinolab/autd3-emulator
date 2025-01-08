@@ -25,7 +25,7 @@ use derive_more::{Deref, DerefMut};
 
 use autd3::{
     driver::{
-        defined::ULTRASOUND_PERIOD,
+        defined::ultrasound_period,
         derive::{Builder, *},
         ethercat::DcSysTime,
         firmware::{
@@ -176,7 +176,7 @@ impl Recorder {
     /// Progresses by the specified time.
     pub fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError> {
         // This function must be public for capi.
-        if tick.is_zero() || tick.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
+        if tick.is_zero() || tick.as_nanos() % ultrasound_period().as_nanos() != 0 {
             return Err(EmulatorError::InvalidTick);
         }
         let mut t = self.record.current;
@@ -207,7 +207,7 @@ impl Recorder {
                             .push(tr_record.silencer_phase.apply(d.phase().value()))
                     });
                 });
-            t = t + ULTRASOUND_PERIOD;
+            t = t + ultrasound_period();
             if t == end {
                 break;
             }

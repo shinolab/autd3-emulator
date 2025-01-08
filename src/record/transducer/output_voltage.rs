@@ -1,9 +1,10 @@
-use autd3::driver::defined::{ULTRASOUND_FREQ, ULTRASOUND_PERIOD_COUNT};
+use autd3::driver::defined::{ultrasound_freq, ULTRASOUND_PERIOD_COUNT};
 
 use super::TransducerRecord;
 
 impl TransducerRecord {
-    pub(crate) const TS: f32 = 1. / (ULTRASOUND_FREQ.hz() as f32 * ULTRASOUND_PERIOD_COUNT as f32);
+    pub(crate) const TS: f32 =
+        1. / (ultrasound_freq().hz() as f32 * ULTRASOUND_PERIOD_COUNT as f32);
     pub(crate) const V: f32 = 12.0;
 
     pub(crate) fn _output_voltage_within_inplace(&self, start: usize, n: usize, v: &mut [f32]) {

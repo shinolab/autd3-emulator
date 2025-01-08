@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use anyhow::Result;
 
 use autd3::{derive::Transducer, prelude::*};
@@ -46,7 +48,7 @@ async fn main() -> Result<()> {
             autd.send(Silencer::disable()).await?;
             autd.send((Static::with_intensity(0xFF), Focus::new(focus)))
                 .await?;
-            autd.tick(ULTRASOUND_PERIOD)?;
+            autd.tick(Duration::from_micros(25))?;
             Ok(autd)
         })
         .await?;
@@ -71,7 +73,7 @@ async fn main() -> Result<()> {
     let mut df = polars::functions::concat_df_horizontal(
         &[
             sound_field.observe_points(),
-            sound_field.next(ULTRASOUND_PERIOD).await?,
+            sound_field.next(Duration::from_micros(25)).await?,
         ],
         false,
     )?;
