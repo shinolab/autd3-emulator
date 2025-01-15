@@ -3,16 +3,16 @@ name = "autd3-emulator"
 description = "autd3 emulator for calculating sound field, emulation of firmware, etc"
 readme = "README.md"
 keywords = ["autd"]
-version = "29.0.0-rc.14"
+version = "29.0.0-rc.15"
 authors = ["shun suzuki <suzuki@hapis.k.u-tokyo.ac.jp>"]
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/shinolab/autd3-emulator"
 
 [dependencies]
-autd3 = { version = "29.0.0-rc.14", default-features = false }
-autd3-core = { version = "29.0.0-rc.14", features = ["link"], default-features = false }
-autd3-firmware-emulator = { version = "29.0.0-rc.14", default-features = false }
+autd3 = { version = "29.0.0-rc.15", default-features = false }
+autd3-core = { version = "29.0.0-rc.15", features = ["link"], default-features = false }
+autd3-firmware-emulator = { version = "29.0.0-rc.15", default-features = false }
 derive_more = { version = "1.0.0", default-features = false }
 polars = { version = "0.45.1", optional = true, features = ["dtype-u16", "dtype-u8"], default-features = false }
 indicatif = { version = "0.17.9", default-features = false }
