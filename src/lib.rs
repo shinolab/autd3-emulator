@@ -241,10 +241,10 @@ impl Emulator {
     /// # use autd3::prelude::*;
     /// # use autd3_emulator::*;
     /// # use std::time::Duration;
-    /// # fnexample() -> Result<(), EmulatorError> {
+    /// # fn example() -> Result<(), EmulatorError> {
     /// let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
     /// let record = emulator
-    ///      .record(|autd|  {
+    ///      .record(|autd| {
     ///          autd.send(Silencer::default())?;
     ///          autd.send((Sine::new(200. * Hz), Uniform::new(EmitIntensity::new(0xFF))))?;
     ///          autd.tick(Duration::from_millis(10))?;
