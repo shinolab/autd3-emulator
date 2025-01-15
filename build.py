@@ -101,7 +101,6 @@ def rust_coverage(args) -> None:  # noqa: ANN001
         run_command(config.cargo_command(["test"]))
         exclude_patterns = [
             "GRCOV_EXCL_LINE",
-            r"^\s*\.await\??[,;]?$",
             r"#\[derive",
             r"#\[error",
             r"#\[bitfield_struct",

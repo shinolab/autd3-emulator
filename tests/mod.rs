@@ -8,25 +8,23 @@ use autd3::{driver::defined::ultrasound_period, prelude::*};
 use autd3_emulator::*;
 use polars::prelude::Column;
 
-#[tokio::test]
-async fn invalid_tick() -> anyhow::Result<()> {
+#[test]
+fn invalid_tick() -> anyhow::Result<()> {
     let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
 
-    let record = emulator
-        .record(|mut autd| async {
-            autd.send(Silencer::disable()).await?;
-            autd.tick(ultrasound_period() / 2)?;
-            Ok(autd)
-        })
-        .await;
+    let record = emulator.record(|autd| {
+        autd.send(Silencer::disable())?;
+        autd.tick(ultrasound_period() / 2)?;
+        Ok(())
+    });
 
     assert!(record.is_err());
 
     Ok(())
 }
 
-#[tokio::test]
-async fn transducer_table() {
+#[test]
+fn transducer_table() {
     let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
 
     let df = emulator.transducer_table();

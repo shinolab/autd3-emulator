@@ -14,7 +14,9 @@ use autd3::controller::timer::TimerStrategy;
 use autd3::controller::ControllerBuilder;
 use bvh::aabb::Aabb;
 pub use error::EmulatorError;
+use getset::Getters;
 pub use option::*;
+#[cfg(feature = "polars")]
 use polars::{df, frame::DataFrame};
 use record::TransducerRecord;
 pub use record::{Instant, InstantRecordOption, Record, Rms, RmsRecordOption};
@@ -26,15 +28,17 @@ use derive_more::{Deref, DerefMut};
 use autd3::{
     driver::{
         defined::ultrasound_period,
-        derive::{Builder, *},
         ethercat::DcSysTime,
         firmware::{
             cpu::{RxMessage, TxMessage},
             fpga::{EmitIntensity, Phase, SilencerTarget},
         },
-        link::{Link, LinkBuilder},
     },
     Controller,
+};
+use autd3_core::{
+    geometry::{Geometry, Transducer},
+    link::{Link, LinkBuilder, LinkError},
 };
 use autd3_firmware_emulator::{
     cpu::params::{TAG_CLEAR, TAG_SILENCER},
@@ -71,16 +75,14 @@ pub struct Recorder {
 }
 
 /// A builder for the recorder.
-#[derive(Builder)]
 pub struct RecorderBuilder {
     start_time: DcSysTime,
 }
 
-#[cfg_attr(feature = "async-trait", autd3::driver::async_trait)]
 impl LinkBuilder for RecorderBuilder {
     type L = Recorder;
 
-    async fn open(self, geometry: &Geometry) -> Result<Self::L, AUTDDriverError> {
+    fn open(self, geometry: &Geometry) -> Result<Self::L, LinkError> {
         let emulators = geometry
             .iter()
             .enumerate()
@@ -118,14 +120,13 @@ impl LinkBuilder for RecorderBuilder {
     }
 }
 
-#[cfg_attr(feature = "async-trait", autd3::driver::async_trait)]
 impl Link for Recorder {
-    async fn close(&mut self) -> Result<(), AUTDDriverError> {
+    fn close(&mut self) -> Result<(), LinkError> {
         self.is_open = false;
         Ok(())
     }
 
-    async fn send(&mut self, tx: &[TxMessage]) -> Result<bool, AUTDDriverError> {
+    fn send(&mut self, tx: &[TxMessage]) -> Result<bool, LinkError> {
         self.emulators
             .iter_mut()
             .zip(self.record.records.iter_mut())
@@ -158,7 +159,7 @@ impl Link for Recorder {
         Ok(true)
     }
 
-    async fn receive(&mut self, rx: &mut [RxMessage]) -> Result<bool, AUTDDriverError> {
+    fn receive(&mut self, rx: &mut [RxMessage]) -> Result<bool, LinkError> {
         self.emulators.iter_mut().for_each(|cpu| {
             cpu.update_with_sys_time(self.record.current);
             rx[cpu.idx()] = cpu.rx();
@@ -218,11 +219,12 @@ impl Recorder {
 }
 
 /// A emulator for the AUTD devices.
-#[derive(Builder, Deref, DerefMut)]
+#[derive(Getters, Deref, DerefMut)]
 pub struct Emulator {
-    #[get(ref, ref_mut, no_doc)]
+    #[getset(get = "pub")]
     #[deref]
     #[deref_mut]
+    /// The geometry of the devices.
     geometry: Geometry,
     default_timeout: Duration,
     send_interval: Duration,
@@ -239,38 +241,32 @@ impl Emulator {
     /// # use autd3::prelude::*;
     /// # use autd3_emulator::*;
     /// # use std::time::Duration;
-    /// # async fn example() -> Result<(), EmulatorError> {
+    /// # fn example() -> Result<(), EmulatorError> {
     /// let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
     /// let record = emulator
-    ///      .record(|mut autd| async {
-    ///          autd.send(Silencer::default()).await?;
-    ///          autd.send((Sine::new(200. * Hz), Uniform::new(EmitIntensity::new(0xFF)))).await?;
+    ///      .record(|autd| {
+    ///          autd.send(Silencer::default())?;
+    ///          autd.send((Sine::new(200. * Hz), Uniform::new(EmitIntensity::new(0xFF))))?;
     ///          autd.tick(Duration::from_millis(10))?;
-    ///          Ok(autd)
+    ///          Ok(())
     ///      })
-    ///      .await?;
+    ///      ?;
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn record<F>(
+    pub fn record(
         &self,
-        f: impl FnOnce(Controller<Recorder>) -> F,
-    ) -> Result<Record, EmulatorError>
-    where
-        F: std::future::Future<Output = Result<Controller<Recorder>, EmulatorError>>,
-    {
-        self.record_from(DcSysTime::ZERO, f).await
+        f: impl FnOnce(&mut Controller<Recorder>) -> Result<(), EmulatorError>,
+    ) -> Result<Record, EmulatorError> {
+        self.record_from(DcSysTime::ZERO, f)
     }
 
     /// Records the sound field from the specified time.
-    pub async fn record_from<F>(
+    pub fn record_from(
         &self,
         start_time: DcSysTime,
-        f: impl FnOnce(Controller<Recorder>) -> F,
-    ) -> Result<Record, EmulatorError>
-    where
-        F: std::future::Future<Output = Result<Controller<Recorder>, EmulatorError>>,
-    {
+        f: impl FnOnce(&mut Controller<Recorder>) -> Result<(), EmulatorError>,
+    ) -> Result<Record, EmulatorError> {
         let builder = Controller::builder(self.geometry.iter().map(clone_device))
             .with_default_parallel_threshold(self.geometry.default_parallel_threshold())
             .with_default_timeout(self.default_timeout)
@@ -278,14 +274,13 @@ impl Emulator {
             .with_send_interval(self.send_interval)
             .with_timer_strategy(self.timer_strategy);
 
-        let recorder = builder.open(RecorderBuilder { start_time }).await?;
-
-        let mut recorder = f(recorder).await?;
+        let mut recorder = builder.open(RecorderBuilder { start_time })?;
+        f(&mut recorder)?;
 
         let start = recorder.link().record.start;
         let end = recorder.link().record.current;
         let devices = {
-            let mut tmp: Vec<Device> = Vec::new();
+            let mut tmp = Vec::new();
             std::mem::swap(&mut tmp, recorder.geometry_mut());
             tmp
         };
@@ -304,7 +299,7 @@ impl Emulator {
             .flat_map(|(rd, dev)| {
                 rd.records
                     .into_iter()
-                    .zip(dev.into_iter())
+                    .zip(dev)
                     .map(|(r, tr)| TransducerRecord {
                         pulse_width: r.pulse_width,
                         phase: r.phase,
@@ -313,7 +308,7 @@ impl Emulator {
             })
             .collect();
 
-        recorder.close().await?;
+        recorder.close()?;
 
         Ok(Record {
             records,
@@ -377,6 +372,7 @@ impl Emulator {
             });
     }
 
+    #[cfg(feature = "polars")]
     /// Returns properties of transducers.
     pub fn transducer_table(&self) -> DataFrame {
         let n = self.transducer_table_rows();

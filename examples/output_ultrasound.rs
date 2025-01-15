@@ -8,24 +8,20 @@ use autd3_emulator::*;
 use polars::prelude::AnyValue;
 use textplots::{Chart, Plot, Shape};
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
 
     // output voltage
     {
-        let record = emulator
-            .record(|mut autd| async {
-                autd.send(Silencer::disable()).await?;
-                autd.send((
-                    Static::with_intensity(0xFF),
-                    Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))),
-                ))
-                .await?;
-                autd.tick(Duration::from_millis(1))?;
-                Ok(autd)
-            })
-            .await?;
+        let record = emulator.record(|autd| {
+            autd.send(Silencer::disable())?;
+            autd.send((
+                Static::with_intensity(0xFF),
+                Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))),
+            ))?;
+            autd.tick(Duration::from_millis(1))?;
+            Ok(())
+        })?;
 
         let df = record.output_voltage();
 
@@ -51,18 +47,15 @@ async fn main() -> Result<()> {
 
     // output ultrasound
     {
-        let record = emulator
-            .record(|mut autd| async {
-                autd.send(Silencer::disable()).await?;
-                autd.send((
-                    Static::with_intensity(0xFF),
-                    Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))),
-                ))
-                .await?;
-                autd.tick(Duration::from_millis(1))?;
-                Ok(autd)
-            })
-            .await?;
+        let record = emulator.record(|autd| {
+            autd.send(Silencer::disable())?;
+            autd.send((
+                Static::with_intensity(0xFF),
+                Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))),
+            ))?;
+            autd.tick(Duration::from_millis(1))?;
+            Ok(())
+        })?;
 
         let df = record.output_ultrasound();
 

@@ -9,10 +9,10 @@ use std::{
 };
 
 use autd3::{
-    derive::Phase,
     driver::defined::{ultrasound_period, ULTRASOUND_PERIOD_COUNT},
-    prelude::ultrasound_freq,
+    prelude::{ultrasound_freq, Phase},
 };
+#[cfg(feature = "polars")]
 use polars::{df, frame::DataFrame, prelude::Column};
 use unzip3::Unzip3;
 
@@ -35,11 +35,11 @@ enum ComputeDevice {
 }
 
 impl ComputeDevice {
-    async fn compute(&mut self, idx: usize, sound_speed: f32) -> Result<&Vec<f32>, EmulatorError> {
+    fn compute(&mut self, idx: usize, sound_speed: f32) -> Result<&Vec<f32>, EmulatorError> {
         match self {
             Self::Cpu(cpu) => Ok(cpu.compute(idx, sound_speed)),
             #[cfg(feature = "gpu")]
-            Self::Gpu(gpu) => gpu.compute(idx, sound_speed).await,
+            Self::Gpu(gpu) => gpu.compute(idx, sound_speed),
         }
     }
 }
@@ -57,6 +57,7 @@ pub struct Rms {
 }
 
 impl Rms {
+    #[cfg(feature = "polars")]
     /// Returns the observed points.
     pub fn observe_points(&self) -> DataFrame {
         df!(
@@ -67,8 +68,9 @@ impl Rms {
         .unwrap()
     }
 
+    #[cfg(feature = "polars")]
     /// Progresses by the specified time and calculates the RMS of the sound field during that time.
-    pub async fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
+    pub fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
         let n = self.next_time_len(duration);
         let mut time = vec![0; n];
         let mut v = vec![vec![0.0; self.next_points_len()]; n];
@@ -77,8 +79,7 @@ impl Rms {
             false,
             &mut time,
             v.iter_mut().map(|v| v.as_mut_ptr()),
-        )
-        .await?;
+        )?;
 
         Ok(DataFrame::new(
             time.iter()
@@ -90,9 +91,8 @@ impl Rms {
     }
 
     /// Progresses by the specified time.
-    pub async fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {
-        self.next_inplace(duration, true, &mut [], std::iter::empty())
-            .await?;
+    pub fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {
+        self.next_inplace(duration, true, &mut [], std::iter::empty())?;
         Ok(self)
     }
 
@@ -128,7 +128,7 @@ impl Rms {
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
-    async fn next_inplace(
+    fn next_inplace(
         &mut self,
         duration: Duration,
         skip: bool,
@@ -151,7 +151,7 @@ impl Rms {
             let mut i = 0;
             while i < num_frames {
                 let cur_frame = self.cursor + i;
-                let r = self.compute_device.compute(cur_frame, wavenumber).await?;
+                let r = self.compute_device.compute(cur_frame, wavenumber)?;
                 time[i] = (cur_frame as u32 * ultrasound_period()).as_nanos() as u64;
                 unsafe {
                     std::ptr::copy_nonoverlapping(r.as_ptr(), v.next().unwrap(), r.len());
@@ -170,7 +170,7 @@ impl Rms {
 impl Record {
     pub(crate) const P0: f32 = autd3::driver::defined::T4010A1_AMPLITUDE / (4. * PI) / SQRT_2;
 
-    async fn sound_field_rms(
+    fn sound_field_rms(
         &self,
         range: impl Range,
         option: RmsRecordOption,
@@ -194,16 +194,13 @@ impl Record {
 
         #[cfg(feature = "gpu")]
         let compute_device = if option.gpu {
-            ComputeDevice::Gpu(
-                gpu::Gpu::new(
-                    &x,
-                    &y,
-                    &z,
-                    self.records.iter().map(|tr| *tr.tr.position()),
-                    records,
-                )
-                .await?,
-            )
+            ComputeDevice::Gpu(gpu::Gpu::new(
+                &x,
+                &y,
+                &z,
+                self.records.iter().map(|tr| *tr.tr.position()),
+                records,
+            )?)
         } else {
             ComputeDevice::Cpu(cpu::Cpu::new(
                 &x,
@@ -237,11 +234,11 @@ impl Record {
 impl<'a> SoundFieldOption<'a> for RmsRecordOption {
     type Output = Rms;
 
-    async fn sound_field(
+    fn sound_field(
         self,
         record: &'a Record,
         range: impl Range,
     ) -> Result<Self::Output, EmulatorError> {
-        record.sound_field_rms(range, self).await
+        record.sound_field_rms(range, self)
     }
 }
