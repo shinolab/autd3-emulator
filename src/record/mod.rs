@@ -6,6 +6,7 @@ mod transducer;
 use autd3::prelude::DcSysTime;
 use derive_more::Debug;
 use getset::CopyGetters;
+#[cfg(feature = "polars")]
 use polars::{frame::DataFrame, prelude::Column};
 
 pub use sound_field::{
@@ -68,6 +69,7 @@ impl Record {
         })
     }
 
+    #[cfg(feature = "polars")]
     /// Returns the time series data of the phase parameter for each transducer.
     pub fn phase(&self) -> DataFrame {
         let mut time = vec![0; self.drive_cols()];
@@ -82,6 +84,7 @@ impl Record {
         .unwrap()
     }
 
+    #[cfg(feature = "polars")]
     /// Returns the time series data of the pulse width for each transducer.
     pub fn pulse_width(&self) -> DataFrame {
         let mut time = vec![0; self.drive_cols()];

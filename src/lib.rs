@@ -16,6 +16,7 @@ use bvh::aabb::Aabb;
 pub use error::EmulatorError;
 use getset::Getters;
 pub use option::*;
+#[cfg(feature = "polars")]
 use polars::{df, frame::DataFrame};
 use record::TransducerRecord;
 pub use record::{Instant, InstantRecordOption, Record, Rms, RmsRecordOption};
@@ -371,6 +372,7 @@ impl Emulator {
             });
     }
 
+    #[cfg(feature = "polars")]
     /// Returns properties of transducers.
     pub fn transducer_table(&self) -> DataFrame {
         let n = self.transducer_table_rows();

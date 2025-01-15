@@ -1,4 +1,5 @@
 use autd3::driver::defined::ULTRASOUND_PERIOD_COUNT;
+#[cfg(feature = "polars")]
 use polars::{frame::DataFrame, prelude::Column};
 
 use super::Record;
@@ -29,6 +30,7 @@ impl Record {
         })
     }
 
+    #[cfg(feature = "polars")]
     /// Returns the time series data of the applied voltage for each transducer.
     pub fn output_voltage(&self) -> DataFrame {
         let mut v = vec![vec![0.; self.drive_rows()]; self.output_cols()];

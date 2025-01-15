@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use autd3::driver::defined::{ultrasound_period, ULTRASOUND_PERIOD_COUNT};
 use indicatif::ProgressBar;
+#[cfg(feature = "polars")]
 use polars::{df, frame::DataFrame, prelude::Column};
 use unzip3::Unzip3;
 
@@ -88,6 +89,7 @@ pub struct Instant<'a> {
 }
 
 impl Instant<'_> {
+    #[cfg(feature = "polars")]
     /// Returns the observed points.
     pub fn observe_points(&self) -> DataFrame {
         df!(
@@ -99,6 +101,7 @@ impl Instant<'_> {
     }
 
     /// Progresses by the specified time and calculates the instant sound field during that time.
+    #[cfg(feature = "polars")]
     pub fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
         let n = self.next_time_len(duration);
         let mut time = vec![0; n];
