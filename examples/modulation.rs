@@ -8,23 +8,19 @@ use autd3_emulator::*;
 use polars::prelude::AnyValue;
 use textplots::{Chart, Plot, Shape};
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     let emulator =
         Controller::builder([AUTD3::new(Point3::origin()), AUTD3::new(Point3::origin())])
             .into_emulator();
 
     // pulse width under 200Hz sine modulation with silencer
     {
-        let record = emulator
-            .record(|mut autd| async {
-                autd.send(Silencer::default()).await?;
-                autd.send((Sine::new(200. * Hz), Uniform::new(EmitIntensity::new(0xFF))))
-                    .await?;
-                autd.tick(Duration::from_millis(10))?;
-                Ok(autd)
-            })
-            .await?;
+        let record = emulator.record(|autd| {
+            autd.send(Silencer::default())?;
+            autd.send((Sine::new(200. * Hz), Uniform::new(EmitIntensity::new(0xFF))))?;
+            autd.tick(Duration::from_millis(10))?;
+            Ok(())
+        })?;
 
         let df = record.pulse_width();
 
@@ -52,15 +48,12 @@ async fn main() -> Result<()> {
 
     // pulse width under 200Hz sine modulation without silencer
     {
-        let record = emulator
-            .record(|mut autd| async {
-                autd.send(Silencer::disable()).await?;
-                autd.send((Sine::new(200. * Hz), Uniform::new(EmitIntensity::new(0xFF))))
-                    .await?;
-                autd.tick(Duration::from_millis(10))?;
-                Ok(autd)
-            })
-            .await?;
+        let record = emulator.record(|autd| {
+            autd.send(Silencer::disable())?;
+            autd.send((Sine::new(200. * Hz), Uniform::new(EmitIntensity::new(0xFF))))?;
+            autd.tick(Duration::from_millis(10))?;
+            Ok(())
+        })?;
 
         let df = record.pulse_width();
 
@@ -90,28 +83,24 @@ async fn main() -> Result<()> {
     {
         let focus = emulator.center() + Vector3::new(0., 0., 150. * mm);
 
-        let record = emulator
-            .record(|mut autd| async {
-                autd.send(Silencer::default()).await?;
-                autd.send((Sine::new(200. * Hz), Focus::new(focus))).await?;
-                autd.tick(Duration::from_millis(20))?;
-                Ok(autd)
-            })
-            .await?;
+        let record = emulator.record(|autd| {
+            autd.send(Silencer::default())?;
+            autd.send((Sine::new(200. * Hz), Focus::new(focus)))?;
+            autd.tick(Duration::from_millis(20))?;
+            Ok(())
+        })?;
 
         println!("Calculating sound pressure at focus under 200Hz sin modulation with silencer...");
-        let mut sound_field = record
-            .sound_field(
-                focus,
-                InstantRecordOption {
-                    time_step: Duration::from_micros(1),
-                    print_progress: true,
-                    ..Default::default()
-                },
-            )
-            .await?;
+        let mut sound_field = record.sound_field(
+            focus,
+            InstantRecordOption {
+                time_step: Duration::from_micros(1),
+                print_progress: true,
+                ..Default::default()
+            },
+        )?;
 
-        let df = sound_field.next(Duration::from_millis(20)).await?;
+        let df = sound_field.next(Duration::from_millis(20))?;
 
         // First 3 columns are used for recording position
         let t = df.get_column_names().into_iter().map(|n| {

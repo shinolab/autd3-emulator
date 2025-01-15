@@ -23,8 +23,6 @@ jobs:
           - os: macos-latest
             features: "gpu"
           - os: ubuntu-latest
-            features: "async-trait"
-          - os: ubuntu-latest
             features: "inplace"
     steps:
       - uses: actions/checkout@v4

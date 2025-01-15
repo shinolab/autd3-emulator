@@ -63,7 +63,7 @@ pub(crate) struct Gpu<'a> {
 
 impl<'a> Gpu<'a> {
     #[allow(clippy::too_many_arguments)]
-    pub(crate) async fn new(
+    pub(crate) fn new(
         x: &[f32],
         y: &[f32],
         z: &[f32],
@@ -88,13 +88,12 @@ impl<'a> Gpu<'a> {
 
         let instance = wgpu::Instance::default();
 
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions::default())
-            .await
-            .ok_or(EmulatorError::NoSuitableAdapterFound)?;
+        let adapter =
+            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
+                .ok_or(EmulatorError::NoSuitableAdapterFound)?;
 
-        let (device, queue) = adapter
-            .request_device(
+        let (device, queue) = pollster::block_on(
+            adapter.request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
                     required_features: wgpu::Features::PUSH_CONSTANTS,
@@ -110,8 +109,8 @@ impl<'a> Gpu<'a> {
                     memory_hints: wgpu::MemoryHints::MemoryUsage,
                 },
                 None,
-            )
-            .await?;
+            ),
+        )?;
 
         let cs_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
@@ -324,12 +323,12 @@ impl<'a> Gpu<'a> {
         *cursor += self.frame_window_size as isize;
     }
 
-    async fn copy_output_ultrasound(&self) -> Result<(), EmulatorError> {
+    fn copy_output_ultrasound(&self) -> Result<(), EmulatorError> {
         let buffer_slice = self.buf_staging_output_ultrasound.slice(..);
         let (sender, receiver) = flume::bounded(1);
         buffer_slice.map_async(wgpu::MapMode::Write, move |r| sender.send(r).unwrap());
         self.device.poll(wgpu::Maintain::wait()).panic_on_timeout();
-        receiver.recv_async().await??;
+        receiver.recv()??;
         let src = self
             .output_ultrasound_cache
             .iter()
@@ -343,7 +342,7 @@ impl<'a> Gpu<'a> {
         Ok(())
     }
 
-    pub(crate) async fn compute(
+    pub(crate) fn compute(
         &mut self,
         start_time: Duration,
         time_step: Duration,
@@ -368,7 +367,7 @@ impl<'a> Gpu<'a> {
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
             if self.update_buf_output_ultrasound {
-                self.copy_output_ultrasound().await?;
+                self.copy_output_ultrasound()?;
                 encoder.copy_buffer_to_buffer(
                     &self.buf_staging_output_ultrasound,
                     0,
@@ -403,7 +402,7 @@ impl<'a> Gpu<'a> {
             let (sender, receiver) = flume::bounded(1);
             buffer_slice.map_async(wgpu::MapMode::Read, move |r| sender.send(r).unwrap());
             self.device.poll(wgpu::Maintain::wait()).panic_on_timeout();
-            receiver.recv_async().await??;
+            receiver.recv()??;
             {
                 let data = buffer_slice.get_mapped_range();
                 self.cache[i].copy_from_slice(bytemuck::cast_slice(&data));

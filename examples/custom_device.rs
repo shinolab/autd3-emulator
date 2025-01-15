@@ -2,7 +2,10 @@ use std::time::Duration;
 
 use anyhow::Result;
 
-use autd3::{derive::Transducer, prelude::*};
+use autd3::{
+    core::geometry::{Device, Transducer},
+    prelude::*,
+};
 use autd3_emulator::*;
 use polars::{io::SerWriter, prelude::CsvWriter};
 
@@ -13,9 +16,9 @@ struct CustomDevice {
 }
 
 impl autd3::driver::geometry::IntoDevice for CustomDevice {
-    fn into_device(self, dev_idx: u16) -> autd3::derive::Device {
+    fn into_device(self, dev_idx: u16) -> Device {
         assert!(0 < self.num_x * self.num_y && self.num_x * self.num_y <= 256);
-        autd3::derive::Device::new(
+        Device::new(
             dev_idx,
             UnitQuaternion::identity(),
             itertools::iproduct!(0..self.num_x, 0..self.num_y)
@@ -30,8 +33,7 @@ impl autd3::driver::geometry::IntoDevice for CustomDevice {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     let emulator = Controller::builder([CustomDevice {
         pitch: 2.,
         num_x: 16,
@@ -43,37 +45,32 @@ async fn main() -> Result<()> {
 
     let focus = emulator.center() + Vector3::new(0., 0., 30. * mm);
 
-    let record = emulator
-        .record(|mut autd| async {
-            autd.send(Silencer::disable()).await?;
-            autd.send((Static::with_intensity(0xFF), Focus::new(focus)))
-                .await?;
-            autd.tick(Duration::from_micros(25))?;
-            Ok(autd)
-        })
-        .await?;
+    let record = emulator.record(|autd| {
+        autd.send(Silencer::disable())?;
+        autd.send((Static::with_intensity(0xFF), Focus::new(focus)))?;
+        autd.tick(Duration::from_micros(25))?;
+        Ok(())
+    })?;
 
     println!("Calculating rms around focus...");
-    let mut sound_field = record
-        .sound_field(
-            RangeXY {
-                x: focus.x - 200.0..=focus.x + 200.0,
-                y: focus.y - 200.0..=focus.y + 200.0,
-                z: focus.z,
-                resolution: 1.,
-            },
-            RmsRecordOption {
-                #[cfg(feature = "gpu")]
-                gpu: true,
-                ..Default::default()
-            },
-        )
-        .await?;
+    let mut sound_field = record.sound_field(
+        RangeXY {
+            x: focus.x - 200.0..=focus.x + 200.0,
+            y: focus.y - 200.0..=focus.y + 200.0,
+            z: focus.z,
+            resolution: 1.,
+        },
+        RmsRecordOption {
+            #[cfg(feature = "gpu")]
+            gpu: true,
+            ..Default::default()
+        },
+    )?;
 
     let mut df = polars::functions::concat_df_horizontal(
         &[
             sound_field.observe_points(),
-            sound_field.next(Duration::from_micros(25)).await?,
+            sound_field.next(Duration::from_micros(25))?,
         ],
         false,
     )?;

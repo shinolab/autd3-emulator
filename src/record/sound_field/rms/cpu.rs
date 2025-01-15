@@ -1,4 +1,4 @@
-use autd3::{driver::defined::Complex, prelude::Point3};
+use autd3::{driver::geometry::Complex, prelude::Point3};
 
 use rayon::prelude::*;
 

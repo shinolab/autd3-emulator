@@ -3,8 +3,9 @@ mod output_voltage;
 mod sound_field;
 mod transducer;
 
-use autd3::{derive::Builder, prelude::DcSysTime};
+use autd3::prelude::DcSysTime;
 use derive_more::Debug;
+use getset::CopyGetters;
 use polars::{frame::DataFrame, prelude::Column};
 
 pub use sound_field::{
@@ -14,13 +15,13 @@ pub use sound_field::{
 pub(crate) use transducer::TransducerRecord;
 
 /// A record of the ultrasound data.
-#[derive(Builder, Debug)]
+#[derive(CopyGetters, Debug)]
 pub struct Record {
     pub(crate) records: Vec<TransducerRecord>,
-    #[get]
+    #[getset(get_copy = "pub")]
     /// The start time of the record.
     pub(crate) start: DcSysTime,
-    #[get]
+    #[getset(get_copy = "pub")]
     /// The end time of the record.
     pub(crate) end: DcSysTime,
     pub(crate) aabb: bvh::aabb::Aabb<f32, 3>,

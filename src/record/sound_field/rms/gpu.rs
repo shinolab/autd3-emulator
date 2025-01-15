@@ -54,7 +54,7 @@ pub(crate) struct Gpu {
 }
 
 impl Gpu {
-    pub(crate) async fn new(
+    pub(crate) fn new(
         x: &[f32],
         y: &[f32],
         z: &[f32],
@@ -76,30 +76,25 @@ impl Gpu {
 
         let instance = wgpu::Instance::default();
 
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions::default())
-            .await
-            .ok_or(EmulatorError::NoSuitableAdapterFound)?;
+        let adapter =
+            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
+                .ok_or(EmulatorError::NoSuitableAdapterFound)?;
 
-        let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: wgpu::Features::PUSH_CONSTANTS,
-                    required_limits: wgpu::Limits {
-                        max_push_constant_size: std::mem::size_of::<Pc>() as u32,
-                        max_storage_buffers_per_shader_stage: 6,
-                        max_storage_buffer_binding_size: buf_amp_size
-                            .max(buf_target_pos_size)
-                            .max(buf_tr_pos_size)
-                            as _,
-                        ..wgpu::Limits::downlevel_defaults()
-                    },
-                    memory_hints: wgpu::MemoryHints::MemoryUsage,
+        let (device, queue) = pollster::block_on(adapter.request_device(
+            &wgpu::DeviceDescriptor {
+                label: None,
+                required_features: wgpu::Features::PUSH_CONSTANTS,
+                required_limits: wgpu::Limits {
+                    max_push_constant_size: std::mem::size_of::<Pc>() as u32,
+                    max_storage_buffers_per_shader_stage: 6,
+                    max_storage_buffer_binding_size:
+                        buf_amp_size.max(buf_target_pos_size).max(buf_tr_pos_size) as _,
+                    ..wgpu::Limits::downlevel_defaults()
                 },
-                None,
-            )
-            .await?;
+                memory_hints: wgpu::MemoryHints::MemoryUsage,
+            },
+            None,
+        ))?;
 
         let cs_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
@@ -267,7 +262,7 @@ impl Gpu {
         })
     }
 
-    pub(crate) async fn compute(
+    pub(crate) fn compute(
         &mut self,
         idx: usize,
         wavenumber: f32,
@@ -307,7 +302,7 @@ impl Gpu {
         let (sender, receiver) = flume::bounded(1);
         buffer_slice.map_async(wgpu::MapMode::Read, move |r| sender.send(r).unwrap());
         self.device.poll(wgpu::Maintain::wait()).panic_on_timeout();
-        receiver.recv_async().await??;
+        receiver.recv()??;
         {
             let data = buffer_slice.get_mapped_range();
             self.buffer.copy_from_slice(bytemuck::cast_slice(&data));

@@ -2,6 +2,7 @@ use autd3::{
     driver::{defined::ultrasound_period, error::AUTDDriverError},
     error::AUTDError,
 };
+use autd3_core::modulation::SamplingConfigError;
 use thiserror::Error;
 
 /// An interface for error handling in autd3-emulator.
@@ -19,6 +20,9 @@ pub enum EmulatorError {
     /// Error when requesting data outside the recorded range.
     #[error("Not recorded")]
     NotRecorded,
+    #[allow(missing_docs)]
+    #[error("{0}")]
+    SamplingConfig(#[from] SamplingConfigError),
     #[allow(missing_docs)]
     #[error("{0}")]
     Driver(#[from] AUTDDriverError),

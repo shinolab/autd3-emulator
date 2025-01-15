@@ -1,11 +1,11 @@
 pub(crate) mod output_ultrasound;
 mod output_voltage;
 
-use autd3::driver::{defined::ultrasound_period, derive::Builder};
+use autd3::driver::defined::ultrasound_period;
 
 use derive_more::Debug;
 
-#[derive(Builder, Debug)]
+#[derive(Debug)]
 pub(crate) struct TransducerRecord {
     pub(crate) pulse_width: Vec<u8>,
     pub(crate) phase: Vec<u8>,

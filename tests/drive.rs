@@ -1,4 +1,12 @@
-use autd3::{derive::Datagram, driver::defined::ultrasound_period, gain, prelude::*};
+use autd3::{
+    core::datagram::Datagram,
+    driver::{
+        defined::ultrasound_period,
+        firmware::operation::{Operation, OperationGenerator},
+    },
+    gain,
+    prelude::*,
+};
 use autd3_emulator::*;
 
 use polars::{frame::DataFrame, prelude::Column};
@@ -6,8 +14,14 @@ use polars::{frame::DataFrame, prelude::Column};
 #[rstest::rstest]
 #[case(Silencer::disable())]
 #[case(Silencer::disable().with_target(SilencerTarget::PulseWidth))]
-#[tokio::test]
-async fn record_phase(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
+#[test]
+fn record_phase<D: Datagram>(#[case] silencer: D) -> anyhow::Result<()>
+where
+    AUTDDriverError: From<D::Error>,
+    D::G: OperationGenerator,
+    AUTDDriverError: From<<<D::G as OperationGenerator>::O1 as Operation>::Error>
+        + From<<<D::G as OperationGenerator>::O2 as Operation>::Error>,
+{
     let emulator =
         Controller::builder([AUTD3::new(Point3::origin()), AUTD3::new(Point3::origin())])
             .into_emulator();
@@ -32,25 +46,21 @@ async fn record_phase(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let record = emulator
-        .record(|mut autd| async {
-            autd.send(silencer).await?;
-            autd.send((
-                Static::with_intensity(100),
-                gain::Custom::new(|_| |tr| Phase::new(tr.dev_idx() as _)),
-            ))
-            .await?;
-            autd.tick(ultrasound_period())?;
-            autd.send((
-                Static::with_intensity(200),
-                gain::Custom::new(|_| |tr| Phase::new(0x01) + Phase::new(tr.dev_idx() as _)),
-            ))
-            .await?;
-            autd.tick(2 * ultrasound_period())?;
+    let record = emulator.record(|autd| {
+        autd.send(silencer)?;
+        autd.send((
+            Static::with_intensity(100),
+            gain::Custom::new(|_| |tr| Phase::new(tr.dev_idx() as _)),
+        ))?;
+        autd.tick(ultrasound_period())?;
+        autd.send((
+            Static::with_intensity(200),
+            gain::Custom::new(|_| |tr| Phase::new(0x01) + Phase::new(tr.dev_idx() as _)),
+        ))?;
+        autd.tick(2 * ultrasound_period())?;
 
-            Ok(autd)
-        })
-        .await?;
+        Ok(())
+    })?;
 
     assert_eq!(expect, record.phase());
 
@@ -60,8 +70,14 @@ async fn record_phase(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
 #[rstest::rstest]
 #[case(Silencer::disable())]
 #[case(Silencer::disable().with_target(SilencerTarget::PulseWidth))]
-#[tokio::test]
-async fn record_pulse_width(#[case] silencer: impl Datagram) -> anyhow::Result<()> {
+#[test]
+fn record_pulse_width<D: Datagram>(#[case] silencer: D) -> anyhow::Result<()>
+where
+    AUTDDriverError: From<D::Error>,
+    D::G: OperationGenerator,
+    AUTDDriverError: From<<<D::G as OperationGenerator>::O1 as Operation>::Error>
+        + From<<<D::G as OperationGenerator>::O2 as Operation>::Error>,
+{
     use polars::frame::DataFrame;
 
     let emulator =
@@ -90,25 +106,21 @@ async fn record_pulse_width(#[case] silencer: impl Datagram) -> anyhow::Result<(
     )
     .unwrap();
 
-    let record = emulator
-        .record(|mut autd| async {
-            autd.send(silencer).await?;
-            autd.send((
-                Static::with_intensity(100),
-                gain::Custom::new(|_| |tr| EmitIntensity::new(tr.idx() as _)),
-            ))
-            .await?;
-            autd.tick(ultrasound_period())?;
-            autd.send((
-                Static::with_intensity(200),
-                gain::Custom::new(|_| |tr| EmitIntensity::new(tr.idx() as _)),
-            ))
-            .await?;
-            autd.tick(2 * ultrasound_period())?;
+    let record = emulator.record(|autd| {
+        autd.send(silencer)?;
+        autd.send((
+            Static::with_intensity(100),
+            gain::Custom::new(|_| |tr| EmitIntensity::new(tr.idx() as _)),
+        ))?;
+        autd.tick(ultrasound_period())?;
+        autd.send((
+            Static::with_intensity(200),
+            gain::Custom::new(|_| |tr| EmitIntensity::new(tr.idx() as _)),
+        ))?;
+        autd.tick(2 * ultrasound_period())?;
 
-            Ok(autd)
-        })
-        .await?;
+        Ok(())
+    })?;
 
     assert_eq!(expect, record.pulse_width());
 

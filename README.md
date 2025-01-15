@@ -8,4 +8,4 @@ This crate provides a emulator for [autd3](https://github.com/shinolab/autd3) th
 
 # Author
 
-Shun Suzuki, 2024
+Shun Suzuki, 2024-2025

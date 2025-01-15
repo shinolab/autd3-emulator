@@ -39,7 +39,7 @@ impl<'a> ComputeDevice<'a> {
         }
     }
 
-    async fn compute(
+    fn compute(
         &mut self,
         start_time: Duration,
         time_step: Duration,
@@ -58,17 +58,14 @@ impl<'a> ComputeDevice<'a> {
                 pb,
             )),
             #[cfg(feature = "gpu")]
-            Self::Gpu(gpu) => {
-                gpu.compute(
-                    start_time,
-                    time_step,
-                    num_points_in_frame,
-                    sound_speed,
-                    offset,
-                    pb,
-                )
-                .await
-            }
+            Self::Gpu(gpu) => gpu.compute(
+                start_time,
+                time_step,
+                num_points_in_frame,
+                sound_speed,
+                offset,
+                pb,
+            ),
         }
     }
 }
@@ -102,7 +99,7 @@ impl<'a> Instant<'a> {
     }
 
     /// Progresses by the specified time and calculates the instant sound field during that time.
-    pub async fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
+    pub fn next(&mut self, duration: Duration) -> Result<DataFrame, EmulatorError> {
         let n = self.next_time_len(duration);
         let mut time = vec![0; n];
         let mut v = vec![vec![0.0; self.next_points_len()]; n];
@@ -111,8 +108,7 @@ impl<'a> Instant<'a> {
             false,
             &mut time,
             v.iter_mut().map(|v| v.as_mut_ptr()),
-        )
-        .await?;
+        )?;
 
         Ok(DataFrame::new(
             time.iter()
@@ -124,9 +120,8 @@ impl<'a> Instant<'a> {
     }
 
     /// Progresses by the specified time.
-    pub async fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {
-        self.next_inplace(duration, true, &mut [], std::iter::empty())
-            .await?;
+    pub fn skip(&mut self, duration: Duration) -> Result<&mut Self, EmulatorError> {
+        self.next_inplace(duration, true, &mut [], std::iter::empty())?;
         Ok(self)
     }
 
@@ -163,7 +158,7 @@ impl<'a> Instant<'a> {
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
-    async fn next_inplace(
+    fn next_inplace(
         &mut self,
         duration: Duration,
         skip: bool,
@@ -213,17 +208,14 @@ impl<'a> Instant<'a> {
                 let offset = (self.cursor - self.cache_size) * ULTRASOUND_PERIOD_COUNT as isize;
                 for i in 0..num_frames {
                     let start_time = (cur_frame + i) as u32 * ultrasound_period();
-                    let r = self
-                        .compute_device
-                        .compute(
-                            start_time,
-                            time_step,
-                            self.num_points_in_frame,
-                            sound_speed,
-                            offset,
-                            &pb,
-                        )
-                        .await?;
+                    let r = self.compute_device.compute(
+                        start_time,
+                        time_step,
+                        self.num_points_in_frame,
+                        sound_speed,
+                        offset,
+                        &pb,
+                    )?;
                     (0..r.len()).for_each(|i| {
                         time[idx] = (start_time + (i as u32 * time_step)).as_nanos() as u64;
                         unsafe {
@@ -246,7 +238,7 @@ impl<'a> Instant<'a> {
 }
 
 impl Record {
-    async fn sound_field_instant(
+    fn sound_field_instant(
         &self,
         range: impl Range,
         option: InstantRecordOption,
@@ -313,19 +305,16 @@ impl Record {
 
         #[cfg(feature = "gpu")]
         let compute_device = if option.gpu {
-            ComputeDevice::Gpu(
-                gpu::Gpu::new(
-                    &x,
-                    &y,
-                    &z,
-                    self.records.iter().map(|tr| *tr.tr.position()),
-                    output_ultrasound,
-                    frame_window_size,
-                    num_points_in_frame,
-                    cache_size,
-                )
-                .await?,
-            )
+            ComputeDevice::Gpu(gpu::Gpu::new(
+                &x,
+                &y,
+                &z,
+                self.records.iter().map(|tr| *tr.tr.position()),
+                output_ultrasound,
+                frame_window_size,
+                num_points_in_frame,
+                cache_size,
+            )?)
         } else {
             ComputeDevice::Cpu(cpu::Cpu::new(
                 &x,
@@ -368,11 +357,11 @@ impl Record {
 impl<'a> SoundFieldOption<'a> for InstantRecordOption {
     type Output = Instant<'a>;
 
-    async fn sound_field(
+    fn sound_field(
         self,
         record: &'a Record,
         range: impl Range,
     ) -> Result<Self::Output, EmulatorError> {
-        record.sound_field_instant(range, self).await
+        record.sound_field_instant(range, self)
     }
 }

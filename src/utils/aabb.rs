@@ -33,10 +33,8 @@ pub(crate) fn aabb_min_dist(a: &Aabb<f32, 3>, b: &Aabb<f32, 3>) -> f32 {
 mod tests {
     use std::f32::consts::PI;
 
-    use autd3::driver::geometry::IntoDevice;
-
     use autd3::{
-        derive::Geometry,
+        core::geometry::{Geometry, IntoDevice},
         prelude::{rad, EulerAngle, AUTD3},
     };
     use rand::Rng;
