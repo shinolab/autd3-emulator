@@ -298,7 +298,7 @@ impl Emulator {
             .flat_map(|(rd, dev)| {
                 rd.records
                     .into_iter()
-                    .zip(dev.into_iter())
+                    .zip(dev)
                     .map(|(r, tr)| TransducerRecord {
                         pulse_width: r.pulse_width,
                         phase: r.phase,

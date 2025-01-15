@@ -22,7 +22,7 @@ enum ComputeDevice<'a> {
     Gpu(gpu::Gpu<'a>),
 }
 
-impl<'a> ComputeDevice<'a> {
+impl ComputeDevice<'_> {
     fn init(&mut self, cache_size: isize, cursor: &mut isize, rem_frame: &mut usize) {
         match self {
             Self::Cpu(cpu) => cpu.init(cache_size, cursor, rem_frame),
@@ -87,7 +87,7 @@ pub struct Instant<'a> {
     compute_device: ComputeDevice<'a>,
 }
 
-impl<'a> Instant<'a> {
+impl Instant<'_> {
     /// Returns the observed points.
     pub fn observe_points(&self) -> DataFrame {
         df!(
