@@ -261,22 +261,16 @@ impl Emulator {
         self.record_from(DcSysTime::ZERO, f)
     }
 
-    /// Records the sound field from the specified time.
-    pub fn record_from(
-        &self,
-        start_time: DcSysTime,
-        f: impl FnOnce(&mut Controller<Recorder>) -> Result<(), EmulatorError>,
-    ) -> Result<Record, EmulatorError> {
-        let builder = Controller::builder(self.geometry.iter().map(clone_device))
+    fn create_builder(&self) -> ControllerBuilder {
+        Controller::builder(self.geometry.iter().map(clone_device))
             .with_default_parallel_threshold(self.geometry.default_parallel_threshold())
             .with_default_timeout(self.default_timeout)
             .with_receive_interval(self.receive_interval)
             .with_send_interval(self.send_interval)
-            .with_timer_strategy(self.timer_strategy);
+            .with_timer_strategy(self.timer_strategy)
+    }
 
-        let mut recorder = builder.open(RecorderBuilder { start_time })?;
-        f(&mut recorder)?;
-
+    fn gather_record(mut recorder: Controller<Recorder>) -> Result<Record, EmulatorError> {
         let start = recorder.link().record.start;
         let end = recorder.link().record.current;
         let devices = {
@@ -316,6 +310,31 @@ impl Emulator {
             end,
             aabb,
         })
+    }
+
+    /// Records the sound field from the specified time.
+    pub fn record_from(
+        &self,
+        start_time: DcSysTime,
+        f: impl FnOnce(&mut Controller<Recorder>) -> Result<(), EmulatorError>,
+    ) -> Result<Record, EmulatorError> {
+        let builder = self.create_builder();
+        let mut recorder = builder.open(RecorderBuilder { start_time })?;
+        f(&mut recorder)?;
+        Self::gather_record(recorder)
+    }
+
+    #[doc(hidden)]
+    // This function is used in capi.
+    pub fn record_from_take(
+        &self,
+        start_time: DcSysTime,
+        f: impl FnOnce(Controller<Recorder>) -> Result<Controller<Recorder>, EmulatorError>,
+    ) -> Result<Record, EmulatorError> {
+        let builder = self.create_builder();
+        let recorder = builder.open(RecorderBuilder { start_time })?;
+        let recorder = f(recorder)?;
+        Self::gather_record(recorder)
     }
 
     fn transducers(&self) -> impl Iterator<Item = &Transducer> {
