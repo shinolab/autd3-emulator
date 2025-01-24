@@ -253,7 +253,7 @@ impl Emulator {
     /// let record = emulator
     ///      .record(|autd| {
     ///          autd.send(Silencer::default())?;
-    ///          autd.send((Sine { freq: 200 * Hz, option: Default::default() }, Uniform::new(EmitIntensity(0xFF))))?;
+    ///          autd.send((Sine { freq: 200 * Hz, option: Default::default() }, Uniform { intensity: EmitIntensity(0xFF), phase: Phase::ZERO }))?;
     ///          autd.tick(Duration::from_millis(10))?;
     ///          Ok(())
     ///      })
