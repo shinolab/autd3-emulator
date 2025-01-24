@@ -11,13 +11,12 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.13"
-
-    - name: Setup Rust
+    - name: setup rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         toolchain: ${{ inputs.toolchain }}
         components: ${{ inputs.components }}
+
+    - uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-make

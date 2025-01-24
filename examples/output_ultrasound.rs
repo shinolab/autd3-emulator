@@ -9,15 +9,21 @@ use polars::prelude::AnyValue;
 use textplots::{Chart, Plot, Shape};
 
 fn main() -> Result<()> {
-    let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
+    let emulator = Emulator::new([AUTD3 {
+        pos: Point3::origin(),
+        rot: UnitQuaternion::identity(),
+    }]);
 
     // output voltage
     {
         let record = emulator.record(|autd| {
             autd.send(Silencer::disable())?;
             autd.send((
-                Static::with_intensity(0xFF),
-                Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))),
+                Static { intensity: 0xFF },
+                Uniform {
+                    phase: Phase(0x40),
+                    intensity: EmitIntensity(0xFF),
+                },
             ))?;
             autd.tick(Duration::from_millis(1))?;
             Ok(())
@@ -50,8 +56,11 @@ fn main() -> Result<()> {
         let record = emulator.record(|autd| {
             autd.send(Silencer::disable())?;
             autd.send((
-                Static::with_intensity(0xFF),
-                Uniform::new((Phase::new(0x40), EmitIntensity::new(0xFF))),
+                Static { intensity: 0xFF },
+                Uniform {
+                    phase: Phase(0x40),
+                    intensity: EmitIntensity(0xFF),
+                },
             ))?;
             autd.tick(Duration::from_millis(1))?;
             Ok(())

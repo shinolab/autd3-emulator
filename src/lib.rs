@@ -10,8 +10,6 @@ mod option;
 mod record;
 mod utils;
 
-use autd3::controller::timer::TimerStrategy;
-use autd3::controller::ControllerBuilder;
 use bvh::aabb::Aabb;
 pub use error::EmulatorError;
 use getset::Getters;
@@ -37,7 +35,7 @@ use autd3::{
     Controller,
 };
 use autd3_core::{
-    geometry::{Geometry, Transducer},
+    geometry::{Geometry, IntoDevice, Transducer},
     link::{Link, LinkBuilder, LinkError},
 };
 use autd3_firmware_emulator::{
@@ -111,10 +109,7 @@ impl LinkBuilder for RecorderBuilder {
         Ok(Recorder {
             is_open: true,
             emulators,
-            geometry: Geometry::new(
-                geometry.devices().map(clone_device).collect(),
-                geometry.default_parallel_threshold(),
-            ),
+            geometry: Geometry::new(geometry.devices().map(clone_device).collect()),
             record,
         })
     }
@@ -136,7 +131,7 @@ impl Link for Recorder {
                 let should_update_silencer =
                     |tag: u8| -> bool { matches!(tag, TAG_SILENCER | TAG_CLEAR) };
                 let update_silencer = should_update_silencer(tx[cpu.idx()].payload()[0]);
-                let slot_2_offset = tx[cpu.idx()].header().slot_2_offset as usize;
+                let slot_2_offset = tx[cpu.idx()].header.slot_2_offset as usize;
                 let update_silencer = if slot_2_offset != 0 {
                     update_silencer
                         || should_update_silencer(tx[cpu.idx()].payload()[slot_2_offset])
@@ -196,16 +191,16 @@ impl Recorder {
                             SilencerTarget::Intensity => cpu.fpga().pulse_width_encoder_table_at(
                                 tr_record
                                     .silencer_intensity
-                                    .apply((d.intensity().value() as u16 * m as u16 / 255) as u8)
+                                    .apply((d.intensity.0 as u16 * m as u16 / 255) as u8)
                                     as _,
                             ),
                             SilencerTarget::PulseWidth => tr_record
                                 .silencer_intensity
-                                .apply(cpu.fpga().to_pulse_width(d.intensity(), m)),
+                                .apply(cpu.fpga().to_pulse_width(d.intensity, m)),
                         });
                         tr_record
                             .phase
-                            .push(tr_record.silencer_phase.apply(d.phase().value()))
+                            .push(tr_record.silencer_phase.apply(d.phase.0))
                     });
                 });
             t = t + ultrasound_period();
@@ -226,13 +221,22 @@ pub struct Emulator {
     #[deref_mut]
     /// The geometry of the devices.
     geometry: Geometry,
-    default_timeout: Duration,
-    send_interval: Duration,
-    receive_interval: Duration,
-    timer_strategy: TimerStrategy,
 }
 
 impl Emulator {
+    /// Creates a new emulator.
+    pub fn new<D: IntoDevice, F: IntoIterator<Item = D>>(devices: F) -> Self {
+        Self {
+            geometry: Geometry::new(
+                devices
+                    .into_iter()
+                    .enumerate()
+                    .map(|(idx, dev)| dev.into_device(idx as _))
+                    .collect(),
+            ),
+        }
+    }
+
     /// Records the sound field.
     ///
     /// # Example
@@ -242,11 +246,14 @@ impl Emulator {
     /// # use autd3_emulator::*;
     /// # use std::time::Duration;
     /// # fn example() -> Result<(), EmulatorError> {
-    /// let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
+    /// let emulator = Emulator::new([AUTD3 {
+    ///        pos: Point3::origin(),
+    ///        rot: UnitQuaternion::identity(),
+    ///    }]);
     /// let record = emulator
     ///      .record(|autd| {
     ///          autd.send(Silencer::default())?;
-    ///          autd.send((Sine::new(200. * Hz), Uniform::new(EmitIntensity::new(0xFF))))?;
+    ///          autd.send((Sine { freq: 200 * Hz, option: Default::default() }, Uniform::new(EmitIntensity(0xFF))))?;
     ///          autd.tick(Duration::from_millis(10))?;
     ///          Ok(())
     ///      })
@@ -259,15 +266,6 @@ impl Emulator {
         f: impl FnOnce(&mut Controller<Recorder>) -> Result<(), EmulatorError>,
     ) -> Result<Record, EmulatorError> {
         self.record_from(DcSysTime::ZERO, f)
-    }
-
-    fn create_builder(&self) -> ControllerBuilder {
-        Controller::builder(self.geometry.iter().map(clone_device))
-            .with_default_parallel_threshold(self.geometry.default_parallel_threshold())
-            .with_default_timeout(self.default_timeout)
-            .with_receive_interval(self.receive_interval)
-            .with_send_interval(self.send_interval)
-            .with_timer_strategy(self.timer_strategy)
     }
 
     fn gather_record(mut recorder: Controller<Recorder>) -> Result<Record, EmulatorError> {
@@ -318,8 +316,10 @@ impl Emulator {
         start_time: DcSysTime,
         f: impl FnOnce(&mut Controller<Recorder>) -> Result<(), EmulatorError>,
     ) -> Result<Record, EmulatorError> {
-        let builder = self.create_builder();
-        let mut recorder = builder.open(RecorderBuilder { start_time })?;
+        let mut recorder = Controller::open(
+            self.geometry.iter().map(clone_device),
+            RecorderBuilder { start_time },
+        )?;
         f(&mut recorder)?;
         Self::gather_record(recorder)
     }
@@ -331,8 +331,10 @@ impl Emulator {
         start_time: DcSysTime,
         f: impl FnOnce(Controller<Recorder>) -> Result<Controller<Recorder>, EmulatorError>,
     ) -> Result<Record, EmulatorError> {
-        let builder = self.create_builder();
-        let recorder = builder.open(RecorderBuilder { start_time })?;
+        let recorder = Controller::open(
+            self.geometry.iter().map(clone_device),
+            RecorderBuilder { start_time },
+        )?;
         let recorder = f(recorder)?;
         Self::gather_record(recorder)
     }
@@ -418,29 +420,6 @@ impl Emulator {
             "nz" => &nz,
         )
         .unwrap()
-    }
-}
-
-/// A trait to convert [`ControllerBuilder`] into [`Emulator`].
-pub trait ControllerBuilderIntoEmulatorExt {
-    /// Converts [`ControllerBuilder`] into [`Emulator`].
-    fn into_emulator(self) -> Emulator;
-}
-
-impl ControllerBuilderIntoEmulatorExt for ControllerBuilder {
-    fn into_emulator(self) -> Emulator {
-        let default_parallel_threshold = self.default_parallel_threshold();
-        let default_timeout = self.default_timeout();
-        let send_interval = self.send_interval();
-        let receive_interval = self.receive_interval();
-        let timer_strategy = *self.timer_strategy();
-        Emulator {
-            geometry: Geometry::new(self.devices(), default_parallel_threshold),
-            default_timeout,
-            send_interval,
-            receive_interval,
-            timer_strategy,
-        }
     }
 }
 

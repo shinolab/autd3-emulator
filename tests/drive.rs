@@ -1,30 +1,28 @@
-use autd3::{
-    core::datagram::Datagram,
-    driver::{
-        defined::ultrasound_period,
-        firmware::operation::{Operation, OperationGenerator},
-    },
-    gain,
-    prelude::*,
-};
+use autd3::{driver::defined::ultrasound_period, gain, prelude::*};
 use autd3_emulator::*;
 
 use polars::{frame::DataFrame, prelude::Column};
 
 #[rstest::rstest]
-#[case(Silencer::disable())]
-#[case(Silencer::disable().with_target(SilencerTarget::PulseWidth))]
+#[case(SilencerTarget::Intensity)]
+#[case(SilencerTarget::PulseWidth)]
 #[test]
-fn record_phase<D: Datagram>(#[case] silencer: D) -> anyhow::Result<()>
-where
-    AUTDDriverError: From<D::Error>,
-    D::G: OperationGenerator,
-    AUTDDriverError: From<<<D::G as OperationGenerator>::O1 as Operation>::Error>
-        + From<<<D::G as OperationGenerator>::O2 as Operation>::Error>,
-{
-    let emulator =
-        Controller::builder([AUTD3::new(Point3::origin()), AUTD3::new(Point3::origin())])
-            .into_emulator();
+fn record_phase(#[case] target: SilencerTarget) -> anyhow::Result<()> {
+    let silencer = Silencer {
+        target,
+        config: Silencer::disable().config,
+    };
+
+    let emulator = Emulator::new([
+        AUTD3 {
+            pos: Point3::origin(),
+            rot: UnitQuaternion::identity(),
+        },
+        AUTD3 {
+            pos: Point3::origin(),
+            rot: UnitQuaternion::identity(),
+        },
+    ]);
 
     let expect = DataFrame::new(
         [0, 25000, 50000]
@@ -36,8 +34,7 @@ where
                     emulator
                         .iter()
                         .flat_map(|dev| {
-                            dev.iter()
-                                .map(|tr| (Phase::new(o) + Phase::new(tr.dev_idx() as _)).value())
+                            dev.iter().map(|tr| (Phase(o) + Phase(tr.dev_idx() as _)).0)
                         })
                         .collect::<Vec<_>>(),
                 )
@@ -49,13 +46,23 @@ where
     let record = emulator.record(|autd| {
         autd.send(silencer)?;
         autd.send((
-            Static::with_intensity(100),
-            gain::Custom::new(|_| |tr| Phase::new(tr.dev_idx() as _)),
+            Static { intensity: 100 },
+            gain::Custom::new(|_| {
+                |tr| Drive {
+                    phase: Phase(tr.dev_idx() as _),
+                    intensity: EmitIntensity::MAX,
+                }
+            }),
         ))?;
         autd.tick(ultrasound_period())?;
         autd.send((
-            Static::with_intensity(200),
-            gain::Custom::new(|_| |tr| Phase::new(0x01) + Phase::new(tr.dev_idx() as _)),
+            Static { intensity: 200 },
+            gain::Custom::new(|_| {
+                |tr| Drive {
+                    phase: Phase(0x01) + Phase(tr.dev_idx() as _),
+                    intensity: EmitIntensity::MAX,
+                }
+            }),
         ))?;
         autd.tick(2 * ultrasound_period())?;
 
@@ -68,21 +75,27 @@ where
 }
 
 #[rstest::rstest]
-#[case(Silencer::disable())]
-#[case(Silencer::disable().with_target(SilencerTarget::PulseWidth))]
+#[case(SilencerTarget::Intensity)]
+#[case(SilencerTarget::PulseWidth)]
 #[test]
-fn record_pulse_width<D: Datagram>(#[case] silencer: D) -> anyhow::Result<()>
-where
-    AUTDDriverError: From<D::Error>,
-    D::G: OperationGenerator,
-    AUTDDriverError: From<<<D::G as OperationGenerator>::O1 as Operation>::Error>
-        + From<<<D::G as OperationGenerator>::O2 as Operation>::Error>,
-{
+fn record_pulse_width(#[case] target: SilencerTarget) -> anyhow::Result<()> {
     use polars::frame::DataFrame;
 
-    let emulator =
-        Controller::builder([AUTD3::new(Point3::origin()), AUTD3::new(Point3::origin())])
-            .into_emulator();
+    let silencer = Silencer {
+        target,
+        config: Silencer::disable().config,
+    };
+
+    let emulator = Emulator::new([
+        AUTD3 {
+            pos: Point3::origin(),
+            rot: UnitQuaternion::identity(),
+        },
+        AUTD3 {
+            pos: Point3::origin(),
+            rot: UnitQuaternion::identity(),
+        },
+    ]);
 
     let to_pulse_width = |a, b| {
         let i = (a as usize * b) / 255;
@@ -109,13 +122,23 @@ where
     let record = emulator.record(|autd| {
         autd.send(silencer)?;
         autd.send((
-            Static::with_intensity(100),
-            gain::Custom::new(|_| |tr| EmitIntensity::new(tr.idx() as _)),
+            Static { intensity: 100 },
+            gain::Custom::new(|_| {
+                |tr| Drive {
+                    phase: Phase::ZERO,
+                    intensity: EmitIntensity(tr.idx() as _),
+                }
+            }),
         ))?;
         autd.tick(ultrasound_period())?;
         autd.send((
-            Static::with_intensity(200),
-            gain::Custom::new(|_| |tr| EmitIntensity::new(tr.idx() as _)),
+            Static { intensity: 200 },
+            gain::Custom::new(|_| {
+                |tr| Drive {
+                    phase: Phase::ZERO,
+                    intensity: EmitIntensity(tr.idx() as _),
+                }
+            }),
         ))?;
         autd.tick(2 * ultrasound_period())?;
 

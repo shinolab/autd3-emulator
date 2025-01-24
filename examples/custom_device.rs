@@ -34,12 +34,11 @@ impl autd3::driver::geometry::IntoDevice for CustomDevice {
 }
 
 fn main() -> Result<()> {
-    let emulator = Controller::builder([CustomDevice {
+    let emulator = Emulator::new([CustomDevice {
         pitch: 2.,
         num_x: 16,
         num_y: 16,
-    }])
-    .into_emulator();
+    }]);
 
     dbg!(emulator.transducer_table());
 
@@ -47,7 +46,13 @@ fn main() -> Result<()> {
 
     let record = emulator.record(|autd| {
         autd.send(Silencer::disable())?;
-        autd.send((Static::with_intensity(0xFF), Focus::new(focus)))?;
+        autd.send((
+            Static { intensity: 0xFF },
+            Focus {
+                pos: focus,
+                option: Default::default(),
+            },
+        ))?;
         autd.tick(Duration::from_micros(25))?;
         Ok(())
     })?;

@@ -9,7 +9,10 @@ use polars::{io::SerWriter, prelude::CsvWriter};
 fn main() -> Result<()> {
     println!("INFO: rms does not take into account propagation delay nor transducer response.");
 
-    let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
+    let emulator = Emulator::new([AUTD3 {
+        pos: Point3::origin(),
+        rot: UnitQuaternion::identity(),
+    }]);
 
     let focus = emulator.center() + Vector3::new(0., 0., 150. * mm);
 
@@ -17,7 +20,13 @@ fn main() -> Result<()> {
     {
         let record = emulator.record(|autd| {
             autd.send(Silencer::disable())?;
-            autd.send((Static::with_intensity(0xFF), Focus::new(focus)))?;
+            autd.send((
+                Static { intensity: 0xFF },
+                Focus {
+                    pos: focus,
+                    option: Default::default(),
+                },
+            ))?;
             autd.tick(Duration::from_micros(25))?;
             Ok(())
         })?;
@@ -55,14 +64,16 @@ fn main() -> Result<()> {
         let record = emulator.record(|autd| {
             autd.send(Silencer::default())?;
             autd.send((
-                Static::with_intensity(0xFF),
-                FociSTM::new(
-                    SamplingConfig::new(1. * kHz)?,
-                    (0..4).map(|i| {
-                        let theta = 2. * PI * i as f32 / 4.;
-                        focus + Vector3::new(theta.cos(), theta.sin(), 0.) * 20. * mm
-                    }),
-                )?,
+                Static { intensity: 0xFF },
+                FociSTM {
+                    foci: (0..4)
+                        .map(|i| {
+                            let theta = 2. * PI * i as f32 / 4.;
+                            focus + Vector3::new(theta.cos(), theta.sin(), 0.) * 20. * mm
+                        })
+                        .collect::<Vec<_>>(),
+                    config: SamplingConfig::new(1. * kHz)?,
+                },
             ))?;
             autd.tick(Duration::from_millis(5))?;
             Ok(())
