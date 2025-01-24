@@ -324,6 +324,7 @@ impl Emulator {
         Self::gather_record(recorder)
     }
 
+    // GRCOV_EXCL_START
     #[doc(hidden)]
     // This function is used in capi.
     pub fn record_from_take(
@@ -338,6 +339,7 @@ impl Emulator {
         let recorder = f(recorder)?;
         Self::gather_record(recorder)
     }
+    // GRCOV_EXCL_STOP
 
     fn transducers(&self) -> impl Iterator<Item = &Transducer> {
         self.geometry.devices().flat_map(|dev| dev.iter())
