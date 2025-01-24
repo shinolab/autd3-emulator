@@ -188,7 +188,7 @@ impl Record {
                     .iter()
                     .map(|&w| Self::P0 * (PI * w as f32 / ULTRASOUND_PERIOD_COUNT as f32).sin())
                     .collect()),
-                phase: tr.phase.iter().map(|&p| Phase::new(p).radian()).collect(),
+                phase: tr.phase.iter().map(|&p| Phase(p).radian()).collect(),
             })
             .collect();
 

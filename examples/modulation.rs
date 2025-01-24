@@ -9,15 +9,31 @@ use polars::prelude::AnyValue;
 use textplots::{Chart, Plot, Shape};
 
 fn main() -> Result<()> {
-    let emulator =
-        Controller::builder([AUTD3::new(Point3::origin()), AUTD3::new(Point3::origin())])
-            .into_emulator();
+    let emulator = Emulator::new([
+        AUTD3 {
+            pos: Point3::origin(),
+            rot: UnitQuaternion::identity(),
+        },
+        AUTD3 {
+            pos: Point3::origin(),
+            rot: UnitQuaternion::identity(),
+        },
+    ]);
 
     // pulse width under 200Hz sine modulation with silencer
     {
         let record = emulator.record(|autd| {
             autd.send(Silencer::default())?;
-            autd.send((Sine::new(200. * Hz), Uniform::new(EmitIntensity::new(0xFF))))?;
+            autd.send((
+                Sine {
+                    freq: 200 * Hz,
+                    option: Default::default(),
+                },
+                Uniform {
+                    intensity: EmitIntensity(0xFF),
+                    phase: Phase::ZERO,
+                },
+            ))?;
             autd.tick(Duration::from_millis(10))?;
             Ok(())
         })?;
@@ -50,7 +66,16 @@ fn main() -> Result<()> {
     {
         let record = emulator.record(|autd| {
             autd.send(Silencer::disable())?;
-            autd.send((Sine::new(200. * Hz), Uniform::new(EmitIntensity::new(0xFF))))?;
+            autd.send((
+                Sine {
+                    freq: 200 * Hz,
+                    option: Default::default(),
+                },
+                Uniform {
+                    intensity: EmitIntensity(0xFF),
+                    phase: Phase::ZERO,
+                },
+            ))?;
             autd.tick(Duration::from_millis(10))?;
             Ok(())
         })?;
@@ -85,7 +110,16 @@ fn main() -> Result<()> {
 
         let record = emulator.record(|autd| {
             autd.send(Silencer::default())?;
-            autd.send((Sine::new(200. * Hz), Focus::new(focus)))?;
+            autd.send((
+                Sine {
+                    freq: 200 * Hz,
+                    option: Default::default(),
+                },
+                Focus {
+                    pos: focus,
+                    option: Default::default(),
+                },
+            ))?;
             autd.tick(Duration::from_millis(20))?;
             Ok(())
         })?;

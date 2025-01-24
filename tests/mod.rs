@@ -10,7 +10,10 @@ use polars::prelude::Column;
 
 #[test]
 fn invalid_tick() -> anyhow::Result<()> {
-    let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
+    let emulator = Emulator::new([AUTD3 {
+        pos: Point3::origin(),
+        rot: UnitQuaternion::identity(),
+    }]);
 
     let record = emulator.record(|autd| {
         autd.send(Silencer::disable())?;
@@ -25,7 +28,10 @@ fn invalid_tick() -> anyhow::Result<()> {
 
 #[test]
 fn transducer_table() {
-    let emulator = Controller::builder([AUTD3::new(Point3::origin())]).into_emulator();
+    let emulator = Emulator::new([AUTD3 {
+        pos: Point3::origin(),
+        rot: UnitQuaternion::identity(),
+    }]);
 
     let df = emulator.transducer_table();
 

@@ -17,24 +17,18 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            features: ""
           - os: ubuntu-latest
-            features: ""
           - os: macos-latest
             features: "gpu"
           - os: ubuntu-latest
             features: "inplace"
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
       - uses: ./.github/actions/setup-build
       - uses: taiki-e/install-action@v2
         with:
-          tool: nextest
-      - run: |
-          python3 build.py test --features "${{ matrix.features }}"
-          python3 build.py lint --features "${{ matrix.features }}"
+          tool: cargo-nextest
+      - run: cargo make check --features "${{ matrix.features }}"
         shell: bash
 
   build-docs:
@@ -42,12 +36,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
       - uses: ./.github/actions/setup-build
         with:
           toolchain: nightly
-      - run: python3 build.py doc
+      - run: cargo make doc
       - uses: dtolnay/install@cargo-docs-rs
       - run: | 
           cargo +nightly docs-rs
