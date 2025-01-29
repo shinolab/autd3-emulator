@@ -135,7 +135,7 @@ mod tests {
 
     #[test]
     fn test_aabb_max_dist_rand() {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let range = RangeXYZ {
             x: -100.0..=100.0,
             y: -100.0..=100.0,
@@ -145,14 +145,17 @@ mod tests {
         for _ in 0..10 {
             let geo = Geometry::new(vec![AUTD3 {
                 pos: Point3::new(
-                    rng.gen_range(-300.0..300.0),
-                    rng.gen_range(-300.0..300.0),
-                    rng.gen_range(-300.0..300.0),
+                    rng.random_range(-300.0..300.0),
+                    rng.random_range(-300.0..300.0),
+                    rng.random_range(-300.0..300.0),
                 ),
                 rot: EulerAngle::ZYZ(
-                    [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad][rng.gen_range(0..4)],
-                    [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad][rng.gen_range(0..4)],
-                    [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad][rng.gen_range(0..4)],
+                    [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad]
+                        [rng.random_range(0..4)],
+                    [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad]
+                        [rng.random_range(0..4)],
+                    [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad]
+                        [rng.random_range(0..4)],
                 )
                 .into(),
             }
