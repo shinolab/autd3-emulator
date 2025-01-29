@@ -36,7 +36,7 @@ use autd3::{
 };
 use autd3_core::{
     geometry::{Geometry, IntoDevice, Transducer},
-    link::{Link, LinkBuilder, LinkError},
+    link::{Link, LinkError},
 };
 use autd3_firmware_emulator::{
     cpu::params::{TAG_CLEAR, TAG_SILENCER},
@@ -66,52 +66,26 @@ pub(crate) struct RawRecord {
 
 /// A recorder for the sound field.
 pub struct Recorder {
+    start_time: DcSysTime,
     is_open: bool,
     emulators: Vec<CPUEmulator>,
     geometry: Geometry,
     record: RawRecord,
 }
 
-/// A builder for the recorder.
-pub struct RecorderBuilder {
-    start_time: DcSysTime,
-}
-
-impl LinkBuilder for RecorderBuilder {
-    type L = Recorder;
-
-    fn open(self, geometry: &Geometry) -> Result<Self::L, LinkError> {
-        let emulators = geometry
-            .iter()
-            .enumerate()
-            .filter(|(_, dev)| dev.enable)
-            .map(|(i, dev)| CPUEmulator::new(i, dev.num_transducers()))
-            .collect::<Vec<_>>();
-        let record = RawRecord {
-            records: emulators
-                .iter()
-                .map(|cpu| RawDeviceRecord {
-                    records: geometry[cpu.idx()]
-                        .iter()
-                        .map(|_| RawTransducerRecord {
-                            pulse_width: Vec::new(),
-                            phase: Vec::new(),
-                            silencer_phase: cpu.fpga().silencer_emulator_phase(0),
-                            silencer_intensity: cpu.fpga().silencer_emulator_intensity(0),
-                            silencer_target: cpu.fpga().silencer_target(),
-                        })
-                        .collect(),
-                })
-                .collect(),
-            current: self.start_time,
-            start: self.start_time,
-        };
-        Ok(Recorder {
-            is_open: true,
-            emulators,
-            geometry: Geometry::new(geometry.devices().map(clone_device).collect()),
-            record,
-        })
+impl Recorder {
+    fn new(start_time: DcSysTime) -> Self {
+        Self {
+            start_time,
+            is_open: false,
+            emulators: Vec::new(),
+            geometry: Geometry::new(Vec::new()),
+            record: RawRecord {
+                records: Vec::new(),
+                start: DcSysTime::ZERO,
+                current: DcSysTime::ZERO,
+            },
+        }
     }
 }
 
@@ -165,6 +139,38 @@ impl Link for Recorder {
 
     fn is_open(&self) -> bool {
         self.is_open
+    }
+
+    fn open(&mut self, geometry: &Geometry) -> Result<(), LinkError> {
+        self.is_open = true;
+        self.emulators = geometry
+            .iter()
+            .enumerate()
+            .filter(|(_, dev)| dev.enable)
+            .map(|(i, dev)| CPUEmulator::new(i, dev.num_transducers()))
+            .collect::<Vec<_>>();
+        self.record = RawRecord {
+            records: self
+                .emulators
+                .iter()
+                .map(|cpu| RawDeviceRecord {
+                    records: geometry[cpu.idx()]
+                        .iter()
+                        .map(|_| RawTransducerRecord {
+                            pulse_width: Vec::new(),
+                            phase: Vec::new(),
+                            silencer_phase: cpu.fpga().silencer_emulator_phase(0),
+                            silencer_intensity: cpu.fpga().silencer_emulator_intensity(0),
+                            silencer_target: cpu.fpga().silencer_target(),
+                        })
+                        .collect(),
+                })
+                .collect(),
+            current: self.start_time,
+            start: self.start_time,
+        };
+        self.geometry = Geometry::new(geometry.devices().map(clone_device).collect());
+        Ok(())
     }
 }
 
@@ -318,7 +324,7 @@ impl Emulator {
     ) -> Result<Record, EmulatorError> {
         let mut recorder = Controller::open(
             self.geometry.iter().map(clone_device),
-            RecorderBuilder { start_time },
+            Recorder::new(start_time),
         )?;
         f(&mut recorder)?;
         Self::gather_record(recorder)
@@ -334,7 +340,7 @@ impl Emulator {
     ) -> Result<Record, EmulatorError> {
         let recorder = Controller::open(
             self.geometry.iter().map(clone_device),
-            RecorderBuilder { start_time },
+            Recorder::new(start_time),
         )?;
         let recorder = f(recorder)?;
         Self::gather_record(recorder)

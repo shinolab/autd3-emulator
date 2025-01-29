@@ -3,19 +3,19 @@ name = "autd3-emulator"
 description = "autd3 emulator for calculating sound field, emulation of firmware, etc"
 readme = "README.md"
 keywords = ["autd"]
-version = "29.0.0-rc.17"
+version = "29.0.0-rc.18"
 authors = ["shun suzuki <suzuki@hapis.k.u-tokyo.ac.jp>"]
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/shinolab/autd3-emulator"
 
 [dependencies]
-autd3 = { version = "29.0.0-rc.17", default-features = false }
-autd3-core = { version = "29.0.0-rc.17", default-features = false, features = ["link"] }
-autd3-firmware-emulator = { version = "29.0.0-rc.17", default-features = false }
+autd3 = { path = "../autd3-rs/autd3", version = "29.0.0-rc.18", default-features = false }
+autd3-core = { path = "../autd3-rs/autd3-core", version = "29.0.0-rc.18", default-features = false, features = ["link"] }
+autd3-firmware-emulator = { path = "../autd3-rs/autd3-firmware-emulator", version = "29.0.0-rc.18", default-features = false }
 derive_more = { version = "1.0.0", default-features = false }
 polars = { version = "0.46.0", optional = true, features = ["dtype-u16", "dtype-u8"], default-features = false }
-indicatif = { version = "0.17.9", default-features = false }
+indicatif = { version = "0.17.11", default-features = false }
 itertools = { version = "0.14.0", default-features = false }
 thiserror = { version = "2.0.11", default-features = false }
 unzip3 = { version = "1.0.0", default-features = false }
@@ -35,7 +35,7 @@ approx = { version = "0.5.1", default-features = false }
 rstest = { version = "0.24.0", default-features = false }
 textplots = { version = "0.8.6", default-features = false }
 polars = { version = "0.46.0", default-features = false, features = ["csv"] }
-rand = { version = "0.8.5", default-features = false }
+rand = { version = "0.9.0", default-features = false, features = ["thread_rng"] }
 
 [features]
 default = ["polars"]
