@@ -274,7 +274,7 @@ impl Emulator {
         self.record_from(DcSysTime::ZERO, f)
     }
 
-    fn gather_record(mut recorder: Controller<Recorder>) -> Result<Record, EmulatorError> {
+    fn collect_record(mut recorder: Controller<Recorder>) -> Result<Record, EmulatorError> {
         let start = recorder.link().record.start;
         let end = recorder.link().record.current;
         let devices = {
@@ -327,7 +327,7 @@ impl Emulator {
             Recorder::new(start_time),
         )?;
         f(&mut recorder)?;
-        Self::gather_record(recorder)
+        Self::collect_record(recorder)
     }
 
     // GRCOV_EXCL_START
@@ -343,7 +343,7 @@ impl Emulator {
             Recorder::new(start_time),
         )?;
         let recorder = f(recorder)?;
-        Self::gather_record(recorder)
+        Self::collect_record(recorder)
     }
     // GRCOV_EXCL_STOP
 
