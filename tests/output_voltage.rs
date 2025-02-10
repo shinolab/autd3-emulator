@@ -18,8 +18,8 @@ fn record_output_voltage() -> anyhow::Result<()> {
         autd.send(Silencer::disable())?;
         autd.send(PulseWidthEncoder::new(|_dev| {
             |i| match i {
-                0x80 => 64,
-                0xFF => 128,
+                EmitIntensity(0x80) => 64,
+                EmitIntensity(0xFF) => 128,
                 _ => 0,
             }
         }))?;
