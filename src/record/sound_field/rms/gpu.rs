@@ -5,7 +5,7 @@ use crate::EmulatorError;
 use autd3::prelude::Point3;
 
 use bytemuck::NoUninit;
-use wgpu::{util::DeviceExt, Buffer, BufferAddress};
+use wgpu::{Buffer, BufferAddress, util::DeviceExt};
 
 use super::RmsTransducerRecord;
 

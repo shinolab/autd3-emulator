@@ -35,7 +35,7 @@ mod tests {
 
     use autd3::{
         core::geometry::{Geometry, IntoDevice},
-        prelude::{rad, EulerAngle, UnitQuaternion, AUTD3},
+        prelude::{AUTD3, EulerAngle, UnitQuaternion, rad},
     };
     use rand::Rng;
 
@@ -143,23 +143,25 @@ mod tests {
             resolution: 10.0,
         };
         for _ in 0..10 {
-            let geo = Geometry::new(vec![AUTD3 {
-                pos: Point3::new(
-                    rng.random_range(-300.0..300.0),
-                    rng.random_range(-300.0..300.0),
-                    rng.random_range(-300.0..300.0),
-                ),
-                rot: EulerAngle::ZYZ(
-                    [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad]
-                        [rng.random_range(0..4)],
-                    [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad]
-                        [rng.random_range(0..4)],
-                    [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad]
-                        [rng.random_range(0..4)],
-                )
-                .into(),
-            }
-            .into_device(0)]);
+            let geo = Geometry::new(vec![
+                AUTD3 {
+                    pos: Point3::new(
+                        rng.random_range(-300.0..300.0),
+                        rng.random_range(-300.0..300.0),
+                        rng.random_range(-300.0..300.0),
+                    ),
+                    rot: EulerAngle::ZYZ(
+                        [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad]
+                            [rng.random_range(0..4)],
+                        [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad]
+                            [rng.random_range(0..4)],
+                        [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad]
+                            [rng.random_range(0..4)],
+                    )
+                    .into(),
+                }
+                .into_device(0),
+            ]);
             approx::assert_abs_diff_eq!(
                 aabb_max_dist_naive(&geo, &range),
                 aabb_max_dist(&geo.aabb(), &range.aabb()),

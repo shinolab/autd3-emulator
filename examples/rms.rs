@@ -72,7 +72,7 @@ fn main() -> Result<()> {
                             focus + Vector3::new(theta.cos(), theta.sin(), 0.) * 20. * mm
                         })
                         .collect::<Vec<_>>(),
-                    config: SamplingConfig::new(1. * kHz)?,
+                    config: SamplingConfig::new(1. * kHz),
                 },
             ))?;
             autd.tick(Duration::from_millis(5))?;

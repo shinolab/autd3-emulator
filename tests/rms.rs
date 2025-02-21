@@ -58,29 +58,33 @@ fn record_sound_field(
         df["y[mm]"].f32()?.into_no_null_iter().collect::<Vec<_>>()
     );
     assert_eq!(
-        vec![300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0],
+        vec![
+            300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0
+        ],
         df["z[mm]"].f32()?.into_no_null_iter().collect::<Vec<_>>()
     );
 
     // TODO: check the value
     let _df = rms.next(100 * ultrasound_period())?;
 
-    assert!(record
-        .sound_field(
-            RangeXY {
-                x: point.x - 1.0..=point.x + 1.0,
-                y: point.y - 1.0..=point.y + 1.0,
-                z: point.z,
-                resolution: 1.,
-            },
-            RmsRecordOption {
-                #[cfg(feature = "gpu")]
-                gpu,
-                ..Default::default()
-            },
-        )?
-        .next(Duration::from_micros(1))
-        .is_err());
+    assert!(
+        record
+            .sound_field(
+                RangeXY {
+                    x: point.x - 1.0..=point.x + 1.0,
+                    y: point.y - 1.0..=point.y + 1.0,
+                    z: point.z,
+                    resolution: 1.,
+                },
+                RmsRecordOption {
+                    #[cfg(feature = "gpu")]
+                    gpu,
+                    ..Default::default()
+                },
+            )?
+            .next(Duration::from_micros(1))
+            .is_err()
+    );
 
     Ok(())
 }
