@@ -2,7 +2,7 @@ use autd3::{
     driver::{defined::ultrasound_period, error::AUTDDriverError},
     error::AUTDError,
 };
-use autd3_core::modulation::SamplingConfigError;
+use autd3_core::sampling_config::SamplingConfigError;
 use thiserror::Error;
 
 /// An interface for error handling in autd3-emulator.

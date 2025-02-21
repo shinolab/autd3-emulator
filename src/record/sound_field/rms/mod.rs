@@ -9,8 +9,8 @@ use std::{
 };
 
 use autd3::{
-    driver::defined::{ultrasound_period, ULTRASOUND_PERIOD_COUNT},
-    prelude::{ultrasound_freq, Phase},
+    driver::defined::{ULTRASOUND_PERIOD_COUNT, ultrasound_period},
+    prelude::{Phase, ultrasound_freq},
 };
 #[cfg(feature = "polars")]
 use polars::{df, frame::DataFrame, prelude::Column};

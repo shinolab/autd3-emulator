@@ -1,13 +1,13 @@
 use std::{borrow::Cow, collections::VecDeque, time::Duration};
 
-use crate::{record::transducer::output_ultrasound::OutputUltrasound, EmulatorError};
+use crate::{EmulatorError, record::transducer::output_ultrasound::OutputUltrasound};
 
 use autd3::{driver::defined::ULTRASOUND_PERIOD_COUNT, prelude::Point3};
 
 use bytemuck::NoUninit;
 use indicatif::ProgressBar;
 use rayon::prelude::*;
-use wgpu::{util::DeviceExt, Buffer, BufferAddress};
+use wgpu::{Buffer, BufferAddress, util::DeviceExt};
 
 // GRCOV_EXCL_START
 #[derive(NoUninit, Clone, Copy)]

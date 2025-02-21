@@ -24,6 +24,7 @@ use std::time::Duration;
 use derive_more::{Deref, DerefMut};
 
 use autd3::{
+    Controller,
     driver::{
         defined::ultrasound_period,
         ethercat::DcSysTime,
@@ -32,16 +33,15 @@ use autd3::{
             fpga::{EmitIntensity, Phase, SilencerTarget},
         },
     },
-    Controller,
 };
 use autd3_core::{
     geometry::{Geometry, IntoDevice, Transducer},
     link::{Link, LinkError},
 };
 use autd3_firmware_emulator::{
+    CPUEmulator,
     cpu::params::{TAG_CLEAR, TAG_SILENCER},
     fpga::emulator::SilencerEmulator,
-    CPUEmulator,
 };
 
 use crate::utils::device::clone_device;
@@ -95,7 +95,7 @@ impl Link for Recorder {
         Ok(())
     }
 
-    fn send(&mut self, tx: &[TxMessage]) -> Result<bool, LinkError> {
+    fn send(&mut self, tx: &[TxMessage]) -> Result<(), LinkError> {
         self.emulators
             .iter_mut()
             .zip(self.record.records.iter_mut())
@@ -125,16 +125,16 @@ impl Link for Recorder {
                 }
             });
 
-        Ok(true)
+        Ok(())
     }
 
-    fn receive(&mut self, rx: &mut [RxMessage]) -> Result<bool, LinkError> {
+    fn receive(&mut self, rx: &mut [RxMessage]) -> Result<(), LinkError> {
         self.emulators.iter_mut().for_each(|cpu| {
             cpu.update_with_sys_time(self.record.current);
             rx[cpu.idx()] = cpu.rx();
         });
 
-        Ok(true)
+        Ok(())
     }
 
     fn is_open(&self) -> bool {
