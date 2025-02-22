@@ -159,7 +159,6 @@ mod tests {
     #[case((vec![0., 0., 1., 1.], vec![0., 0., 0., 0.], vec![0., 1., 0., 1.]), RangeZX { x:0.0..=1., y:0.0, z:0.0..=1., resolution:1. })]
     #[case((vec![0., 0., 0., 0.], vec![0., 0., 1., 1.], vec![0., 1., 0., 1.]), RangeZY { x:0.0, y:0.0..=1., z:0.0..=1., resolution:1. })]
     fn test_points(#[case] expected: (Vec<f32>, Vec<f32>, Vec<f32>), #[case] range: impl Range) {
-        use unzip3::Unzip3;
-        assert_eq!(expected, range.points().unzip3());
+        assert_eq!(expected, range.points().collect());
     }
 }
