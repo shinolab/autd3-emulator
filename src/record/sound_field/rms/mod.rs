@@ -14,7 +14,6 @@ use autd3::{
 };
 #[cfg(feature = "polars")]
 use polars::{df, frame::DataFrame, prelude::Column};
-use unzip3::Unzip3;
 
 use super::{super::Record, SoundFieldOption};
 use crate::{EmulatorError, Range};
@@ -177,7 +176,7 @@ impl Record {
     ) -> Result<Rms, EmulatorError> {
         let max_frame = self.records[0].pulse_width.len();
 
-        let (x, y, z): (Vec<_>, Vec<_>, Vec<_>) = range.points().unzip3();
+        let (x, y, z): (Vec<_>, Vec<_>, Vec<_>) = range.points().collect();
 
         let records = self
             .records

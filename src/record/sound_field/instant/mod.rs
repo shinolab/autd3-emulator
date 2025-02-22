@@ -9,7 +9,6 @@ use autd3::driver::defined::{ULTRASOUND_PERIOD_COUNT, ultrasound_period};
 use indicatif::ProgressBar;
 #[cfg(feature = "polars")]
 use polars::{df, frame::DataFrame, prelude::Column};
-use unzip3::Unzip3;
 
 use super::{super::Record, SoundFieldOption};
 use crate::{EmulatorError, Range};
@@ -255,7 +254,7 @@ impl Record {
         let num_points_in_frame =
             (ultrasound_period().as_nanos() / option.time_step.as_nanos()) as usize;
 
-        let (x, y, z): (Vec<_>, Vec<_>, Vec<_>) = range.points().unzip3();
+        let (x, y, z): (Vec<_>, Vec<_>, Vec<_>) = range.points().collect();
 
         let min_dist = crate::utils::aabb::aabb_min_dist(&self.aabb, &range.aabb());
         let max_dist = crate::utils::aabb::aabb_max_dist(&self.aabb, &range.aabb());

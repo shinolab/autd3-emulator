@@ -22,10 +22,9 @@ mod tests {
 
     #[test]
     fn test_points() {
-        use unzip3::Unzip3;
         assert_eq!(
             (vec![0.], vec![1.], vec![2.]),
-            Point3::new(0., 1., 2.).points().unzip3()
+            Point3::new(0., 1., 2.).points().collect()
         );
     }
 
