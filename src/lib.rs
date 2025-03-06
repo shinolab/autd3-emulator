@@ -35,7 +35,8 @@ use autd3::{
     },
 };
 use autd3_core::{
-    geometry::{Geometry, IntoDevice, Transducer},
+    derive::Device,
+    geometry::{Geometry, Transducer},
     link::{Link, LinkError},
 };
 use autd3_firmware_emulator::{
@@ -231,15 +232,9 @@ pub struct Emulator {
 
 impl Emulator {
     /// Creates a new emulator.
-    pub fn new<D: IntoDevice, F: IntoIterator<Item = D>>(devices: F) -> Self {
+    pub fn new<D: Into<Device>, F: IntoIterator<Item = D>>(devices: F) -> Self {
         Self {
-            geometry: Geometry::new(
-                devices
-                    .into_iter()
-                    .enumerate()
-                    .map(|(idx, dev)| dev.into_device(idx as _))
-                    .collect(),
-            ),
+            geometry: Geometry::new(devices.into_iter().map(|dev| dev.into()).collect()),
         }
     }
 
