@@ -34,7 +34,7 @@ mod tests {
     use std::f32::consts::PI;
 
     use autd3::{
-        core::geometry::{Geometry, IntoDevice},
+        core::geometry::Geometry,
         prelude::{AUTD3, EulerAngle, UnitQuaternion, rad},
     };
     use rand::Rng;
@@ -91,12 +91,12 @@ mod tests {
                 pos: Point3::origin(),
                 rot: UnitQuaternion::identity(),
             }
-            .into_device(0),
+            .into(),
             AUTD3 {
                 pos: Point3::new(0., 0., 50.),
                 rot: UnitQuaternion::identity(),
             }
-            .into_device(1),
+            .into(),
         ]);
         approx::assert_relative_eq!(
             aabb_max_dist_naive(&geo, &range),
@@ -120,12 +120,12 @@ mod tests {
                 pos: Point3::origin(),
                 rot: UnitQuaternion::identity(),
             }
-            .into_device(0),
+            .into(),
             AUTD3 {
                 pos: Point3::new(0., 0., 50.),
                 rot: UnitQuaternion::identity(),
             }
-            .into_device(1),
+            .into(),
         ]);
         approx::assert_relative_eq!(
             aabb_min_dist_naive(&geo, &range),
@@ -157,10 +157,9 @@ mod tests {
                             [rng.random_range(0..4)],
                         [0.0 * rad, PI / 2. * rad, PI * rad, PI * 3. / 2. * rad]
                             [rng.random_range(0..4)],
-                    )
-                    .into(),
+                    ),
                 }
-                .into_device(0),
+                .into(),
             ]);
             approx::assert_abs_diff_eq!(
                 aabb_max_dist_naive(&geo, &range),

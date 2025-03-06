@@ -15,18 +15,16 @@ struct CustomDevice {
     num_y: usize,
 }
 
-impl autd3::driver::geometry::IntoDevice for CustomDevice {
-    fn into_device(self, dev_idx: u16) -> Device {
-        assert!(0 < self.num_x * self.num_y && self.num_x * self.num_y <= 256);
-        Device::new(
-            dev_idx,
+impl From<CustomDevice> for Device {
+    fn from(value: CustomDevice) -> Self {
+        assert!(0 < value.num_x * value.num_y && value.num_x * value.num_y <= 256);
+        Self::new(
             UnitQuaternion::identity(),
-            itertools::iproduct!(0..self.num_x, 0..self.num_y)
-                .enumerate()
-                .map(|(i, (x, y))| {
-                    let x = x as f32 * self.pitch;
-                    let y = y as f32 * self.pitch;
-                    Transducer::new(i as u8, dev_idx, Point3::new(x, y, 0.))
+            itertools::iproduct!(0..value.num_x, 0..value.num_y)
+                .map(|(x, y)| {
+                    let x = x as f32 * value.pitch;
+                    let y = y as f32 * value.pitch;
+                    Transducer::new(Point3::new(x, y, 0.))
                 })
                 .collect(),
         )
