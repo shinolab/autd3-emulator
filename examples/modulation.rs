@@ -136,7 +136,6 @@ fn main() -> Result<()> {
 
         let df = sound_field.next(Duration::from_millis(20))?;
 
-        // First 3 columns are used for recording position
         let t = df.get_column_names().into_iter().map(|n| {
             n.as_str()
                 .replace("p[Pa]@", "")
