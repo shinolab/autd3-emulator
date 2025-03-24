@@ -45,3 +45,20 @@ impl TransducerRecord {
         Some(v)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use autd3::prelude::Point3;
+
+    use super::*;
+
+    #[test]
+    fn test_output_voltage_within() {
+        let record = TransducerRecord {
+            pulse_width: vec![],
+            phase: vec![],
+            tr: autd3::driver::geometry::Transducer::new(Point3::origin()),
+        };
+        assert!(record._output_voltage_within(0, 1).is_none());
+    }
+}
