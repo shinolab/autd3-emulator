@@ -7,14 +7,15 @@ impl TransducerRecord {
     pub(crate) const V: f32 = 12.0;
 
     pub(crate) fn _output_voltage_within_inplace(&self, start: usize, n: usize, v: &mut [f32]) {
+        const T: u16 = ULTRASOUND_PERIOD_COUNT as u16;
         self.pulse_width[start..]
             .iter()
             .zip(self.phase[start..].iter())
             .take(n)
             .flat_map(|(pw, phase)| {
-                let rise = (*phase as u16 * 2).wrapping_sub(pw / 2);
-                let fall = (*phase as u16 * 2).wrapping_add(pw / 2 + (pw & 0x01));
-                (0..ULTRASOUND_PERIOD_COUNT as u16).map(move |i| {
+                let rise = ((T + (*phase as u16 * 2)) - pw / 2) % T;
+                let fall = (*phase as u16 * 2 + pw / 2 + (pw & 0x01)) % T;
+                (0..T).map(move |i| {
                     #[allow(clippy::collapsible_else_if)]
                     if rise <= fall {
                         if (rise <= i) && (i < fall) {
