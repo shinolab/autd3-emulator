@@ -11,7 +11,7 @@ repository = "https://github.com/shinolab/autd3-emulator"
 
 [dependencies]
 autd3 = { version = "31.0.1", default-features = false }
-autd3-core = { version = "31.0.1", default-features = false, features = ["link", "sampling_config"] }
+autd3-core = { version = "32.0.0", default-features = false, features = ["link", "sampling_config"] }
 autd3-firmware-emulator = { version = "31.0.1", default-features = false }
 derive_more = { version = "2.0.1", default-features = false }
 polars = { version = "0.46.0", optional = true, features = ["dtype-u16", "dtype-u8"], default-features = false }
