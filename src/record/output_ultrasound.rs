@@ -39,7 +39,7 @@ impl Record {
             (0..self.output_cols())
                 .map(|i| i as u64)
                 .zip(v.iter())
-                .map(|(t, v)| Column::new(format!("p[a.u.]@{}[25us/256]", t).into(), &v))
+                .map(|(t, v)| Column::new(format!("p[a.u.]@{}[25us/512]", t).into(), &v))
                 .collect(),
         )
         .unwrap()

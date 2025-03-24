@@ -1,10 +1,9 @@
-use autd3::driver::defined::{ULTRASOUND_PERIOD_COUNT, ultrasound_freq};
+use autd3::driver::defined::{ULTRASOUND_FREQ, ULTRASOUND_PERIOD_COUNT};
 
 use super::TransducerRecord;
 
 impl TransducerRecord {
-    pub(crate) const TS: f32 =
-        1. / (ultrasound_freq().hz() as f32 * ULTRASOUND_PERIOD_COUNT as f32);
+    pub(crate) const TS: f32 = 1. / (ULTRASOUND_FREQ.hz() as f32 * ULTRASOUND_PERIOD_COUNT as f32);
     pub(crate) const V: f32 = 12.0;
 
     pub(crate) fn _output_voltage_within_inplace(&self, start: usize, n: usize, v: &mut [f32]) {
@@ -13,9 +12,9 @@ impl TransducerRecord {
             .zip(self.phase[start..].iter())
             .take(n)
             .flat_map(|(pw, phase)| {
-                let rise = phase.wrapping_sub(pw / 2);
-                let fall = phase.wrapping_add(pw / 2 + (pw & 0x01));
-                (0..=255u8).map(move |i| {
+                let rise = (*phase as u16 * 2).wrapping_sub(pw / 2);
+                let fall = (*phase as u16 * 2).wrapping_add(pw / 2 + (pw & 0x01));
+                (0..ULTRASOUND_PERIOD_COUNT as u16).map(move |i| {
                     #[allow(clippy::collapsible_else_if)]
                     if rise <= fall {
                         if (rise <= i) && (i < fall) {

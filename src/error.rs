@@ -1,5 +1,5 @@
 use autd3::{
-    driver::{defined::ultrasound_period, error::AUTDDriverError},
+    driver::{defined::ULTRASOUND_PERIOD, error::AUTDDriverError},
     error::AUTDError,
 };
 use autd3_core::sampling_config::SamplingConfigError;
@@ -9,13 +9,13 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum EmulatorError {
     /// Error when the tick is not a multiple of the ultrasound period.
-    #[error("Tick must be multiple of {:?}", ultrasound_period())]
+    #[error("Tick must be multiple of {:?}", ULTRASOUND_PERIOD)]
     InvalidTick,
     /// Error when the duration is not a multiple of the ultrasound period.
-    #[error("Duration must be multiple of {:?}", ultrasound_period())]
+    #[error("Duration must be multiple of {:?}", ULTRASOUND_PERIOD)]
     InvalidDuration,
     /// Error when the time step is not a divisor of the ultrasound period.
-    #[error("Time step must divide {:?}", ultrasound_period())]
+    #[error("Time step must divide {:?}", ULTRASOUND_PERIOD)]
     InvalidTimeStep,
     /// Error when requesting data outside the recorded range.
     #[error("Not recorded")]

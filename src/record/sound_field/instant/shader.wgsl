@@ -28,7 +28,7 @@ struct Pc {
 var<push_constant> pc: Pc;
 
 const ULTRASOUND_FREQ: f32 = 40000;
-const ULTRASOUND_PERIOD_COUNT: f32 = 256;
+const ULTRASOUND_PERIOD_COUNT: f32 = 512;
 const TS: f32 = 1. / (ULTRASOUND_FREQ * ULTRASOUND_PERIOD_COUNT);
 
 const PI: f32 = radians(180.0);
