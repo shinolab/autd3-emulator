@@ -4,7 +4,7 @@ mod output_voltage;
 mod rms;
 mod sound_field;
 
-use autd3::{driver::defined::ultrasound_period, prelude::*};
+use autd3::{driver::defined::ULTRASOUND_PERIOD, prelude::*};
 use autd3_emulator::*;
 use polars::prelude::Column;
 
@@ -17,7 +17,7 @@ fn invalid_tick() -> anyhow::Result<()> {
 
     let record = emulator.record(|autd| {
         autd.send(Silencer::disable())?;
-        autd.tick(ultrasound_period() / 2)?;
+        autd.tick(ULTRASOUND_PERIOD / 2)?;
         Ok(())
     });
 

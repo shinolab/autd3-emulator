@@ -1,15 +1,12 @@
-use autd3::{driver::defined::ultrasound_period, gain, prelude::*};
+use autd3::{driver::defined::ULTRASOUND_PERIOD, gain, prelude::*};
 use autd3_emulator::*;
 
 use polars::{frame::DataFrame, prelude::Column};
 
 #[rstest::rstest]
-#[case(SilencerTarget::Intensity)]
-#[case(SilencerTarget::PulseWidth)]
 #[test]
-fn record_phase(#[case] target: SilencerTarget) -> anyhow::Result<()> {
+fn record_phase() -> anyhow::Result<()> {
     let silencer = Silencer {
-        target,
         config: Silencer::disable().config,
     };
 
@@ -54,7 +51,7 @@ fn record_phase(#[case] target: SilencerTarget) -> anyhow::Result<()> {
                 }
             }),
         ))?;
-        autd.tick(ultrasound_period())?;
+        autd.tick(ULTRASOUND_PERIOD)?;
         autd.send((
             Static { intensity: 200 },
             gain::Custom::new(|_| {
@@ -64,7 +61,7 @@ fn record_phase(#[case] target: SilencerTarget) -> anyhow::Result<()> {
                 }
             }),
         ))?;
-        autd.tick(2 * ultrasound_period())?;
+        autd.tick(2 * ULTRASOUND_PERIOD)?;
 
         Ok(())
     })?;
@@ -74,15 +71,11 @@ fn record_phase(#[case] target: SilencerTarget) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[rstest::rstest]
-#[case(SilencerTarget::Intensity)]
-#[case(SilencerTarget::PulseWidth)]
 #[test]
-fn record_pulse_width(#[case] target: SilencerTarget) -> anyhow::Result<()> {
+fn record_pulse_width() -> anyhow::Result<()> {
     use polars::frame::DataFrame;
 
     let silencer = Silencer {
-        target,
         config: Silencer::disable().config,
     };
 
@@ -99,7 +92,7 @@ fn record_pulse_width(#[case] target: SilencerTarget) -> anyhow::Result<()> {
 
     let to_pulse_width = |a, b| {
         let i = (a as usize * b) / 255;
-        ((((i as f32) / 255.).asin() / PI) * 256.).round() as u8
+        ((((i as f32) / 255.).asin() / PI) * 512.).round() as u8
     };
 
     let expect = DataFrame::new(
@@ -130,7 +123,7 @@ fn record_pulse_width(#[case] target: SilencerTarget) -> anyhow::Result<()> {
                 }
             }),
         ))?;
-        autd.tick(ultrasound_period())?;
+        autd.tick(ULTRASOUND_PERIOD)?;
         autd.send((
             Static { intensity: 200 },
             gain::Custom::new(|_| {
@@ -140,7 +133,7 @@ fn record_pulse_width(#[case] target: SilencerTarget) -> anyhow::Result<()> {
                 }
             }),
         ))?;
-        autd.tick(2 * ultrasound_period())?;
+        autd.tick(2 * ULTRASOUND_PERIOD)?;
 
         Ok(())
     })?;

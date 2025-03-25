@@ -26,11 +26,11 @@ use derive_more::{Deref, DerefMut};
 use autd3::{
     Controller,
     driver::{
-        defined::ultrasound_period,
+        defined::ULTRASOUND_PERIOD,
         ethercat::DcSysTime,
         firmware::{
             cpu::{RxMessage, TxMessage},
-            fpga::{EmitIntensity, Phase, SilencerTarget},
+            fpga::{EmitIntensity, Phase},
         },
     },
 };
@@ -48,11 +48,10 @@ use autd3_firmware_emulator::{
 use crate::utils::device::clone_device;
 
 pub(crate) struct RawTransducerRecord {
-    pub pulse_width: Vec<u8>,
+    pub pulse_width: Vec<u16>,
     pub phase: Vec<u8>,
     pub silencer_phase: SilencerEmulator<Phase>,
     pub silencer_intensity: SilencerEmulator<EmitIntensity>,
-    pub silencer_target: SilencerTarget,
 }
 
 pub(crate) struct RawDeviceRecord {
@@ -115,7 +114,6 @@ impl Link for Recorder {
                 };
                 if update_silencer {
                     r.records.iter_mut().for_each(|tr| {
-                        tr.silencer_target = cpu.fpga().silencer_target();
                         tr.silencer_phase = cpu
                             .fpga()
                             .silencer_emulator_phase_continue_with(tr.silencer_phase);
@@ -162,7 +160,6 @@ impl Link for Recorder {
                             phase: Vec::new(),
                             silencer_phase: cpu.fpga().silencer_emulator_phase(0),
                             silencer_intensity: cpu.fpga().silencer_emulator_intensity(0),
-                            silencer_target: cpu.fpga().silencer_target(),
                         })
                         .collect(),
                 })
@@ -179,7 +176,7 @@ impl Recorder {
     /// Progresses by the specified time.
     pub fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError> {
         // This function must be public for capi.
-        if tick.is_zero() || tick.as_nanos() % ultrasound_period().as_nanos() != 0 {
+        if tick.is_zero() || tick.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
             return Err(EmulatorError::InvalidTick);
         }
         let mut t = self.record.current;
@@ -194,23 +191,22 @@ impl Recorder {
                     let d = cpu.fpga().drives();
                     dev.iter().zip(d).for_each(|(tr, d)| {
                         let tr_record = &mut self.record.records[tr.dev_idx()].records[tr.idx()];
-                        tr_record.pulse_width.push(match tr_record.silencer_target {
-                            SilencerTarget::Intensity => cpu.fpga().pulse_width_encoder_table_at(
-                                tr_record
-                                    .silencer_intensity
-                                    .apply((d.intensity.0 as u16 * m as u16 / 255) as u8)
-                                    as _,
-                            ),
-                            SilencerTarget::PulseWidth => tr_record
-                                .silencer_intensity
-                                .apply(cpu.fpga().to_pulse_width(d.intensity, m)),
-                        });
+                        tr_record.pulse_width.push(
+                            cpu.fpga()
+                                .pulse_width_encoder_table_at(
+                                    tr_record
+                                        .silencer_intensity
+                                        .apply((d.intensity.0 as u16 * m as u16 / 255) as u8)
+                                        as _,
+                                )
+                                .pulse_width(),
+                        );
                         tr_record
                             .phase
                             .push(tr_record.silencer_phase.apply(d.phase.0))
                     });
                 });
-            t = t + ultrasound_period();
+            t = t + ULTRASOUND_PERIOD;
             if t == end {
                 break;
             }

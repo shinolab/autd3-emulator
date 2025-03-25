@@ -9,8 +9,8 @@ use std::{
 };
 
 use autd3::{
-    driver::defined::{ULTRASOUND_PERIOD_COUNT, ultrasound_period},
-    prelude::{Phase, ultrasound_freq},
+    driver::defined::{ULTRASOUND_PERIOD, ULTRASOUND_PERIOD_COUNT},
+    prelude::{Phase, ULTRASOUND_FREQ},
 };
 #[cfg(feature = "polars")]
 use polars::{df, frame::DataFrame, prelude::Column};
@@ -116,7 +116,7 @@ impl Rms {
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
     fn next_time_len(&self, duration: Duration) -> usize {
-        (duration.as_nanos() / ultrasound_period().as_nanos()) as usize
+        (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize
     }
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
@@ -134,24 +134,24 @@ impl Rms {
         time: &mut [u64],
         mut v: impl Iterator<Item = *mut f32>,
     ) -> Result<(), EmulatorError> {
-        if duration.as_nanos() % ultrasound_period().as_nanos() != 0 {
+        if duration.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
             return Err(EmulatorError::InvalidDuration);
         }
 
-        let num_frames = (duration.as_nanos() / ultrasound_period().as_nanos()) as usize;
+        let num_frames = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
 
         if self.cursor + num_frames > self.max_frame {
             return Err(EmulatorError::NotRecorded);
         }
 
         if !skip {
-            let wavenumber = 2. * PI * ultrasound_freq().hz() as f32 / self.option.sound_speed;
+            let wavenumber = 2. * PI * ULTRASOUND_FREQ.hz() as f32 / self.option.sound_speed;
             let pb = self.option.pb(num_frames);
             let mut i = 0;
             while i < num_frames {
                 let cur_frame = self.cursor + i;
                 let r = self.compute_device.compute(cur_frame, wavenumber)?;
-                time[i] = (cur_frame as u32 * ultrasound_period()).as_nanos() as u64;
+                time[i] = (cur_frame as u32 * ULTRASOUND_PERIOD).as_nanos() as u64;
                 unsafe {
                     std::ptr::copy_nonoverlapping(r.as_ptr(), v.next().unwrap(), r.len());
                 }

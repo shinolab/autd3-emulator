@@ -34,11 +34,11 @@ fn main() -> Result<()> {
         let t = df.get_column_names().into_iter().map(|n| {
             n.as_str()
                 .replace("voltage[V]@", "")
-                .replace("[25us/256]", "")
+                .replace("[25us/512]", "")
                 .parse::<f32>()
                 .unwrap()
                 * 0.025
-                / 256.
+                / 512.
         });
         let v = df.get_row(0)?.0.into_iter().map(|v| match v {
             AnyValue::Float32(v) => v,
@@ -71,11 +71,11 @@ fn main() -> Result<()> {
         let t = df.get_column_names().into_iter().map(|n| {
             n.as_str()
                 .replace("p[a.u.]@", "")
-                .replace("[25us/256]", "")
+                .replace("[25us/512]", "")
                 .parse::<f32>()
                 .unwrap()
                 * 0.025
-                / 256.
+                / 512.
         });
         let v = df.get_row(0)?.0.into_iter().map(|v| match v {
             AnyValue::Float32(v) => v,

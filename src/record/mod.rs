@@ -57,7 +57,7 @@ impl Record {
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
-    fn pulse_width_inplace(&self, time: &mut [u64], mut v: impl Iterator<Item = *mut u8>) {
+    fn pulse_width_inplace(&self, time: &mut [u64], mut v: impl Iterator<Item = *mut u16>) {
         let cols = self.drive_cols();
         let rows = self.drive_rows();
         (0..cols).for_each(|col| {

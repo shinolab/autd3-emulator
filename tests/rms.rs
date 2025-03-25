@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use autd3::{driver::defined::ultrasound_period, prelude::*};
+use autd3::{driver::defined::ULTRASOUND_PERIOD, prelude::*};
 use autd3_emulator::*;
 
 #[rstest::rstest]
@@ -29,7 +29,7 @@ fn record_sound_field(
             phase: Phase(0x40),
             intensity: EmitIntensity(0xFF),
         })?;
-        autd.tick(100 * ultrasound_period())?;
+        autd.tick(100 * ULTRASOUND_PERIOD)?;
         Ok(())
     })?;
 
@@ -65,7 +65,7 @@ fn record_sound_field(
     );
 
     // TODO: check the value
-    let _df = rms.next(100 * ultrasound_period())?;
+    let _df = rms.next(100 * ULTRASOUND_PERIOD)?;
 
     assert!(
         record
@@ -109,7 +109,7 @@ fn record_rms_resume(
             phase: Phase(0x40),
             intensity: EmitIntensity(0xFF),
         })?;
-        autd.tick(10 * ultrasound_period())?;
+        autd.tick(10 * ULTRASOUND_PERIOD)?;
         Ok(())
     })?;
 
@@ -139,11 +139,11 @@ fn record_rms_resume(
                     ..Default::default()
                 },
             )?
-            .next(10 * ultrasound_period())?,
+            .next(10 * ULTRASOUND_PERIOD)?,
         polars::functions::concat_df_horizontal(
             &[
-                rms.next(5 * ultrasound_period())?,
-                rms.next(5 * ultrasound_period())?,
+                rms.next(5 * ULTRASOUND_PERIOD)?,
+                rms.next(5 * ULTRASOUND_PERIOD)?,
             ],
             false,
         )?
@@ -165,7 +165,7 @@ fn record_rms_skip() -> anyhow::Result<()> {
             phase: Phase(0x40),
             intensity: EmitIntensity(0xFF),
         })?;
-        autd.tick(10 * ultrasound_period())?;
+        autd.tick(10 * ULTRASOUND_PERIOD)?;
         Ok(())
     })?;
 
@@ -180,8 +180,8 @@ fn record_rms_skip() -> anyhow::Result<()> {
             },
             RmsRecordOption::default(),
         )?;
-        sf.next(5 * ultrasound_period())?;
-        sf.next(5 * ultrasound_period())?
+        sf.next(5 * ULTRASOUND_PERIOD)?;
+        sf.next(5 * ULTRASOUND_PERIOD)?
     };
 
     let mut rms = record.sound_field(
@@ -194,8 +194,8 @@ fn record_rms_skip() -> anyhow::Result<()> {
         RmsRecordOption::default(),
     )?;
     let v = rms
-        .skip(5 * ultrasound_period())?
-        .next(5 * ultrasound_period())?;
+        .skip(5 * ULTRASOUND_PERIOD)?
+        .next(5 * ULTRASOUND_PERIOD)?;
 
     assert_eq!(expect, v);
 
@@ -216,7 +216,7 @@ fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
             phase: Phase(0x40),
             intensity: EmitIntensity(0xFF),
         })?;
-        autd.tick(10 * ultrasound_period())?;
+        autd.tick(10 * ULTRASOUND_PERIOD)?;
         Ok(())
     })?;
 
@@ -231,7 +231,7 @@ fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
             },
             RmsRecordOption::default(),
         )?
-        .next(10 * ultrasound_period())?;
+        .next(10 * ULTRASOUND_PERIOD)?;
 
     let mut rms = record.sound_field(
         RangeXY {
@@ -245,7 +245,7 @@ fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
             ..Default::default()
         },
     )?;
-    let gpu = rms.next(10 * ultrasound_period())?;
+    let gpu = rms.next(10 * ULTRASOUND_PERIOD)?;
 
     assert_eq!(cpu.shape(), gpu.shape());
     cpu.get_columns()
@@ -277,7 +277,7 @@ fn not_recorded() -> anyhow::Result<()> {
             phase: Phase(0x40),
             intensity: EmitIntensity(0xFF),
         })?;
-        autd.tick(ultrasound_period())?;
+        autd.tick(ULTRASOUND_PERIOD)?;
         Ok(())
     })?;
 
@@ -292,7 +292,7 @@ fn not_recorded() -> anyhow::Result<()> {
         RmsRecordOption::default(),
     )?;
 
-    assert!(rms.next(2 * ultrasound_period()).is_err());
+    assert!(rms.next(2 * ULTRASOUND_PERIOD).is_err());
 
     Ok(())
 }

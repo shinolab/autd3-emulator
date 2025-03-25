@@ -48,7 +48,7 @@ fn main() -> Result<()> {
                 .unwrap()
         });
         let pulse_width = df.get_row(0)?.0.into_iter().map(|v| match v {
-            AnyValue::UInt8(v) => v,
+            AnyValue::UInt16(v) => v,
             _ => panic!(),
         });
         println!("pulse width under 200Hz sine modulation with silencer");
@@ -90,7 +90,7 @@ fn main() -> Result<()> {
                 .unwrap()
         });
         let pulse_width = df.get_row(0)?.0.into_iter().map(|v| match v {
-            AnyValue::UInt8(v) => v,
+            AnyValue::UInt16(v) => v,
             _ => panic!(),
         });
         println!("pulse width under 200Hz sine modulation without silencer");
@@ -136,7 +136,6 @@ fn main() -> Result<()> {
 
         let df = sound_field.next(Duration::from_millis(20))?;
 
-        // First 3 columns are used for recording position
         let t = df.get_column_names().into_iter().map(|n| {
             n.as_str()
                 .replace("p[Pa]@", "")
