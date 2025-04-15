@@ -90,26 +90,24 @@ impl<'a> Gpu<'a> {
 
         let adapter =
             pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
-                .ok_or(EmulatorError::NoSuitableAdapterFound)?;
+                .map_err(|_| EmulatorError::NoSuitableAdapterFound)?;
 
         let (device, queue) = pollster::block_on(
-            adapter.request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: wgpu::Features::PUSH_CONSTANTS,
-                    required_limits: wgpu::Limits {
-                        max_push_constant_size: std::mem::size_of::<Pc>() as u32,
-                        max_storage_buffers_per_shader_stage: 5,
-                        max_storage_buffer_binding_size: buf_output_ultrasound_size
-                            .max(buf_target_pos_size)
-                            .max(buf_tr_pos_size)
-                            as _,
-                        ..wgpu::Limits::downlevel_defaults()
-                    },
-                    memory_hints: wgpu::MemoryHints::MemoryUsage,
+            adapter.request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features: wgpu::Features::PUSH_CONSTANTS,
+                required_limits: wgpu::Limits {
+                    max_push_constant_size: std::mem::size_of::<Pc>() as u32,
+                    max_storage_buffers_per_shader_stage: 5,
+                    max_storage_buffer_binding_size: buf_output_ultrasound_size
+                        .max(buf_target_pos_size)
+                        .max(buf_tr_pos_size)
+                        as _,
+                    ..wgpu::Limits::downlevel_defaults()
                 },
-                None,
-            ),
+                memory_hints: wgpu::MemoryHints::MemoryUsage,
+                trace: wgpu::Trace::Off,
+            }),
         )?;
 
         let cs_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -327,7 +325,9 @@ impl<'a> Gpu<'a> {
         let buffer_slice = self.buf_staging_output_ultrasound.slice(..);
         let (sender, receiver) = flume::bounded(1);
         buffer_slice.map_async(wgpu::MapMode::Write, move |r| sender.send(r).unwrap());
-        self.device.poll(wgpu::Maintain::wait()).panic_on_timeout();
+        self.device
+            .poll(wgpu::PollType::Wait)
+            .expect("failed to poll device");
         receiver.recv()??;
         let src = self
             .output_ultrasound_cache
@@ -401,7 +401,9 @@ impl<'a> Gpu<'a> {
             let buffer_slice = self.buf_staging_dst.slice(..);
             let (sender, receiver) = flume::bounded(1);
             buffer_slice.map_async(wgpu::MapMode::Read, move |r| sender.send(r).unwrap());
-            self.device.poll(wgpu::Maintain::wait()).panic_on_timeout();
+            self.device
+                .poll(wgpu::PollType::Wait)
+                .expect("failed to poll device");
             receiver.recv()??;
             {
                 let data = buffer_slice.get_mapped_range();

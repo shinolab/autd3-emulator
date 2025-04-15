@@ -78,10 +78,10 @@ impl Gpu {
 
         let adapter =
             pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
-                .ok_or(EmulatorError::NoSuitableAdapterFound)?;
+                .map_err(|_| EmulatorError::NoSuitableAdapterFound)?;
 
-        let (device, queue) = pollster::block_on(adapter.request_device(
-            &wgpu::DeviceDescriptor {
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
                 label: None,
                 required_features: wgpu::Features::PUSH_CONSTANTS,
                 required_limits: wgpu::Limits {
@@ -92,9 +92,8 @@ impl Gpu {
                     ..wgpu::Limits::downlevel_defaults()
                 },
                 memory_hints: wgpu::MemoryHints::MemoryUsage,
-            },
-            None,
-        ))?;
+                trace: wgpu::Trace::Off,
+            }))?;
 
         let cs_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
@@ -301,7 +300,9 @@ impl Gpu {
         let buffer_slice = self.buf_staging_dst.slice(..);
         let (sender, receiver) = flume::bounded(1);
         buffer_slice.map_async(wgpu::MapMode::Read, move |r| sender.send(r).unwrap());
-        self.device.poll(wgpu::Maintain::wait()).panic_on_timeout();
+        self.device
+            .poll(wgpu::PollType::Wait)
+            .expect("failed to poll device");
         receiver.recv()??;
         {
             let data = buffer_slice.get_mapped_range();

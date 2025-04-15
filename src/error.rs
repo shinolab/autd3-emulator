@@ -29,10 +29,6 @@ pub enum EmulatorError {
     #[allow(missing_docs)]
     #[error("{0}")]
     AUTD(#[from] AUTDError),
-    /// Error when the suitable GPU adapter is not found.
-    #[cfg(feature = "gpu")]
-    #[error("No suitable adapter found")]
-    NoSuitableAdapterFound,
     #[allow(missing_docs)]
     #[cfg(feature = "gpu")]
     #[error("{0}")]
@@ -45,4 +41,17 @@ pub enum EmulatorError {
     #[cfg(feature = "gpu")]
     #[error("{0}")]
     BufferAsyncError(#[from] wgpu::BufferAsyncError),
+    // TODO: Remove `NoSuitableAdapterFound` in next major release use `RequestAdapterError` and `PollError` instead
+    /// Error when the suitable GPU adapter is not found.
+    #[cfg(feature = "gpu")]
+    #[error("No suitable adapter found")]
+    NoSuitableAdapterFound,
+    // #[allow(missing_docs)]
+    // #[error("{0}")]
+    // #[cfg(feature = "gpu")]
+    // RequestAdapterError(#[from] wgpu::RequestAdapterError),
+    // #[allow(missing_docs)]
+    // #[error("{0}")]
+    // #[cfg(feature = "gpu")]
+    // PollError(#[from] wgpu::PollError),
 }
