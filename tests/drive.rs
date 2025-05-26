@@ -1,4 +1,4 @@
-use autd3::{driver::defined::ULTRASOUND_PERIOD, gain, prelude::*};
+use autd3::{driver::common::ULTRASOUND_PERIOD, gain, prelude::*};
 use autd3_emulator::*;
 
 use polars::{frame::DataFrame, prelude::Column};

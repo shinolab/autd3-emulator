@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use autd3::{driver::defined::ULTRASOUND_PERIOD, prelude::*};
+use autd3::{driver::common::ULTRASOUND_PERIOD, prelude::*};
 use autd3_emulator::*;
 
 #[rstest::rstest]

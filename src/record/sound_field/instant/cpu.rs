@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, time::Duration};
 
-use autd3::{driver::defined::ULTRASOUND_PERIOD_COUNT, prelude::Point3};
+use autd3::{driver::common::ULTRASOUND_PERIOD_COUNT, prelude::Point3};
 use indicatif::ProgressBar;
 
 use crate::record::{TransducerRecord, transducer::output_ultrasound::OutputUltrasound};
@@ -17,7 +17,7 @@ pub(crate) struct Cpu<'a> {
 }
 
 impl<'a> Cpu<'a> {
-    pub(crate) const P0: f32 = autd3::driver::defined::T4010A1_AMPLITUDE * std::f32::consts::SQRT_2
+    pub(crate) const P0: f32 = autd3::driver::common::T4010A1_AMPLITUDE * std::f32::consts::SQRT_2
         / (4. * std::f32::consts::PI);
 
     pub(crate) fn new(
