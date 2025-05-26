@@ -9,7 +9,7 @@ use std::{
 };
 
 use autd3::{
-    driver::defined::{ULTRASOUND_PERIOD, ULTRASOUND_PERIOD_COUNT},
+    driver::common::{ULTRASOUND_PERIOD, ULTRASOUND_PERIOD_COUNT},
     prelude::{Phase, ULTRASOUND_FREQ},
 };
 #[cfg(feature = "polars")]
@@ -167,7 +167,7 @@ impl Rms {
 }
 
 impl Record {
-    pub(crate) const P0: f32 = autd3::driver::defined::T4010A1_AMPLITUDE / (4. * PI) / SQRT_2;
+    pub(crate) const P0: f32 = autd3::driver::common::T4010A1_AMPLITUDE / (4. * PI) / SQRT_2;
 
     fn sound_field_rms(
         &self,

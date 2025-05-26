@@ -1,5 +1,5 @@
 use autd3::{
-    driver::{defined::ULTRASOUND_PERIOD, error::AUTDDriverError},
+    driver::{common::ULTRASOUND_PERIOD, error::AUTDDriverError},
     error::AUTDError,
 };
 use autd3_core::sampling_config::SamplingConfigError;

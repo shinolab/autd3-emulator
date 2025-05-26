@@ -1,4 +1,4 @@
-use autd3::driver::defined::{ULTRASOUND_FREQ, ULTRASOUND_PERIOD_COUNT};
+use autd3::driver::common::{ULTRASOUND_FREQ, ULTRASOUND_PERIOD_COUNT};
 
 use super::TransducerRecord;
 

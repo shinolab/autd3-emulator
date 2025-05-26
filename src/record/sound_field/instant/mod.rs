@@ -5,7 +5,7 @@ mod option;
 
 use std::time::Duration;
 
-use autd3::driver::defined::{ULTRASOUND_PERIOD, ULTRASOUND_PERIOD_COUNT};
+use autd3::driver::common::{ULTRASOUND_PERIOD, ULTRASOUND_PERIOD_COUNT};
 use indicatif::ProgressBar;
 #[cfg(feature = "polars")]
 use polars::{df, frame::DataFrame, prelude::Column};

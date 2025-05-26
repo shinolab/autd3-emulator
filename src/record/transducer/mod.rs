@@ -1,7 +1,7 @@
 pub(crate) mod output_ultrasound;
 mod output_voltage;
 
-use autd3::driver::defined::ULTRASOUND_PERIOD;
+use autd3::driver::common::ULTRASOUND_PERIOD;
 
 use derive_more::Debug;
 

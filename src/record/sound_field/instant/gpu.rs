@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::VecDeque, time::Duration};
 
 use crate::{EmulatorError, record::transducer::output_ultrasound::OutputUltrasound};
 
-use autd3::{driver::defined::ULTRASOUND_PERIOD_COUNT, prelude::Point3};
+use autd3::{driver::common::ULTRASOUND_PERIOD_COUNT, prelude::Point3};
 
 use bytemuck::NoUninit;
 use indicatif::ProgressBar;

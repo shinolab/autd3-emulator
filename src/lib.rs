@@ -26,7 +26,7 @@ use derive_more::{Deref, DerefMut};
 use autd3::{
     Controller,
     driver::{
-        defined::ULTRASOUND_PERIOD,
+        common::ULTRASOUND_PERIOD,
         ethercat::DcSysTime,
         firmware::{
             cpu::{RxMessage, TxMessage},
@@ -37,7 +37,7 @@ use autd3::{
 use autd3_core::{
     derive::Device,
     geometry::{Geometry, Transducer},
-    link::{Link, LinkError},
+    link::{Link, LinkError, TxBufferPoolSync},
 };
 use autd3_firmware_emulator::{
     CPUEmulator,
@@ -71,6 +71,7 @@ pub struct Recorder {
     emulators: Vec<CPUEmulator>,
     geometry: Geometry,
     record: RawRecord,
+    buffer_pool: TxBufferPoolSync,
 }
 
 impl Recorder {
@@ -85,22 +86,25 @@ impl Recorder {
                 start: DcSysTime::ZERO,
                 current: DcSysTime::ZERO,
             },
+            buffer_pool: TxBufferPoolSync::new(),
         }
     }
 }
 
 impl Link for Recorder {
+    // GRCOV_EXCL_START
     fn close(&mut self) -> Result<(), LinkError> {
         self.is_open = false;
         Ok(())
     }
+    // GRCOV_EXCL_STOP
 
-    fn send(&mut self, tx: &[TxMessage]) -> Result<(), LinkError> {
+    fn send(&mut self, tx: Vec<TxMessage>) -> Result<(), LinkError> {
         self.emulators
             .iter_mut()
             .zip(self.record.records.iter_mut())
             .for_each(|(cpu, r)| {
-                cpu.send(tx);
+                cpu.send(&tx);
 
                 let should_update_silencer =
                     |tag: u8| -> bool { matches!(tag, TAG_SILENCER | TAG_CLEAR) };
@@ -123,6 +127,7 @@ impl Link for Recorder {
                     });
                 }
             });
+        self.buffer_pool.return_buffer(tx);
 
         Ok(())
     }
@@ -142,6 +147,7 @@ impl Link for Recorder {
 
     fn open(&mut self, geometry: &Geometry) -> Result<(), LinkError> {
         self.is_open = true;
+        self.buffer_pool.init(geometry);
         self.emulators = geometry
             .iter()
             .enumerate()
@@ -169,6 +175,10 @@ impl Link for Recorder {
         };
         self.geometry = Geometry::new(geometry.devices().map(clone_device).collect());
         Ok(())
+    }
+
+    fn alloc_tx_buffer(&mut self) -> Result<Vec<TxMessage>, LinkError> {
+        Ok(self.buffer_pool.borrow())
     }
 }
 
@@ -268,11 +278,15 @@ impl Emulator {
     fn collect_record(mut recorder: Controller<Recorder>) -> Result<Record, EmulatorError> {
         let start = recorder.link().record.start;
         let end = recorder.link().record.current;
+
+        // Here, we take the geometry from the recorder and clear it.
+        // So, calling `Controller::send` cause `failed to config response` error after here.
         let devices = {
             let mut tmp = Vec::new();
             std::mem::swap(&mut tmp, recorder.geometry_mut());
             tmp
         };
+        recorder.link_mut().is_open = false;
 
         let aabb = devices
             .iter()
@@ -297,7 +311,7 @@ impl Emulator {
             })
             .collect();
 
-        recorder.close()?;
+        drop(recorder);
 
         Ok(Record {
             records,
