@@ -30,7 +30,7 @@ fn main() -> Result<()> {
                     option: Default::default(),
                 },
                 Uniform {
-                    intensity: EmitIntensity(0xFF),
+                    intensity: Intensity(0xFF),
                     phase: Phase::ZERO,
                 },
             ))?;
@@ -72,7 +72,7 @@ fn main() -> Result<()> {
                     option: Default::default(),
                 },
                 Uniform {
-                    intensity: EmitIntensity(0xFF),
+                    intensity: Intensity(0xFF),
                     phase: Phase::ZERO,
                 },
             ))?;

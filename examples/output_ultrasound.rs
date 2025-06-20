@@ -22,7 +22,7 @@ fn main() -> Result<()> {
                 Static { intensity: 0xFF },
                 Uniform {
                     phase: Phase(0x40),
-                    intensity: EmitIntensity(0xFF),
+                    intensity: Intensity(0xFF),
                 },
             ))?;
             autd.tick(Duration::from_millis(1))?;
@@ -59,7 +59,7 @@ fn main() -> Result<()> {
                 Static { intensity: 0xFF },
                 Uniform {
                     phase: Phase(0x40),
-                    intensity: EmitIntensity(0xFF),
+                    intensity: Intensity(0xFF),
                 },
             ))?;
             autd.tick(Duration::from_millis(1))?;

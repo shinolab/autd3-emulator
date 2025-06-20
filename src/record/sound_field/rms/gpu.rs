@@ -77,8 +77,7 @@ impl Gpu {
         let instance = wgpu::Instance::default();
 
         let adapter =
-            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
-                .map_err(|_| EmulatorError::NoSuitableAdapterFound)?;
+            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))?;
 
         let (device, queue) =
             pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {

@@ -1,8 +1,11 @@
 use std::{borrow::Cow, collections::VecDeque, time::Duration};
 
-use crate::{EmulatorError, record::transducer::output_ultrasound::OutputUltrasound};
+use crate::{
+    EmulatorError,
+    record::{ULTRASOUND_PERIOD_COUNT, transducer::output_ultrasound::OutputUltrasound},
+};
 
-use autd3::{driver::common::ULTRASOUND_PERIOD_COUNT, prelude::Point3};
+use autd3::prelude::Point3;
 
 use bytemuck::NoUninit;
 use indicatif::ProgressBar;
@@ -89,8 +92,7 @@ impl<'a> Gpu<'a> {
         let instance = wgpu::Instance::default();
 
         let adapter =
-            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
-                .map_err(|_| EmulatorError::NoSuitableAdapterFound)?;
+            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))?;
 
         let (device, queue) = pollster::block_on(
             adapter.request_device(&wgpu::DeviceDescriptor {

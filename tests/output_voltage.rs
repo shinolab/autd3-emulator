@@ -18,29 +18,29 @@ fn record_output_voltage() -> anyhow::Result<()> {
         autd.send(Silencer::disable())?;
         autd.send(PulseWidthEncoder::new(|_dev| {
             |i| match i {
-                EmitIntensity(0x80) => PulseWidth::new(128).unwrap(),
-                EmitIntensity(0xFF) => PulseWidth::new(256).unwrap(),
+                Intensity(0x80) => PulseWidth::new(128).unwrap(),
+                Intensity(0xFF) => PulseWidth::new(256).unwrap(),
                 _ => PulseWidth::new(0).unwrap(),
             }
         }))?;
         autd.send(Uniform {
             phase: Phase(0x00),
-            intensity: EmitIntensity(0xFF),
+            intensity: Intensity(0xFF),
         })?;
         autd.tick(ULTRASOUND_PERIOD)?;
         autd.send(Uniform {
             phase: Phase(0x80),
-            intensity: EmitIntensity(0xFF),
+            intensity: Intensity(0xFF),
         })?;
         autd.tick(ULTRASOUND_PERIOD)?;
         autd.send(Uniform {
             phase: Phase(0x80),
-            intensity: EmitIntensity(0x80),
+            intensity: Intensity(0x80),
         })?;
         autd.tick(ULTRASOUND_PERIOD)?;
         autd.send(Uniform {
             phase: Phase(0x00),
-            intensity: EmitIntensity(0x00),
+            intensity: Intensity(0x00),
         })?;
         autd.tick(ULTRASOUND_PERIOD)?;
         Ok(())

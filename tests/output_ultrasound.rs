@@ -18,7 +18,7 @@ fn record_output_ultrasound() -> anyhow::Result<()> {
         autd.send(Silencer::disable())?;
         autd.send(Uniform {
             phase: Phase(0x40),
-            intensity: EmitIntensity(0xFF),
+            intensity: Intensity(0xFF),
         })?;
         autd.tick(30 * ULTRASOUND_PERIOD)?;
         Ok(())
