@@ -1,4 +1,4 @@
-use autd3::driver::common::ULTRASOUND_PERIOD_COUNT;
+use crate::record::ULTRASOUND_PERIOD_COUNT;
 
 use super::TransducerRecord;
 

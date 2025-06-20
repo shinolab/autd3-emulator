@@ -1,7 +1,4 @@
-use autd3::{
-    driver::{common::ULTRASOUND_PERIOD, error::AUTDDriverError},
-    error::AUTDError,
-};
+use autd3::driver::{common::ULTRASOUND_PERIOD, error::AUTDDriverError};
 use autd3_core::sampling_config::SamplingConfigError;
 use thiserror::Error;
 
@@ -27,9 +24,6 @@ pub enum EmulatorError {
     #[error("{0}")]
     Driver(#[from] AUTDDriverError),
     #[allow(missing_docs)]
-    #[error("{0}")]
-    AUTD(#[from] AUTDError),
-    #[allow(missing_docs)]
     #[cfg(feature = "gpu")]
     #[error("{0}")]
     RequestDeviceError(#[from] wgpu::RequestDeviceError),
@@ -41,17 +35,12 @@ pub enum EmulatorError {
     #[cfg(feature = "gpu")]
     #[error("{0}")]
     BufferAsyncError(#[from] wgpu::BufferAsyncError),
-    // TODO: Remove `NoSuitableAdapterFound` in next major release use `RequestAdapterError` and `PollError` instead
-    /// Error when the suitable GPU adapter is not found.
+    #[allow(missing_docs)]
+    #[error("{0}")]
     #[cfg(feature = "gpu")]
-    #[error("No suitable adapter found")]
-    NoSuitableAdapterFound,
-    // #[allow(missing_docs)]
-    // #[error("{0}")]
-    // #[cfg(feature = "gpu")]
-    // RequestAdapterError(#[from] wgpu::RequestAdapterError),
-    // #[allow(missing_docs)]
-    // #[error("{0}")]
-    // #[cfg(feature = "gpu")]
-    // PollError(#[from] wgpu::PollError),
+    RequestAdapterError(#[from] wgpu::RequestAdapterError),
+    #[allow(missing_docs)]
+    #[error("{0}")]
+    #[cfg(feature = "gpu")]
+    PollError(#[from] wgpu::PollError),
 }

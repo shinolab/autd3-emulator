@@ -8,12 +8,17 @@ inputs:
     description: 'components'
     required: false
     default: ''
+  cache:
+    description: 'cache'
+    required: false
+    default: 'true'
 runs:
   using: "composite"
   steps:
     - name: setup rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
+        cache: ${{ inputs.cache }}
         toolchain: ${{ inputs.toolchain }}
         components: ${{ inputs.components }}
 

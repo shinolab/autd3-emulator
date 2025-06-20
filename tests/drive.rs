@@ -47,7 +47,7 @@ fn record_phase() -> anyhow::Result<()> {
             gain::Custom::new(|_| {
                 |tr| Drive {
                     phase: Phase(tr.dev_idx() as _),
-                    intensity: EmitIntensity::MAX,
+                    intensity: Intensity::MAX,
                 }
             }),
         ))?;
@@ -57,7 +57,7 @@ fn record_phase() -> anyhow::Result<()> {
             gain::Custom::new(|_| {
                 |tr| Drive {
                     phase: Phase(0x01) + Phase(tr.dev_idx() as _),
-                    intensity: EmitIntensity::MAX,
+                    intensity: Intensity::MAX,
                 }
             }),
         ))?;
@@ -119,7 +119,7 @@ fn record_pulse_width() -> anyhow::Result<()> {
             gain::Custom::new(|_| {
                 |tr| Drive {
                     phase: Phase::ZERO,
-                    intensity: EmitIntensity(tr.idx() as _),
+                    intensity: Intensity(tr.idx() as _),
                 }
             }),
         ))?;
@@ -129,7 +129,7 @@ fn record_pulse_width() -> anyhow::Result<()> {
             gain::Custom::new(|_| {
                 |tr| Drive {
                     phase: Phase::ZERO,
-                    intensity: EmitIntensity(tr.idx() as _),
+                    intensity: Intensity(tr.idx() as _),
                 }
             }),
         ))?;

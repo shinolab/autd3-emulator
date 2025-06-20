@@ -26,18 +26,16 @@ use derive_more::{Deref, DerefMut};
 use autd3::{
     Controller,
     driver::{
-        common::ULTRASOUND_PERIOD,
-        ethercat::DcSysTime,
-        firmware::{
-            cpu::{RxMessage, TxMessage},
-            fpga::{EmitIntensity, Phase},
-        },
+        common::ULTRASOUND_PERIOD, ethercat::DcSysTime, firmware::driver::FixedSchedule,
+        firmware::driver::SenderOption,
     },
+    firmware::Latest,
 };
 use autd3_core::{
     derive::Device,
+    gain::{Intensity, Phase},
     geometry::{Geometry, Transducer},
-    link::{Link, LinkError, TxBufferPoolSync},
+    link::{Link, LinkError, RxMessage, TxBufferPoolSync, TxMessage},
 };
 use autd3_firmware_emulator::{
     CPUEmulator,
@@ -51,7 +49,7 @@ pub(crate) struct RawTransducerRecord {
     pub pulse_width: Vec<u16>,
     pub phase: Vec<u8>,
     pub silencer_phase: SilencerEmulator<Phase>,
-    pub silencer_intensity: SilencerEmulator<EmitIntensity>,
+    pub silencer_intensity: SilencerEmulator<Intensity>,
 }
 
 pub(crate) struct RawDeviceRecord {
@@ -151,7 +149,6 @@ impl Link for Recorder {
         self.emulators = geometry
             .iter()
             .enumerate()
-            .filter(|(_, dev)| dev.enable)
             .map(|(i, dev)| CPUEmulator::new(i, dev.num_transducers()))
             .collect::<Vec<_>>();
         self.record = RawRecord {
@@ -173,7 +170,7 @@ impl Link for Recorder {
             current: self.start_time,
             start: self.start_time,
         };
-        self.geometry = Geometry::new(geometry.devices().map(clone_device).collect());
+        self.geometry = Geometry::new(geometry.iter().map(clone_device).collect());
         Ok(())
     }
 
@@ -260,7 +257,7 @@ impl Emulator {
     /// let record = emulator
     ///      .record(|autd| {
     ///          autd.send(Silencer::default())?;
-    ///          autd.send((Sine { freq: 200 * Hz, option: Default::default() }, Uniform { intensity: EmitIntensity(0xFF), phase: Phase::ZERO }))?;
+    ///          autd.send((Sine { freq: 200 * Hz, option: Default::default() }, Uniform { intensity: Intensity(0xFF), phase: Phase::ZERO }))?;
     ///          autd.tick(Duration::from_millis(10))?;
     ///          Ok(())
     ///      })
@@ -270,17 +267,17 @@ impl Emulator {
     /// ```
     pub fn record(
         &self,
-        f: impl FnOnce(&mut Controller<Recorder>) -> Result<(), EmulatorError>,
+        f: impl FnOnce(&mut Controller<Recorder, Latest>) -> Result<(), EmulatorError>,
     ) -> Result<Record, EmulatorError> {
         self.record_from(DcSysTime::ZERO, f)
     }
 
-    fn collect_record(mut recorder: Controller<Recorder>) -> Result<Record, EmulatorError> {
+    fn collect_record(mut recorder: Controller<Recorder, Latest>) -> Result<Record, EmulatorError> {
         let start = recorder.link().record.start;
         let end = recorder.link().record.current;
 
         // Here, we take the geometry from the recorder and clear it.
-        // So, calling `Controller::send` cause `failed to config response` error after here.
+        // So, calling `Controller::send` cause `failed to confirm response` error after here.
         let devices = {
             let mut tmp = Vec::new();
             std::mem::swap(&mut tmp, recorder.geometry_mut());
@@ -290,7 +287,6 @@ impl Emulator {
 
         let aabb = devices
             .iter()
-            .filter(|dev| dev.enable)
             .fold(Aabb::empty(), |aabb, dev| aabb.join(dev.aabb()));
 
         let records = recorder
@@ -298,7 +294,7 @@ impl Emulator {
             .record
             .records
             .drain(..)
-            .zip(devices.into_iter().filter(|dev| dev.enable))
+            .zip(devices)
             .flat_map(|(rd, dev)| {
                 rd.records
                     .into_iter()
@@ -325,11 +321,17 @@ impl Emulator {
     pub fn record_from(
         &self,
         start_time: DcSysTime,
-        f: impl FnOnce(&mut Controller<Recorder>) -> Result<(), EmulatorError>,
+        f: impl FnOnce(&mut Controller<Recorder, Latest>) -> Result<(), EmulatorError>,
     ) -> Result<Record, EmulatorError> {
-        let mut recorder = Controller::open(
+        let mut recorder = Controller::open_with_option(
             self.geometry.iter().map(clone_device),
             Recorder::new(start_time),
+            SenderOption {
+                send_interval: Duration::ZERO,
+                receive_interval: Duration::ZERO,
+                ..Default::default()
+            },
+            FixedSchedule::default(),
         )?;
         f(&mut recorder)?;
         Self::collect_record(recorder)
@@ -341,11 +343,19 @@ impl Emulator {
     pub fn record_from_take(
         &self,
         start_time: DcSysTime,
-        f: impl FnOnce(Controller<Recorder>) -> Result<Controller<Recorder>, EmulatorError>,
+        f: impl FnOnce(
+            Controller<Recorder, Latest>,
+        ) -> Result<Controller<Recorder, Latest>, EmulatorError>,
     ) -> Result<Record, EmulatorError> {
-        let recorder = Controller::open(
+        let recorder = Controller::open_with_option(
             self.geometry.iter().map(clone_device),
             Recorder::new(start_time),
+            SenderOption {
+                send_interval: Duration::ZERO,
+                receive_interval: Duration::ZERO,
+                ..Default::default()
+            },
+            FixedSchedule::default(),
         )?;
         let recorder = f(recorder)?;
         Self::collect_record(recorder)
@@ -353,7 +363,7 @@ impl Emulator {
     // GRCOV_EXCL_STOP
 
     fn transducers(&self) -> impl Iterator<Item = &Transducer> {
-        self.geometry.devices().flat_map(|dev| dev.iter())
+        self.geometry.iter().flat_map(|dev| dev.iter())
     }
 
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
@@ -442,7 +452,7 @@ pub trait RecorderControllerExt {
     fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError>;
 }
 
-impl RecorderControllerExt for Controller<Recorder> {
+impl RecorderControllerExt for Controller<Recorder, Latest> {
     fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError> {
         self.link_mut().tick(tick)
     }

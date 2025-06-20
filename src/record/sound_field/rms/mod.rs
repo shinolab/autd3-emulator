@@ -9,14 +9,14 @@ use std::{
 };
 
 use autd3::{
-    driver::common::{ULTRASOUND_PERIOD, ULTRASOUND_PERIOD_COUNT},
+    driver::common::ULTRASOUND_PERIOD,
     prelude::{Phase, ULTRASOUND_FREQ},
 };
 #[cfg(feature = "polars")]
 use polars::{df, frame::DataFrame, prelude::Column};
 
 use super::{super::Record, SoundFieldOption};
-use crate::{EmulatorError, Range};
+use crate::{EmulatorError, Range, record::ULTRASOUND_PERIOD_COUNT};
 
 pub use option::RmsRecordOption;
 

@@ -27,7 +27,7 @@ fn record_sound_field(
         autd.send(Silencer::disable())?;
         autd.send(Uniform {
             phase: Phase(0x40),
-            intensity: EmitIntensity(0xFF),
+            intensity: Intensity(0xFF),
         })?;
         autd.tick(100 * ULTRASOUND_PERIOD)?;
         Ok(())
@@ -107,7 +107,7 @@ fn record_rms_resume(
         autd.send(Silencer::disable())?;
         autd.send(Uniform {
             phase: Phase(0x40),
-            intensity: EmitIntensity(0xFF),
+            intensity: Intensity(0xFF),
         })?;
         autd.tick(10 * ULTRASOUND_PERIOD)?;
         Ok(())
@@ -163,7 +163,7 @@ fn record_rms_skip() -> anyhow::Result<()> {
         autd.send(Silencer::disable())?;
         autd.send(Uniform {
             phase: Phase(0x40),
-            intensity: EmitIntensity(0xFF),
+            intensity: Intensity(0xFF),
         })?;
         autd.tick(10 * ULTRASOUND_PERIOD)?;
         Ok(())
@@ -214,7 +214,7 @@ fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
         autd.send(Silencer::disable())?;
         autd.send(Uniform {
             phase: Phase(0x40),
-            intensity: EmitIntensity(0xFF),
+            intensity: Intensity(0xFF),
         })?;
         autd.tick(10 * ULTRASOUND_PERIOD)?;
         Ok(())
@@ -275,7 +275,7 @@ fn not_recorded() -> anyhow::Result<()> {
         autd.send(Silencer::disable())?;
         autd.send(Uniform {
             phase: Phase(0x40),
-            intensity: EmitIntensity(0xFF),
+            intensity: Intensity(0xFF),
         })?;
         autd.tick(ULTRASOUND_PERIOD)?;
         Ok(())

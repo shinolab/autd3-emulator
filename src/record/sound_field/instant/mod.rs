@@ -5,13 +5,13 @@ mod option;
 
 use std::time::Duration;
 
-use autd3::driver::common::{ULTRASOUND_PERIOD, ULTRASOUND_PERIOD_COUNT};
+use autd3::driver::common::ULTRASOUND_PERIOD;
 use indicatif::ProgressBar;
 #[cfg(feature = "polars")]
 use polars::{df, frame::DataFrame, prelude::Column};
 
 use super::{super::Record, SoundFieldOption};
-use crate::{EmulatorError, Range};
+use crate::{EmulatorError, Range, record::ULTRASOUND_PERIOD_COUNT};
 
 pub use option::InstantRecordOption;
 

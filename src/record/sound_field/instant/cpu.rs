@@ -1,9 +1,11 @@
 use std::{collections::VecDeque, time::Duration};
 
-use autd3::{driver::common::ULTRASOUND_PERIOD_COUNT, prelude::Point3};
+use autd3::prelude::Point3;
 use indicatif::ProgressBar;
 
-use crate::record::{TransducerRecord, transducer::output_ultrasound::OutputUltrasound};
+use crate::record::{
+    TransducerRecord, ULTRASOUND_PERIOD_COUNT, transducer::output_ultrasound::OutputUltrasound,
+};
 
 use rayon::prelude::*;
 

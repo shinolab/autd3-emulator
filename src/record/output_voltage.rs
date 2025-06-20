@@ -1,6 +1,7 @@
-use autd3::driver::common::ULTRASOUND_PERIOD_COUNT;
 #[cfg(feature = "polars")]
 use polars::{frame::DataFrame, prelude::Column};
+
+use crate::record::ULTRASOUND_PERIOD_COUNT;
 
 use super::Record;
 

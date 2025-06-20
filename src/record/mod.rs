@@ -15,6 +15,10 @@ pub use sound_field::{
 };
 pub(crate) use transducer::TransducerRecord;
 
+use autd3::driver::firmware::latest::fpga::ULTRASOUND_PERIOD_COUNT_BITS;
+
+pub(crate) const ULTRASOUND_PERIOD_COUNT: usize = 1 << ULTRASOUND_PERIOD_COUNT_BITS;
+
 /// A record of the ultrasound data.
 #[derive(CopyGetters, Debug)]
 pub struct Record {
