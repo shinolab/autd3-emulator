@@ -29,12 +29,11 @@ use autd3::{
         common::ULTRASOUND_PERIOD, ethercat::DcSysTime, firmware::driver::FixedSchedule,
         firmware::driver::SenderOption,
     },
-    firmware::Latest,
+    firmware::V12_1,
 };
 use autd3_core::{
-    derive::Device,
-    gain::{Intensity, Phase},
-    geometry::{Geometry, Transducer},
+    gain::{Drive, Intensity, Phase},
+    geometry::{Device, Geometry, Transducer},
     link::{Link, LinkError, RxMessage, TxBufferPoolSync, TxMessage},
 };
 use autd3_firmware_emulator::{
@@ -70,6 +69,9 @@ pub struct Recorder {
     geometry: Geometry,
     record: RawRecord,
     buffer_pool: TxBufferPoolSync,
+    drives_buffer: Vec<Vec<Drive>>,
+    phases_buffer: Vec<Vec<Phase>>,
+    output_mask_buffer: Vec<Vec<bool>>,
 }
 
 impl Recorder {
@@ -85,6 +87,9 @@ impl Recorder {
                 current: DcSysTime::ZERO,
             },
             buffer_pool: TxBufferPoolSync::new(),
+            drives_buffer: Vec::new(),
+            phases_buffer: Vec::new(),
+            output_mask_buffer: Vec::new(),
         }
     }
 }
@@ -171,6 +176,22 @@ impl Link for Recorder {
             start: self.start_time,
         };
         self.geometry = Geometry::new(geometry.iter().map(clone_device).collect());
+        self.drives_buffer = self
+            .emulators
+            .iter()
+            .map(|cpu| vec![Drive::NULL; cpu.num_transducers()])
+            .collect();
+        self.phases_buffer = self
+            .emulators
+            .iter()
+            .map(|cpu| vec![Phase::ZERO; cpu.num_transducers()])
+            .collect();
+        self.output_mask_buffer = self
+            .emulators
+            .iter()
+            .map(|cpu| vec![true; cpu.num_transducers()])
+            .collect();
+
         Ok(())
     }
 
@@ -192,11 +213,22 @@ impl Recorder {
             self.emulators
                 .iter_mut()
                 .zip(self.geometry.iter())
-                .for_each(|(cpu, dev)| {
+                .zip(self.drives_buffer.iter_mut())
+                .zip(self.phases_buffer.iter_mut())
+                .zip(self.output_mask_buffer.iter_mut())
+                .for_each(|((((cpu, dev), drives_buf), phase_buf), output_mask_buf)| {
                     cpu.update_with_sys_time(t);
                     let m = cpu.fpga().modulation();
-                    let d = cpu.fpga().drives();
-                    dev.iter().zip(d).for_each(|(tr, d)| {
+                    let cur_seg = cpu.fpga().current_stm_segment();
+                    let cur_idx = cpu.fpga().current_stm_idx();
+                    cpu.fpga().drives_at_inplace(
+                        cur_seg,
+                        cur_idx,
+                        phase_buf,
+                        output_mask_buf,
+                        drives_buf,
+                    );
+                    dev.iter().zip(drives_buf).for_each(|(tr, d)| {
                         let tr_record = &mut self.record.records[tr.dev_idx()].records[tr.idx()];
                         tr_record.pulse_width.push(
                             cpu.fpga()
@@ -267,12 +299,12 @@ impl Emulator {
     /// ```
     pub fn record(
         &self,
-        f: impl FnOnce(&mut Controller<Recorder, Latest>) -> Result<(), EmulatorError>,
+        f: impl FnOnce(&mut Controller<Recorder, V12_1>) -> Result<(), EmulatorError>,
     ) -> Result<Record, EmulatorError> {
         self.record_from(DcSysTime::ZERO, f)
     }
 
-    fn collect_record(mut recorder: Controller<Recorder, Latest>) -> Result<Record, EmulatorError> {
+    fn collect_record(mut recorder: Controller<Recorder, V12_1>) -> Result<Record, EmulatorError> {
         let start = recorder.link().record.start;
         let end = recorder.link().record.current;
 
@@ -321,7 +353,7 @@ impl Emulator {
     pub fn record_from(
         &self,
         start_time: DcSysTime,
-        f: impl FnOnce(&mut Controller<Recorder, Latest>) -> Result<(), EmulatorError>,
+        f: impl FnOnce(&mut Controller<Recorder, V12_1>) -> Result<(), EmulatorError>,
     ) -> Result<Record, EmulatorError> {
         let mut recorder = Controller::open_with_option(
             self.geometry.iter().map(clone_device),
@@ -344,8 +376,8 @@ impl Emulator {
         &self,
         start_time: DcSysTime,
         f: impl FnOnce(
-            Controller<Recorder, Latest>,
-        ) -> Result<Controller<Recorder, Latest>, EmulatorError>,
+            Controller<Recorder, V12_1>,
+        ) -> Result<Controller<Recorder, V12_1>, EmulatorError>,
     ) -> Result<Record, EmulatorError> {
         let recorder = Controller::open_with_option(
             self.geometry.iter().map(clone_device),
@@ -452,7 +484,7 @@ pub trait RecorderControllerExt {
     fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError>;
 }
 
-impl RecorderControllerExt for Controller<Recorder, Latest> {
+impl RecorderControllerExt for Controller<Recorder, V12_1> {
     fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError> {
         self.link_mut().tick(tick)
     }

@@ -27,7 +27,7 @@ fn record_phase() -> anyhow::Result<()> {
             .zip([0, 1, 1])
             .map(|(t, o)| {
                 Column::new(
-                    format!("pulse_width@{}[ns]", t).into(),
+                    format!("pulse_width@{t}[ns]").into(),
                     emulator
                         .iter()
                         .flat_map(|dev| {
@@ -101,7 +101,7 @@ fn record_pulse_width() -> anyhow::Result<()> {
             .zip([100, 200, 200])
             .map(|(t, i)| {
                 Column::new(
-                    format!("pulse_width@{}[ns]", t).into(),
+                    format!("pulse_width@{t}[ns]").into(),
                     emulator
                         .iter()
                         .flat_map(|dev| dev.iter().map(|tr| to_pulse_width(i, tr.idx())))
