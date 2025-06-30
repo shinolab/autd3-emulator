@@ -40,7 +40,7 @@ impl Record {
             (0..self.output_cols())
                 .map(|i| i as u64)
                 .zip(v.iter())
-                .map(|(t, v)| Column::new(format!("voltage[V]@{}[25us/512]", t).into(), &v))
+                .map(|(t, v)| Column::new(format!("voltage[V]@{t}[25us/512]").into(), &v))
                 .collect(),
         )
         .unwrap()

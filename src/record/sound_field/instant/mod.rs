@@ -115,7 +115,7 @@ impl Instant<'_> {
         Ok(DataFrame::new(
             time.iter()
                 .zip(v.iter())
-                .map(|(t, v)| Column::new(format!("p[Pa]@{}[ns]", t).into(), v))
+                .map(|(t, v)| Column::new(format!("p[Pa]@{t}[ns]").into(), v))
                 .collect::<Vec<_>>(),
         )
         .unwrap())

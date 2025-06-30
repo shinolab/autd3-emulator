@@ -15,7 +15,7 @@ pub use sound_field::{
 };
 pub(crate) use transducer::TransducerRecord;
 
-use autd3::driver::firmware::latest::fpga::ULTRASOUND_PERIOD_COUNT_BITS;
+use autd3::driver::firmware::v12_1::fpga::ULTRASOUND_PERIOD_COUNT_BITS;
 
 pub(crate) const ULTRASOUND_PERIOD_COUNT: usize = 1 << ULTRASOUND_PERIOD_COUNT_BITS;
 
@@ -82,7 +82,7 @@ impl Record {
         DataFrame::new(
             time.iter()
                 .zip(phase.iter())
-                .map(|(t, p)| Column::new(format!("phase@{}[ns]", t).into(), &p))
+                .map(|(t, p)| Column::new(format!("phase@{t}[ns]").into(), &p))
                 .collect::<Vec<_>>(),
         )
         .unwrap()
@@ -97,7 +97,7 @@ impl Record {
         DataFrame::new(
             time.iter()
                 .zip(pulse_width.iter())
-                .map(|(t, p)| Column::new(format!("pulse_width@{}[ns]", t).into(), &p))
+                .map(|(t, p)| Column::new(format!("pulse_width@{t}[ns]").into(), &p))
                 .collect::<Vec<_>>(),
         )
         .unwrap()

@@ -78,7 +78,7 @@ args = [
     "-t",
     "${@}",
     "--excl-line",
-    "GRCOV_EXCL_LINE|#\\[derive|#\\[error|#\\[bitfield_struct|unreachable!|unimplemented!|tracing::(debug|trace|info|warn|error)!\\([\\s\\S]*\\);",
+    "GRCOV_EXCL_LINE|#\\[derive|#\\[error|unreachable!|unimplemented!|^\\s*\\)\\)?\\?[\\),;]?$",
     "--keep-only",
     "src/**/*.rs",
     "--excl-start",
