@@ -395,7 +395,7 @@ impl<'a> Gpu<'a> {
                 0,
                 &self.buf_staging_dst,
                 0,
-                (self.cache[0].len() * size_of::<f32>()) as _,
+                (self.cache[0].len() * size_of::<f32>()) as u64,
             );
 
             self.queue.submit(Some(encoder.finish()));
