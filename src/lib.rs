@@ -10,9 +10,7 @@ mod option;
 mod record;
 mod utils;
 
-use bvh::aabb::Aabb;
 pub use error::EmulatorError;
-use getset::Getters;
 pub use option::*;
 #[cfg(feature = "polars")]
 use polars::{df, frame::DataFrame};
@@ -20,8 +18,6 @@ use record::TransducerRecord;
 pub use record::{Instant, InstantRecordOption, Record, Rms, RmsRecordOption};
 
 use std::time::Duration;
-
-use derive_more::{Deref, DerefMut};
 
 use autd3::{
     Controller,
@@ -32,7 +28,7 @@ use autd3::{
     firmware::V12_1,
 };
 use autd3_core::{
-    gain::{Drive, Intensity, Phase},
+    firmware::{Drive, Intensity, Phase},
     geometry::{Device, Geometry, Transducer},
     link::{Link, LinkError, RxMessage, TxBufferPoolSync, TxMessage},
 };
@@ -42,7 +38,10 @@ use autd3_firmware_emulator::{
     fpga::emulator::SilencerEmulator,
 };
 
-use crate::utils::device::clone_device;
+use crate::{
+    record::ULTRASOUND_PERIOD_COUNT,
+    utils::{aabb::Aabb, device::clone_device},
+};
 
 pub(crate) struct RawTransducerRecord {
     pub pulse_width: Vec<u16>,
@@ -204,7 +203,7 @@ impl Recorder {
     /// Progresses by the specified time.
     pub fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError> {
         // This function must be public for capi.
-        if tick.is_zero() || tick.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
+        if tick.is_zero() || !tick.as_nanos().is_multiple_of(ULTRASOUND_PERIOD.as_nanos()) {
             return Err(EmulatorError::InvalidTick);
         }
         let mut t = self.record.current;
@@ -238,7 +237,8 @@ impl Recorder {
                                         .apply((d.intensity.0 as u16 * m as u16 / 255) as u8)
                                         as _,
                                 )
-                                .pulse_width(),
+                                .pulse_width(ULTRASOUND_PERIOD_COUNT as _)
+                                .unwrap(),
                         );
                         tr_record
                             .phase
@@ -256,13 +256,23 @@ impl Recorder {
 }
 
 /// A emulator for the AUTD devices.
-#[derive(Getters, Deref, DerefMut)]
 pub struct Emulator {
-    #[getset(get = "pub")]
-    #[deref]
-    #[deref_mut]
     /// The geometry of the devices.
     geometry: Geometry,
+}
+
+impl std::ops::Deref for Emulator {
+    type Target = Geometry;
+
+    fn deref(&self) -> &Self::Target {
+        &self.geometry
+    }
+}
+
+impl std::ops::DerefMut for Emulator {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.geometry
+    }
 }
 
 impl Emulator {
@@ -310,23 +320,22 @@ impl Emulator {
 
         // Here, we take the geometry from the recorder and clear it.
         // So, calling `Controller::send` cause `failed to confirm response` error after here.
-        let devices = {
-            let mut tmp = Vec::new();
-            std::mem::swap(&mut tmp, recorder.geometry_mut());
+        let mut geometry = {
+            use std::ops::DerefMut;
+            let mut tmp = Geometry::new(Vec::new());
+            let geometry: &mut Geometry = recorder.deref_mut();
+            std::mem::swap(&mut tmp, geometry);
             tmp
         };
         recorder.link_mut().is_open = false;
 
-        let aabb = devices
-            .iter()
-            .fold(Aabb::empty(), |aabb, dev| aabb.join(dev.aabb()));
-
+        let aabb = Aabb::from_geometry(&geometry);
         let records = recorder
             .link_mut()
             .record
             .records
             .drain(..)
-            .zip(devices)
+            .zip(geometry.drain(..))
             .flat_map(|(rd, dev)| {
                 rd.records
                     .into_iter()
@@ -487,5 +496,20 @@ pub trait RecorderControllerExt {
 impl RecorderControllerExt for Controller<Recorder, V12_1> {
     fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError> {
         self.link_mut().tick(tick)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use autd3::prelude::*;
+
+    #[test]
+    fn deref_mut() -> Result<(), Box<dyn std::error::Error>> {
+        let mut autd = Emulator::new([AUTD3::default()]);
+        assert_eq!(1, autd.len());
+        autd.reconfigure(|dev| dev);
+        Ok(())
     }
 }

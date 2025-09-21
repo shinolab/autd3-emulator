@@ -11,7 +11,7 @@ fn record_sound_field(
     #[allow(unused_variables)]
     #[case]
     gpu: bool,
-) -> anyhow::Result<()> {
+) -> Result<(), EmulatorError> {
     let emulator = Emulator::new([
         AUTD3 {
             pos: Point3::origin(),
@@ -118,7 +118,7 @@ fn record_sound_field_resume(
     #[case]
     gpu: bool,
     #[case] memory_limits_hint_mb: usize,
-) -> anyhow::Result<()> {
+) -> Result<(), EmulatorError> {
     let emulator = Emulator::new([AUTD3 {
         pos: Point3::origin(),
         rot: UnitQuaternion::identity(),
@@ -177,7 +177,7 @@ fn record_sound_field_resume(
 }
 
 #[test]
-fn record_sound_field_skip() -> anyhow::Result<()> {
+fn record_sound_field_skip() -> Result<(), EmulatorError> {
     let emulator = Emulator::new([AUTD3 {
         pos: Point3::origin(),
         rot: UnitQuaternion::identity(),
@@ -245,7 +245,7 @@ fn record_sound_field_with_limit(
     #[case]
     gpu: bool,
     #[case] memory_limits_hint_mb: usize,
-) -> anyhow::Result<()> {
+) -> Result<(), EmulatorError> {
     let emulator = Emulator::new([
         AUTD3 {
             pos: Point3::origin(),
@@ -308,7 +308,7 @@ fn record_sound_field_with_limit(
 
 #[cfg(feature = "gpu")]
 #[test]
-fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
+fn record_sound_field_gpu_eq_cpu() -> Result<(), EmulatorError> {
     let emulator = Emulator::new([AUTD3 {
         pos: Point3::origin(),
         rot: UnitQuaternion::identity(),
@@ -359,7 +359,7 @@ fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
     cpu.get_columns()
         .iter()
         .zip(gpu.get_columns())
-        .try_for_each(|(cpu, gpu)| -> anyhow::Result<()> {
+        .try_for_each(|(cpu, gpu)| -> Result<(), EmulatorError> {
             cpu.f32()?
                 .into_no_null_iter()
                 .zip(gpu.f32()?.into_no_null_iter())
@@ -373,7 +373,7 @@ fn record_sound_field_gpu_eq_cpu() -> anyhow::Result<()> {
 }
 
 #[test]
-fn not_recorded() -> anyhow::Result<()> {
+fn not_recorded() -> Result<(), EmulatorError> {
     let emulator = Emulator::new([AUTD3 {
         pos: Point3::origin(),
         rot: UnitQuaternion::identity(),

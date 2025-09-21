@@ -1,8 +1,8 @@
+use crate::utils::aabb::Aabb;
+
 use autd3::driver::geometry::Vector3;
 
-use bvh::aabb::Aabb;
-
-use paste::paste;
+use pastey::paste;
 
 use super::Range;
 
@@ -78,7 +78,7 @@ macro_rules! make_range_1d {
                         .map(|([<p $third>], [<p $second>], [<p $first>])| ([<p x>], [<p y>], [<p z>]))
                 }
 
-                fn aabb(&self) -> Aabb<f32, 3> {
+                fn aabb(&self) -> Aabb {
                     let min = Vector3::new(self.min_x(), self.min_y(), self.min_z()).into();
                     let max = Vector3::new(self.max_x(), self.max_y(), self.max_z()).into();
                     Aabb { min, max }

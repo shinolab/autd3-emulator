@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use anyhow::Result;
-
 use autd3::{
     core::geometry::{Device, Transducer},
     prelude::*,
@@ -31,7 +29,7 @@ impl From<CustomDevice> for Device {
     }
 }
 
-fn main() -> Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let emulator = Emulator::new([CustomDevice {
         pitch: 2.,
         num_x: 16,

@@ -9,7 +9,7 @@ use autd3_emulator::*;
 use polars::prelude::Column;
 
 #[test]
-fn invalid_tick() -> anyhow::Result<()> {
+fn invalid_tick() -> Result<(), EmulatorError> {
     let emulator = Emulator::new([AUTD3 {
         pos: Point3::origin(),
         rot: UnitQuaternion::identity(),

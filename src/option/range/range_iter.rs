@@ -1,5 +1,7 @@
 use autd3::{driver::geometry::Point3, prelude::Vector3};
 
+use crate::utils::aabb::Aabb;
+
 use super::Range;
 
 impl Range for Vec<Vector3> {
@@ -7,10 +9,9 @@ impl Range for Vec<Vector3> {
         self.iter().map(|v| (v.x, v.y, v.z))
     }
 
-    fn aabb(&self) -> bvh::aabb::Aabb<f32, 3> {
-        self.iter().fold(bvh::aabb::Aabb::empty(), |aabb, v| {
-            aabb.grow(&Point3::from(*v))
-        })
+    fn aabb(&self) -> Aabb {
+        self.iter()
+            .fold(Aabb::empty(), |aabb, v| aabb.grow(Point3::from(*v)))
     }
 }
 

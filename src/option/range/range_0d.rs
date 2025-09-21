@@ -1,5 +1,6 @@
 use autd3::driver::geometry::Point3;
-use bvh::aabb::Aabb;
+
+use crate::utils::aabb::Aabb;
 
 use super::Range;
 
@@ -8,7 +9,7 @@ impl Range for Point3 {
         std::iter::once((self.x, self.y, self.z))
     }
 
-    fn aabb(&self) -> Aabb<f32, 3> {
+    fn aabb(&self) -> Aabb {
         Aabb {
             min: Point3::from(*self),
             max: Point3::from(*self),

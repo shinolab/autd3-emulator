@@ -1,7 +1,6 @@
 use std::{collections::VecDeque, time::Duration};
 
 use autd3::prelude::Point3;
-use indicatif::ProgressBar;
 
 use crate::record::{
     TransducerRecord, ULTRASOUND_PERIOD_COUNT, transducer::output_ultrasound::OutputUltrasound,
@@ -103,14 +102,12 @@ impl<'a> Cpu<'a> {
         num_points_in_frame: usize,
         sound_speed: f32,
         offset: isize,
-        pb: &ProgressBar,
     ) -> &Vec<Vec<f32>> {
         (0..num_points_in_frame)
             .into_par_iter()
             .map(|i| (start_time + i as u32 * time_step).as_secs_f32())
             .map(|t| {
-                let p = self
-                    .dists
+                self.dists
                     .iter()
                     .map(|d| {
                         Self::P0
@@ -128,9 +125,7 @@ impl<'a> Cpu<'a> {
                                 })
                                 .sum::<f32>()
                     })
-                    .collect::<Vec<_>>();
-                pb.inc(1);
-                p
+                    .collect()
             })
             .collect_into_vec(&mut self.cache);
         &self.cache

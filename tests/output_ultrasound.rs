@@ -2,7 +2,7 @@ use autd3::{driver::common::ULTRASOUND_PERIOD, prelude::*};
 use autd3_emulator::*;
 
 #[test]
-fn record_output_ultrasound() -> anyhow::Result<()> {
+fn record_output_ultrasound() -> Result<(), EmulatorError> {
     let emulator = Emulator::new([
         AUTD3 {
             pos: Point3::origin(),

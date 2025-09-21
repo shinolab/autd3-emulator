@@ -11,7 +11,7 @@ fn record_sound_field(
     #[allow(unused_variables)]
     #[case]
     gpu: bool,
-) -> anyhow::Result<()> {
+) -> Result<(), EmulatorError> {
     let emulator = Emulator::new([
         AUTD3 {
             pos: Point3::origin(),
@@ -97,7 +97,7 @@ fn record_rms_resume(
     #[allow(unused_variables)]
     #[case]
     gpu: bool,
-) -> anyhow::Result<()> {
+) -> Result<(), EmulatorError> {
     let emulator = Emulator::new([AUTD3 {
         pos: Point3::origin(),
         rot: UnitQuaternion::identity(),
@@ -153,7 +153,7 @@ fn record_rms_resume(
 }
 
 #[test]
-fn record_rms_skip() -> anyhow::Result<()> {
+fn record_rms_skip() -> Result<(), EmulatorError> {
     let emulator = Emulator::new([AUTD3 {
         pos: Point3::origin(),
         rot: UnitQuaternion::identity(),
@@ -204,7 +204,7 @@ fn record_rms_skip() -> anyhow::Result<()> {
 
 #[cfg(feature = "gpu")]
 #[test]
-fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
+fn record_rms_gpu_eq_cpu() -> Result<(), EmulatorError> {
     let emulator = Emulator::new([AUTD3 {
         pos: Point3::origin(),
         rot: UnitQuaternion::identity(),
@@ -251,7 +251,7 @@ fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
     cpu.get_columns()
         .iter()
         .zip(gpu.get_columns())
-        .try_for_each(|(cpu, gpu)| -> anyhow::Result<()> {
+        .try_for_each(|(cpu, gpu)| -> Result<(), EmulatorError> {
             cpu.f32()?
                 .into_no_null_iter()
                 .zip(gpu.f32()?.into_no_null_iter())
@@ -265,7 +265,7 @@ fn record_rms_gpu_eq_cpu() -> anyhow::Result<()> {
 }
 
 #[test]
-fn not_recorded() -> anyhow::Result<()> {
+fn not_recorded() -> Result<(), EmulatorError> {
     let emulator = Emulator::new([AUTD3 {
         pos: Point3::origin(),
         rot: UnitQuaternion::identity(),

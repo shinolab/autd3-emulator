@@ -8,7 +8,6 @@ use crate::{
 use autd3::prelude::Point3;
 
 use bytemuck::NoUninit;
-use indicatif::ProgressBar;
 use rayon::prelude::*;
 use wgpu::{Buffer, BufferAddress, util::DeviceExt};
 
@@ -351,7 +350,6 @@ impl<'a> Gpu<'a> {
         num_points_in_frame: usize,
         sound_speed: f32,
         offset: isize,
-        pb: &ProgressBar,
     ) -> Result<&Vec<Vec<f32>>, EmulatorError> {
         for i in 0..num_points_in_frame {
             let t = (start_time + i as u32 * time_step).as_secs_f32();
@@ -412,7 +410,6 @@ impl<'a> Gpu<'a> {
                 self.cache[i].copy_from_slice(bytemuck::cast_slice(&data));
             }
             self.buf_staging_dst.unmap();
-            pb.inc(1);
         }
 
         Ok(&self.cache)
