@@ -6,7 +6,6 @@ mod option;
 use std::time::Duration;
 
 use autd3::driver::common::ULTRASOUND_PERIOD;
-use indicatif::ProgressBar;
 #[cfg(feature = "polars")]
 use polars::{df, frame::DataFrame, prelude::Column};
 
@@ -46,7 +45,6 @@ impl ComputeDevice<'_> {
         num_points_in_frame: usize,
         sound_speed: f32,
         offset: isize,
-        pb: &ProgressBar,
     ) -> Result<&Vec<Vec<f32>>, EmulatorError> {
         match self {
             Self::Cpu(cpu) => Ok(cpu.compute(
@@ -55,7 +53,6 @@ impl ComputeDevice<'_> {
                 num_points_in_frame,
                 sound_speed,
                 offset,
-                pb,
             )),
             #[cfg(feature = "gpu")]
             Self::Gpu(gpu) => gpu.compute(
@@ -64,7 +61,6 @@ impl ComputeDevice<'_> {
                 num_points_in_frame,
                 sound_speed,
                 offset,
-                pb,
             ),
         }
     }
@@ -167,7 +163,10 @@ impl Instant<'_> {
         time: &mut [u64],
         mut v: impl Iterator<Item = *mut f32>,
     ) -> Result<(), EmulatorError> {
-        if duration.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
+        if !duration
+            .as_nanos()
+            .is_multiple_of(ULTRASOUND_PERIOD.as_nanos())
+        {
             return Err(EmulatorError::InvalidDuration);
         }
         let num_frames = (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize;
@@ -183,7 +182,6 @@ impl Instant<'_> {
         let sound_speed = self.option.sound_speed;
 
         let mut cur_frame = self.last_frame;
-        let pb = self.option.pb(num_frames * self.num_points_in_frame);
 
         let mut idx = 0;
         loop {
@@ -216,7 +214,6 @@ impl Instant<'_> {
                         self.num_points_in_frame,
                         sound_speed,
                         offset,
-                        &pb,
                     )?;
                     (0..r.len()).for_each(|i| {
                         time[idx] = (start_time + (i as u32 * time_step)).as_nanos() as u64;
@@ -240,12 +237,15 @@ impl Instant<'_> {
 }
 
 impl Record {
-    fn sound_field_instant(
-        &self,
+    fn sound_field_instant<'a>(
+        &'a self,
         range: impl Range,
         option: InstantRecordOption,
-    ) -> Result<Instant, EmulatorError> {
-        if ULTRASOUND_PERIOD.as_nanos() % option.time_step.as_nanos() != 0 {
+    ) -> Result<Instant<'a>, EmulatorError> {
+        if !ULTRASOUND_PERIOD
+            .as_nanos()
+            .is_multiple_of(option.time_step.as_nanos())
+        {
             return Err(EmulatorError::InvalidTimeStep);
         }
 
@@ -310,7 +310,7 @@ impl Record {
                 &x,
                 &y,
                 &z,
-                self.records.iter().map(|tr| *tr.tr.position()),
+                self.records.iter().map(|tr| tr.tr.position()),
                 output_ultrasound,
                 frame_window_size,
                 num_points_in_frame,
@@ -321,7 +321,7 @@ impl Record {
                 &x,
                 &y,
                 &z,
-                self.records.iter().map(|tr| *tr.tr.position()),
+                self.records.iter().map(|tr| tr.tr.position()),
                 output_ultrasound,
                 frame_window_size,
                 num_points_in_frame,
@@ -332,7 +332,7 @@ impl Record {
             &x,
             &y,
             &z,
-            self.records.iter().map(|tr| *tr.tr.position()),
+            self.records.iter().map(|tr| tr.tr.position()),
             output_ultrasound,
             frame_window_size,
             num_points_in_frame,

@@ -1,12 +1,10 @@
 use std::time::Duration;
 
-use anyhow::Result;
-
 use autd3::prelude::*;
 use autd3_emulator::*;
 use polars::{io::SerWriter, prelude::CsvWriter};
 
-fn main() -> Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let emulator = Emulator::new([AUTD3 {
         pos: Point3::origin(),
         rot: UnitQuaternion::identity(),
@@ -39,7 +37,6 @@ fn main() -> Result<()> {
             },
             InstantRecordOption {
                 time_step: Duration::from_micros(1),
-                print_progress: true,
                 #[cfg(feature = "gpu")]
                 gpu: true,
                 ..Default::default()
@@ -89,7 +86,6 @@ fn main() -> Result<()> {
             },
             InstantRecordOption {
                 time_step: Duration::from_micros(25) / 10,
-                print_progress: true,
                 #[cfg(feature = "gpu")]
                 gpu: true,
                 ..Default::default()

@@ -2,7 +2,7 @@ use autd3::{driver::common::ULTRASOUND_PERIOD, prelude::*};
 use autd3_emulator::*;
 
 #[test]
-fn record_output_voltage() -> anyhow::Result<()> {
+fn record_output_voltage() -> Result<(), EmulatorError> {
     let emulator = Emulator::new([
         AUTD3 {
             pos: Point3::origin(),
@@ -18,9 +18,9 @@ fn record_output_voltage() -> anyhow::Result<()> {
         autd.send(Silencer::disable())?;
         autd.send(PulseWidthEncoder::new(|_dev| {
             |i| match i {
-                Intensity(0x80) => PulseWidth::new(128).unwrap(),
-                Intensity(0xFF) => PulseWidth::new(256).unwrap(),
-                _ => PulseWidth::new(0).unwrap(),
+                Intensity(0x80) => PulseWidth::new(128),
+                Intensity(0xFF) => PulseWidth::new(256),
+                _ => PulseWidth::new(0),
             }
         }))?;
         autd.send(Uniform {

@@ -1,5 +1,5 @@
 use autd3::driver::{common::ULTRASOUND_PERIOD, error::AUTDDriverError};
-use autd3_core::sampling_config::SamplingConfigError;
+use autd3_core::firmware::SamplingConfigError;
 use thiserror::Error;
 
 /// An interface for error handling in autd3-emulator.
@@ -43,4 +43,8 @@ pub enum EmulatorError {
     #[error("{0}")]
     #[cfg(feature = "gpu")]
     PollError(#[from] wgpu::PollError),
+    #[allow(missing_docs)]
+    #[error("{0}")]
+    #[cfg(feature = "polars")]
+    Polars(#[from] polars::error::PolarsError),
 }

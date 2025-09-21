@@ -1,7 +1,34 @@
-use autd3::driver::geometry::{Point3, Vector3};
-use bvh::aabb::Aabb;
+use autd3::driver::geometry::{Geometry, Point3, Vector3};
 
-fn corners(aabb: &Aabb<f32, 3>) -> Vec<Point3> {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Aabb {
+    pub min: Point3,
+    pub max: Point3,
+}
+
+impl Aabb {
+    pub(crate) fn from_geometry(geo: &Geometry) -> Self {
+        let aabb = Self::empty();
+        geo.iter().fold(aabb, |aabb, dev| {
+            dev.iter().fold(aabb, |aabb, tr| aabb.grow(tr.position()))
+        })
+    }
+
+    pub(crate) fn empty() -> Self {
+        let min = Point3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY);
+        let max = Point3::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY);
+        Self { min, max }
+    }
+
+    pub(crate) fn grow(self, other: Point3) -> Aabb {
+        Aabb {
+            min: self.min.inf(&other),
+            max: self.max.sup(&other),
+        }
+    }
+}
+
+fn corners(aabb: &Aabb) -> Vec<Point3> {
     itertools::iproduct!(
         [aabb.min.x, aabb.max.x],
         [aabb.min.y, aabb.max.y],
@@ -11,14 +38,14 @@ fn corners(aabb: &Aabb<f32, 3>) -> Vec<Point3> {
     .collect()
 }
 
-pub(crate) fn aabb_max_dist(a: &Aabb<f32, 3>, b: &Aabb<f32, 3>) -> f32 {
+pub(crate) fn aabb_max_dist(a: &Aabb, b: &Aabb) -> f32 {
     itertools::iproduct!(corners(a), corners(b))
         .map(|(a, b)| (a - b).norm())
         .max_by(|a, b| a.partial_cmp(b).unwrap())
         .unwrap()
 }
 
-pub(crate) fn aabb_min_dist(a: &Aabb<f32, 3>, b: &Aabb<f32, 3>) -> f32 {
+pub(crate) fn aabb_min_dist(a: &Aabb, b: &Aabb) -> f32 {
     let min = Vector3::from_iterator(a.min.iter().zip(b.min.iter()).map(|(a, b)| a.max(*b)));
     let max = Vector3::from_iterator(a.max.iter().zip(b.max.iter()).map(|(a, b)| a.min(*b)));
     min.iter()
@@ -100,7 +127,7 @@ mod tests {
         ]);
         approx::assert_relative_eq!(
             aabb_max_dist_naive(&geo, &range),
-            aabb_max_dist(&geo.aabb(), &range.aabb())
+            aabb_max_dist(&Aabb::from_geometry(&geo), &range.aabb())
         );
     }
 
@@ -129,7 +156,7 @@ mod tests {
         ]);
         approx::assert_relative_eq!(
             aabb_min_dist_naive(&geo, &range),
-            aabb_min_dist(&geo.aabb(), &range.aabb())
+            aabb_min_dist(&Aabb::from_geometry(&geo), &range.aabb())
         );
     }
 
@@ -163,7 +190,7 @@ mod tests {
             ]);
             approx::assert_abs_diff_eq!(
                 aabb_max_dist_naive(&geo, &range),
-                aabb_max_dist(&geo.aabb(), &range.aabb()),
+                aabb_max_dist(&Aabb::from_geometry(&geo), &range.aabb()),
                 epsilon = 1e-3
             );
         }

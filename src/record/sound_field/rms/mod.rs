@@ -134,7 +134,10 @@ impl Rms {
         time: &mut [u64],
         mut v: impl Iterator<Item = *mut f32>,
     ) -> Result<(), EmulatorError> {
-        if duration.as_nanos() % ULTRASOUND_PERIOD.as_nanos() != 0 {
+        if !duration
+            .as_nanos()
+            .is_multiple_of(ULTRASOUND_PERIOD.as_nanos())
+        {
             return Err(EmulatorError::InvalidDuration);
         }
 
@@ -146,7 +149,6 @@ impl Rms {
 
         if !skip {
             let wavenumber = 2. * PI * ULTRASOUND_FREQ.hz() as f32 / self.option.sound_speed;
-            let pb = self.option.pb(num_frames);
             let mut i = 0;
             while i < num_frames {
                 let cur_frame = self.cursor + i;
@@ -156,7 +158,6 @@ impl Rms {
                     std::ptr::copy_nonoverlapping(r.as_ptr(), v.next().unwrap(), r.len());
                 }
                 i += 1;
-                pb.inc(1);
             }
         }
 
@@ -197,7 +198,7 @@ impl Record {
                 &x,
                 &y,
                 &z,
-                self.records.iter().map(|tr| *tr.tr.position()),
+                self.records.iter().map(|tr| tr.tr.position()),
                 records,
             )?)
         } else {
@@ -205,7 +206,7 @@ impl Record {
                 &x,
                 &y,
                 &z,
-                self.records.iter().map(|tr| *tr.tr.position()),
+                self.records.iter().map(|tr| tr.tr.position()),
                 records,
             ))
         };
@@ -214,7 +215,7 @@ impl Record {
             &x,
             &y,
             &z,
-            self.records.iter().map(|tr| *tr.tr.position()),
+            self.records.iter().map(|tr| tr.tr.position()),
             records,
         ));
 

@@ -3,13 +3,10 @@ mod output_voltage;
 
 use autd3::driver::common::ULTRASOUND_PERIOD;
 
-use derive_more::Debug;
-
 #[derive(Debug)]
 pub(crate) struct TransducerRecord {
     pub(crate) pulse_width: Vec<u16>,
     pub(crate) phase: Vec<u8>,
-    #[debug(skip)]
     pub(crate) tr: autd3::driver::geometry::Transducer,
 }
 

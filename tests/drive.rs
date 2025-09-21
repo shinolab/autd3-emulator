@@ -5,7 +5,7 @@ use polars::{frame::DataFrame, prelude::Column};
 
 #[rstest::rstest]
 #[test]
-fn record_phase() -> anyhow::Result<()> {
+fn record_phase() -> Result<(), EmulatorError> {
     let silencer = Silencer {
         config: Silencer::disable().config,
     };
@@ -72,7 +72,7 @@ fn record_phase() -> anyhow::Result<()> {
 }
 
 #[test]
-fn record_pulse_width() -> anyhow::Result<()> {
+fn record_pulse_width() -> Result<(), EmulatorError> {
     use polars::frame::DataFrame;
 
     let silencer = Silencer {

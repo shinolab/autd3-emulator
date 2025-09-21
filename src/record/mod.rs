@@ -4,8 +4,6 @@ mod sound_field;
 mod transducer;
 
 use autd3::prelude::DcSysTime;
-use derive_more::Debug;
-use getset::CopyGetters;
 #[cfg(feature = "polars")]
 use polars::{frame::DataFrame, prelude::Column};
 
@@ -17,22 +15,30 @@ pub(crate) use transducer::TransducerRecord;
 
 use autd3::driver::firmware::v12_1::fpga::ULTRASOUND_PERIOD_COUNT_BITS;
 
+use crate::utils::aabb::Aabb;
+
 pub(crate) const ULTRASOUND_PERIOD_COUNT: usize = 1 << ULTRASOUND_PERIOD_COUNT_BITS;
 
 /// A record of the ultrasound data.
-#[derive(CopyGetters, Debug)]
+#[derive(Debug)]
 pub struct Record {
     pub(crate) records: Vec<TransducerRecord>,
-    #[getset(get_copy = "pub")]
-    /// The start time of the record.
     pub(crate) start: DcSysTime,
-    #[getset(get_copy = "pub")]
-    /// The end time of the record.
     pub(crate) end: DcSysTime,
-    pub(crate) aabb: bvh::aabb::Aabb<f32, 3>,
+    pub(crate) aabb: Aabb,
 }
 
 impl Record {
+    /// The start time of the record.
+    pub const fn start(&self) -> DcSysTime {
+        self.start
+    }
+
+    /// The end time of the record.
+    pub const fn end(&self) -> DcSysTime {
+        self.end
+    }
+
     #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
     fn drive_rows(&self) -> usize {
@@ -101,5 +107,24 @@ impl Record {
                 .collect::<Vec<_>>(),
         )
         .unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::*;
+
+    #[test]
+    fn test_start_end() {
+        let record = Record {
+            records: vec![],
+            start: DcSysTime::ZERO + Duration::from_nanos(100),
+            end: DcSysTime::ZERO + Duration::from_nanos(200),
+            aabb: Aabb::empty(),
+        };
+        assert_eq!(record.start().sys_time(), 100);
+        assert_eq!(record.end().sys_time(), 200);
     }
 }
