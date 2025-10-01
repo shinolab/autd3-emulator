@@ -283,6 +283,16 @@ impl Emulator {
         }
     }
 
+    #[doc(hidden)]
+    pub const fn geometry(&self) -> &Geometry {
+        &self.geometry
+    }
+
+    #[doc(hidden)]
+    pub fn geometry_mut(&mut self) -> &mut Geometry {
+        &mut self.geometry
+    }
+
     /// Records the sound field.
     ///
     /// # Example
@@ -321,10 +331,8 @@ impl Emulator {
         // Here, we take the geometry from the recorder and clear it.
         // So, calling `Controller::send` cause `failed to confirm response` error after here.
         let mut geometry = {
-            use std::ops::DerefMut;
             let mut tmp = Geometry::new(Vec::new());
-            let geometry: &mut Geometry = recorder.deref_mut();
-            std::mem::swap(&mut tmp, geometry);
+            std::mem::swap(&mut tmp, &mut recorder);
             tmp
         };
         recorder.link_mut().is_open = false;
@@ -510,6 +518,14 @@ mod tests {
         let mut autd = Emulator::new([AUTD3::default()]);
         assert_eq!(1, autd.len());
         autd.reconfigure(|dev| dev);
+        Ok(())
+    }
+
+    #[test]
+    fn geometry() -> Result<(), Box<dyn std::error::Error>> {
+        let mut autd = Emulator::new([AUTD3::default()]);
+        assert_eq!(1, autd.geometry().len());
+        autd.geometry_mut().reconfigure(|dev| dev);
         Ok(())
     }
 }

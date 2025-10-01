@@ -25,6 +25,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-build
+        with:
+          components: "rustfmt, clippy"
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest
@@ -41,5 +43,4 @@ jobs:
           toolchain: nightly
       - run: cargo make doc
       - uses: dtolnay/install@cargo-docs-rs
-      - run: | 
-          cargo +nightly docs-rs
+      - run: cargo +nightly docs-rs
