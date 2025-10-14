@@ -11,8 +11,8 @@ impl Range for Point3 {
 
     fn aabb(&self) -> Aabb {
         Aabb {
-            min: Point3::from(*self),
-            max: Point3::from(*self),
+            min: *self,
+            max: *self,
         }
     }
 }

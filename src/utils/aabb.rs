@@ -29,25 +29,32 @@ impl Aabb {
 }
 
 fn corners(aabb: &Aabb) -> Vec<Point3> {
-    itertools::iproduct!(
-        [aabb.min.x, aabb.max.x],
-        [aabb.min.y, aabb.max.y],
-        [aabb.min.z, aabb.max.z]
-    )
-    .map(|(x, y, z)| Point3::new(x, y, z))
-    .collect()
+    [aabb.min.x, aabb.max.x]
+        .into_iter()
+        .flat_map(move |x| {
+            [aabb.min.y, aabb.max.y].into_iter().flat_map(move |y| {
+                [aabb.min.z, aabb.max.z]
+                    .into_iter()
+                    .map(move |z| Point3::new(x, y, z))
+            })
+        })
+        .collect()
 }
 
 pub(crate) fn aabb_max_dist(a: &Aabb, b: &Aabb) -> f32 {
-    itertools::iproduct!(corners(a), corners(b))
+    let corners_a = corners(a);
+    let corners_b = corners(b);
+    corners_a
+        .into_iter()
+        .flat_map(|a| corners_b.iter().map(move |&b| (a, b)))
         .map(|(a, b)| (a - b).norm())
         .max_by(|a, b| a.partial_cmp(b).unwrap())
         .unwrap()
 }
 
 pub(crate) fn aabb_min_dist(a: &Aabb, b: &Aabb) -> f32 {
-    let min = Vector3::from_iterator(a.min.iter().zip(b.min.iter()).map(|(a, b)| a.max(*b)));
-    let max = Vector3::from_iterator(a.max.iter().zip(b.max.iter()).map(|(a, b)| a.min(*b)));
+    let min = Vector3::from_iterator(a.min.iter().zip(b.min.iter()).map(|(a, b)| a.max(b)));
+    let max = Vector3::from_iterator(a.max.iter().zip(b.max.iter()).map(|(a, b)| a.min(b)));
     min.iter()
         .zip(max.iter())
         .filter(|(min, max)| min > max)

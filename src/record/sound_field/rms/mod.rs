@@ -95,39 +95,35 @@ impl Rms {
         Ok(self)
     }
 
-    #[cfg(feature = "inplace")]
+    // GRCOV_EXCL_START
     #[doc(hidden)]
     pub fn x_inplace(&self, x: &mut [f32]) {
         x.copy_from_slice(&self.x);
     }
 
-    #[cfg(feature = "inplace")]
     #[doc(hidden)]
     pub fn y_inplace(&self, y: &mut [f32]) {
         y.copy_from_slice(&self.y);
     }
 
-    #[cfg(feature = "inplace")]
     #[doc(hidden)]
     pub fn z_inplace(&self, z: &mut [f32]) {
         z.copy_from_slice(&self.z);
     }
+    // GRCOV_EXCL_STOP
 
-    #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
-    fn next_time_len(&self, duration: Duration) -> usize {
+    pub fn next_time_len(&self, duration: Duration) -> usize {
         (duration.as_nanos() / ULTRASOUND_PERIOD.as_nanos()) as usize
     }
 
-    #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
-    fn next_points_len(&self) -> usize {
+    pub fn next_points_len(&self) -> usize {
         self.x.len()
     }
 
-    #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
-    fn next_inplace(
+    pub fn next_inplace(
         &mut self,
         duration: Duration,
         skip: bool,

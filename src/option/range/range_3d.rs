@@ -2,82 +2,343 @@ use crate::utils::aabb::Aabb;
 
 use autd3::driver::geometry::Vector3;
 
-use pastey::paste;
-
 use super::Range;
 
-macro_rules! make_range_3d {
-    ($first:ident, $second:ident, $third:ident) => {
-        paste! {
-            #[doc = concat!("A range of 3D space iterating in the order of ", stringify!($first), "-", stringify!($second), "-", stringify!($third), ".")]
-            #[derive(Clone, Debug)]
-            pub struct [<Range $first:upper $second:upper $third:upper>] {
-                #[doc = concat!("The range of the ", stringify!($first), " axis.")]
-                pub $first: std::ops::RangeInclusive<f32>,
-                #[doc = concat!("The range of the ", stringify!($second), " axis.")]
-                pub $second: std::ops::RangeInclusive<f32>,
-                #[doc = concat!("The range of the ", stringify!($third), " axis.")]
-                pub $third: std::ops::RangeInclusive<f32>,
-                /// The resolution of the range.
-                pub resolution: f32,
-            }
-
-            impl [<Range $first:upper $second:upper $third:upper>] {
-                fn n(range: &std::ops::RangeInclusive<f32>, resolution: f32) -> usize {
-                    ((range.end() - range.start()) / resolution).floor() as usize + 1
-                }
-
-                fn nx(&self) -> usize {
-                    Self::n(&self.x, self.resolution)
-                }
-
-                fn ny(&self) -> usize {
-                    Self::n(&self.y, self.resolution)
-                }
-
-                fn nz(&self) -> usize {
-                    Self::n(&self.z, self.resolution)
-                }
-
-                fn _points(n: usize, start: f32, resolution: f32) -> impl Iterator<Item = f32> + Clone {
-                    (0..n).map(move |i| start + resolution * i as f32)
-                }
-
-                fn points_x(&self) -> impl Iterator<Item = f32> + Clone {
-                    Self::_points(self.nx(), *self.x.start(), self.resolution)
-                }
-
-                fn points_y(&self) -> impl Iterator<Item = f32> + Clone {
-                    Self::_points(self.ny(), *self.y.start(), self.resolution)
-                }
-
-                fn points_z(&self) -> impl Iterator<Item = f32> + Clone {
-                    Self::_points(self.nz(), *self.z.start(), self.resolution)
-                }
-            }
-
-            impl Range for [<Range $first:upper $second:upper $third:upper>] {
-                fn points(&self) -> impl Iterator<Item = (f32, f32, f32)> {
-                    itertools::iproduct!(self.[<points_ $third>](), self.[<points_ $second>](), self.[<points_ $first>]())
-                        .map(|([<p $third>], [<p $second>], [<p $first>])| ([<p x>], [<p y>], [<p z>]))
-                }
-
-                fn aabb(&self) -> Aabb {
-                    let min = Vector3::new(*self.x.start(), *self.y.start(), *self.z.start()).into();
-                    let max = Vector3::new(*self.x.end(), *self.y.end(), *self.z.end()).into();
-                    Aabb { min, max }
-                }
-            }
-        }
-    };
+/// A range of 3D space iterating in the order of x-y-z.
+#[derive(Clone, Debug)]
+pub struct RangeXYZ {
+    /// The range of the x axis.
+    pub x: std::ops::RangeInclusive<f32>,
+    /// The range of the y axis.
+    pub y: std::ops::RangeInclusive<f32>,
+    /// The range of the z axis.
+    pub z: std::ops::RangeInclusive<f32>,
+    /// The resolution of the range.
+    pub resolution: f32,
 }
 
-make_range_3d!(x, y, z);
-make_range_3d!(x, z, y);
-make_range_3d!(y, x, z);
-make_range_3d!(y, z, x);
-make_range_3d!(z, x, y);
-make_range_3d!(z, y, x);
+impl RangeXYZ {
+    fn nx(&self) -> usize {
+        ((self.x.end() - self.x.start()) / self.resolution).floor() as usize + 1
+    }
+
+    fn ny(&self) -> usize {
+        ((self.y.end() - self.y.start()) / self.resolution).floor() as usize + 1
+    }
+
+    fn nz(&self) -> usize {
+        ((self.z.end() - self.z.start()) / self.resolution).floor() as usize + 1
+    }
+}
+
+impl Range for RangeXYZ {
+    fn points(&self) -> impl Iterator<Item = (f32, f32, f32)> {
+        let nx = self.nx();
+        let ny = self.ny();
+        let nz = self.nz();
+        let x_start = *self.x.start();
+        let y_start = *self.y.start();
+        let z_start = *self.z.start();
+        let resolution = self.resolution;
+
+        (0..nz).flat_map(move |iz| {
+            let pz = z_start + resolution * iz as f32;
+            (0..ny).flat_map(move |iy| {
+                let py = y_start + resolution * iy as f32;
+                (0..nx).map(move |ix| {
+                    let px = x_start + resolution * ix as f32;
+                    (px, py, pz)
+                })
+            })
+        })
+    }
+
+    fn aabb(&self) -> Aabb {
+        let min = Vector3::new(*self.x.start(), *self.y.start(), *self.z.start()).into();
+        let max = Vector3::new(*self.x.end(), *self.y.end(), *self.z.end()).into();
+        Aabb { min, max }
+    }
+}
+
+/// A range of 3D space iterating in the order of x-z-y.
+#[derive(Clone, Debug)]
+pub struct RangeXZY {
+    /// The range of the x axis.
+    pub x: std::ops::RangeInclusive<f32>,
+    /// The range of the y axis.
+    pub y: std::ops::RangeInclusive<f32>,
+    /// The range of the z axis.
+    pub z: std::ops::RangeInclusive<f32>,
+    /// The resolution of the range.
+    pub resolution: f32,
+}
+
+impl RangeXZY {
+    fn nx(&self) -> usize {
+        ((self.x.end() - self.x.start()) / self.resolution).floor() as usize + 1
+    }
+
+    fn ny(&self) -> usize {
+        ((self.y.end() - self.y.start()) / self.resolution).floor() as usize + 1
+    }
+
+    fn nz(&self) -> usize {
+        ((self.z.end() - self.z.start()) / self.resolution).floor() as usize + 1
+    }
+}
+
+impl Range for RangeXZY {
+    fn points(&self) -> impl Iterator<Item = (f32, f32, f32)> {
+        let nx = self.nx();
+        let ny = self.ny();
+        let nz = self.nz();
+        let x_start = *self.x.start();
+        let y_start = *self.y.start();
+        let z_start = *self.z.start();
+        let resolution = self.resolution;
+
+        (0..ny).flat_map(move |iy| {
+            let py = y_start + resolution * iy as f32;
+            (0..nz).flat_map(move |iz| {
+                let pz = z_start + resolution * iz as f32;
+                (0..nx).map(move |ix| {
+                    let px = x_start + resolution * ix as f32;
+                    (px, py, pz)
+                })
+            })
+        })
+    }
+
+    fn aabb(&self) -> Aabb {
+        let min = Vector3::new(*self.x.start(), *self.y.start(), *self.z.start()).into();
+        let max = Vector3::new(*self.x.end(), *self.y.end(), *self.z.end()).into();
+        Aabb { min, max }
+    }
+}
+
+/// A range of 3D space iterating in the order of y-x-z.
+#[derive(Clone, Debug)]
+pub struct RangeYXZ {
+    /// The range of the x axis.
+    pub x: std::ops::RangeInclusive<f32>,
+    /// The range of the y axis.
+    pub y: std::ops::RangeInclusive<f32>,
+    /// The range of the z axis.
+    pub z: std::ops::RangeInclusive<f32>,
+    /// The resolution of the range.
+    pub resolution: f32,
+}
+
+impl RangeYXZ {
+    fn nx(&self) -> usize {
+        ((self.x.end() - self.x.start()) / self.resolution).floor() as usize + 1
+    }
+
+    fn ny(&self) -> usize {
+        ((self.y.end() - self.y.start()) / self.resolution).floor() as usize + 1
+    }
+
+    fn nz(&self) -> usize {
+        ((self.z.end() - self.z.start()) / self.resolution).floor() as usize + 1
+    }
+}
+
+impl Range for RangeYXZ {
+    fn points(&self) -> impl Iterator<Item = (f32, f32, f32)> {
+        let nx = self.nx();
+        let ny = self.ny();
+        let nz = self.nz();
+        let x_start = *self.x.start();
+        let y_start = *self.y.start();
+        let z_start = *self.z.start();
+        let resolution = self.resolution;
+
+        (0..nz).flat_map(move |iz| {
+            let pz = z_start + resolution * iz as f32;
+            (0..nx).flat_map(move |ix| {
+                let px = x_start + resolution * ix as f32;
+                (0..ny).map(move |iy| {
+                    let py = y_start + resolution * iy as f32;
+                    (px, py, pz)
+                })
+            })
+        })
+    }
+
+    fn aabb(&self) -> Aabb {
+        let min = Vector3::new(*self.x.start(), *self.y.start(), *self.z.start()).into();
+        let max = Vector3::new(*self.x.end(), *self.y.end(), *self.z.end()).into();
+        Aabb { min, max }
+    }
+}
+
+/// A range of 3D space iterating in the order of y-z-x.
+#[derive(Clone, Debug)]
+pub struct RangeYZX {
+    /// The range of the x axis.
+    pub x: std::ops::RangeInclusive<f32>,
+    /// The range of the y axis.
+    pub y: std::ops::RangeInclusive<f32>,
+    /// The range of the z axis.
+    pub z: std::ops::RangeInclusive<f32>,
+    /// The resolution of the range.
+    pub resolution: f32,
+}
+
+impl RangeYZX {
+    fn nx(&self) -> usize {
+        ((self.x.end() - self.x.start()) / self.resolution).floor() as usize + 1
+    }
+
+    fn ny(&self) -> usize {
+        ((self.y.end() - self.y.start()) / self.resolution).floor() as usize + 1
+    }
+
+    fn nz(&self) -> usize {
+        ((self.z.end() - self.z.start()) / self.resolution).floor() as usize + 1
+    }
+}
+
+impl Range for RangeYZX {
+    fn points(&self) -> impl Iterator<Item = (f32, f32, f32)> {
+        let nx = self.nx();
+        let ny = self.ny();
+        let nz = self.nz();
+        let x_start = *self.x.start();
+        let y_start = *self.y.start();
+        let z_start = *self.z.start();
+        let resolution = self.resolution;
+
+        (0..nx).flat_map(move |ix| {
+            let px = x_start + resolution * ix as f32;
+            (0..nz).flat_map(move |iz| {
+                let pz = z_start + resolution * iz as f32;
+                (0..ny).map(move |iy| {
+                    let py = y_start + resolution * iy as f32;
+                    (px, py, pz)
+                })
+            })
+        })
+    }
+
+    fn aabb(&self) -> Aabb {
+        let min = Vector3::new(*self.x.start(), *self.y.start(), *self.z.start()).into();
+        let max = Vector3::new(*self.x.end(), *self.y.end(), *self.z.end()).into();
+        Aabb { min, max }
+    }
+}
+
+/// A range of 3D space iterating in the order of z-x-y.
+#[derive(Clone, Debug)]
+pub struct RangeZXY {
+    /// The range of the x axis.
+    pub x: std::ops::RangeInclusive<f32>,
+    /// The range of the y axis.
+    pub y: std::ops::RangeInclusive<f32>,
+    /// The range of the z axis.
+    pub z: std::ops::RangeInclusive<f32>,
+    /// The resolution of the range.
+    pub resolution: f32,
+}
+
+impl RangeZXY {
+    fn nx(&self) -> usize {
+        ((self.x.end() - self.x.start()) / self.resolution).floor() as usize + 1
+    }
+
+    fn ny(&self) -> usize {
+        ((self.y.end() - self.y.start()) / self.resolution).floor() as usize + 1
+    }
+
+    fn nz(&self) -> usize {
+        ((self.z.end() - self.z.start()) / self.resolution).floor() as usize + 1
+    }
+}
+
+impl Range for RangeZXY {
+    fn points(&self) -> impl Iterator<Item = (f32, f32, f32)> {
+        let nx = self.nx();
+        let ny = self.ny();
+        let nz = self.nz();
+        let x_start = *self.x.start();
+        let y_start = *self.y.start();
+        let z_start = *self.z.start();
+        let resolution = self.resolution;
+
+        (0..ny).flat_map(move |iy| {
+            let py = y_start + resolution * iy as f32;
+            (0..nx).flat_map(move |ix| {
+                let px = x_start + resolution * ix as f32;
+                (0..nz).map(move |iz| {
+                    let pz = z_start + resolution * iz as f32;
+                    (px, py, pz)
+                })
+            })
+        })
+    }
+
+    fn aabb(&self) -> Aabb {
+        let min = Vector3::new(*self.x.start(), *self.y.start(), *self.z.start()).into();
+        let max = Vector3::new(*self.x.end(), *self.y.end(), *self.z.end()).into();
+        Aabb { min, max }
+    }
+}
+
+/// A range of 3D space iterating in the order of z-y-x.
+#[derive(Clone, Debug)]
+pub struct RangeZYX {
+    /// The range of the x axis.
+    pub x: std::ops::RangeInclusive<f32>,
+    /// The range of the y axis.
+    pub y: std::ops::RangeInclusive<f32>,
+    /// The range of the z axis.
+    pub z: std::ops::RangeInclusive<f32>,
+    /// The resolution of the range.
+    pub resolution: f32,
+}
+
+impl RangeZYX {
+    fn nx(&self) -> usize {
+        ((self.x.end() - self.x.start()) / self.resolution).floor() as usize + 1
+    }
+
+    fn ny(&self) -> usize {
+        ((self.y.end() - self.y.start()) / self.resolution).floor() as usize + 1
+    }
+
+    fn nz(&self) -> usize {
+        ((self.z.end() - self.z.start()) / self.resolution).floor() as usize + 1
+    }
+}
+
+impl Range for RangeZYX {
+    fn points(&self) -> impl Iterator<Item = (f32, f32, f32)> {
+        let nx = self.nx();
+        let ny = self.ny();
+        let nz = self.nz();
+        let x_start = *self.x.start();
+        let y_start = *self.y.start();
+        let z_start = *self.z.start();
+        let resolution = self.resolution;
+
+        (0..nx).flat_map(move |ix| {
+            let px = x_start + resolution * ix as f32;
+            (0..ny).flat_map(move |iy| {
+                let py = y_start + resolution * iy as f32;
+                (0..nz).map(move |iz| {
+                    let pz = z_start + resolution * iz as f32;
+                    (px, py, pz)
+                })
+            })
+        })
+    }
+
+    fn aabb(&self) -> Aabb {
+        let min = Vector3::new(*self.x.start(), *self.y.start(), *self.z.start()).into();
+        let max = Vector3::new(*self.x.end(), *self.y.end(), *self.z.end()).into();
+        Aabb { min, max }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -144,5 +405,227 @@ mod tests {
     #[case((vec![0., 0., 0., 0., 1., 1., 1., 1.], vec![0., 0., 1., 1., 0., 0., 1., 1.], vec![0., 1., 0., 1., 0., 1., 0., 1.]), RangeZYX { x:0.0..=1., y:0.0..=1., z:0.0..=1., resolution:1. })]
     fn test_points(#[case] expected: (Vec<f32>, Vec<f32>, Vec<f32>), #[case] range: impl Range) {
         assert_eq!(expected, range.points().collect());
+    }
+
+    #[test]
+    fn test_aabb() {
+        let range = RangeXYZ {
+            x: 0.0..=10.,
+            y: 5.0..=15.,
+            z: 3.0..=8.,
+            resolution: 1.,
+        };
+        let aabb = range.aabb();
+        assert_eq!(aabb.min.x, 0.0);
+        assert_eq!(aabb.min.y, 5.0);
+        assert_eq!(aabb.min.z, 3.0);
+        assert_eq!(aabb.max.x, 10.0);
+        assert_eq!(aabb.max.y, 15.0);
+        assert_eq!(aabb.max.z, 8.0);
+    }
+
+    #[test]
+    fn test_aabb_xzy() {
+        let range = RangeXZY {
+            x: 0.0..=10.,
+            y: 5.0..=15.,
+            z: 3.0..=8.,
+            resolution: 1.,
+        };
+        let aabb = range.aabb();
+        assert_eq!(aabb.min.x, 0.0);
+        assert_eq!(aabb.min.y, 5.0);
+        assert_eq!(aabb.min.z, 3.0);
+        assert_eq!(aabb.max.x, 10.0);
+        assert_eq!(aabb.max.y, 15.0);
+        assert_eq!(aabb.max.z, 8.0);
+    }
+
+    #[test]
+    fn test_aabb_yxz() {
+        let range = RangeYXZ {
+            x: 0.0..=10.,
+            y: 5.0..=15.,
+            z: 3.0..=8.,
+            resolution: 1.,
+        };
+        let aabb = range.aabb();
+        assert_eq!(aabb.min.x, 0.0);
+        assert_eq!(aabb.min.y, 5.0);
+        assert_eq!(aabb.min.z, 3.0);
+        assert_eq!(aabb.max.x, 10.0);
+        assert_eq!(aabb.max.y, 15.0);
+        assert_eq!(aabb.max.z, 8.0);
+    }
+
+    #[test]
+    fn test_aabb_yzx() {
+        let range = RangeYZX {
+            x: 0.0..=10.,
+            y: 5.0..=15.,
+            z: 3.0..=8.,
+            resolution: 1.,
+        };
+        let aabb = range.aabb();
+        assert_eq!(aabb.min.x, 0.0);
+        assert_eq!(aabb.min.y, 5.0);
+        assert_eq!(aabb.min.z, 3.0);
+        assert_eq!(aabb.max.x, 10.0);
+        assert_eq!(aabb.max.y, 15.0);
+        assert_eq!(aabb.max.z, 8.0);
+    }
+
+    #[test]
+    fn test_aabb_zxy() {
+        let range = RangeZXY {
+            x: 0.0..=10.,
+            y: 5.0..=15.,
+            z: 3.0..=8.,
+            resolution: 1.,
+        };
+        let aabb = range.aabb();
+        assert_eq!(aabb.min.x, 0.0);
+        assert_eq!(aabb.min.y, 5.0);
+        assert_eq!(aabb.min.z, 3.0);
+        assert_eq!(aabb.max.x, 10.0);
+        assert_eq!(aabb.max.y, 15.0);
+        assert_eq!(aabb.max.z, 8.0);
+    }
+
+    #[test]
+    fn test_aabb_zyx() {
+        let range = RangeZYX {
+            x: 0.0..=10.,
+            y: 3.0..=8.,
+            z: 5.0..=7.,
+            resolution: 1.,
+        };
+        let aabb = range.aabb();
+        assert_eq!(aabb.min.x, 0.0);
+        assert_eq!(aabb.min.y, 3.0);
+        assert_eq!(aabb.min.z, 5.0);
+        assert_eq!(aabb.max.x, 10.0);
+        assert_eq!(aabb.max.y, 8.0);
+        assert_eq!(aabb.max.z, 7.0);
+    }
+
+    #[test]
+    fn test_range_xyz_iterator() {
+        let range = RangeXYZ {
+            x: 0.0..=1.0,
+            y: 0.0..=1.0,
+            z: 0.0..=1.0,
+            resolution: 1.0,
+        };
+        let mut iter = range.points();
+        assert_eq!(iter.next(), Some((0.0, 0.0, 0.0)));
+        assert_eq!(iter.next(), Some((1.0, 0.0, 0.0)));
+        assert_eq!(iter.next(), Some((0.0, 1.0, 0.0)));
+        assert_eq!(iter.next(), Some((1.0, 1.0, 0.0)));
+        assert_eq!(iter.next(), Some((0.0, 0.0, 1.0)));
+        assert_eq!(iter.next(), Some((1.0, 0.0, 1.0)));
+        assert_eq!(iter.next(), Some((0.0, 1.0, 1.0)));
+        assert_eq!(iter.next(), Some((1.0, 1.0, 1.0)));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn test_range_xzy_iterator() {
+        let range = RangeXZY {
+            x: 0.0..=1.0,
+            y: 0.0..=1.0,
+            z: 0.0..=1.0,
+            resolution: 1.0,
+        };
+        let mut iter = range.points();
+        assert_eq!(iter.next(), Some((0.0, 0.0, 0.0)));
+        assert_eq!(iter.next(), Some((1.0, 0.0, 0.0)));
+        assert_eq!(iter.next(), Some((0.0, 0.0, 1.0)));
+        assert_eq!(iter.next(), Some((1.0, 0.0, 1.0)));
+        assert_eq!(iter.next(), Some((0.0, 1.0, 0.0)));
+        assert_eq!(iter.next(), Some((1.0, 1.0, 0.0)));
+        assert_eq!(iter.next(), Some((0.0, 1.0, 1.0)));
+        assert_eq!(iter.next(), Some((1.0, 1.0, 1.0)));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn test_range_yxz_iterator() {
+        let range = RangeYXZ {
+            x: 0.0..=1.0,
+            y: 0.0..=1.0,
+            z: 0.0..=1.0,
+            resolution: 1.0,
+        };
+        let mut iter = range.points();
+        assert_eq!(iter.next(), Some((0.0, 0.0, 0.0)));
+        assert_eq!(iter.next(), Some((0.0, 1.0, 0.0)));
+        assert_eq!(iter.next(), Some((1.0, 0.0, 0.0)));
+        assert_eq!(iter.next(), Some((1.0, 1.0, 0.0)));
+        assert_eq!(iter.next(), Some((0.0, 0.0, 1.0)));
+        assert_eq!(iter.next(), Some((0.0, 1.0, 1.0)));
+        assert_eq!(iter.next(), Some((1.0, 0.0, 1.0)));
+        assert_eq!(iter.next(), Some((1.0, 1.0, 1.0)));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn test_range_yzx_iterator() {
+        let range = RangeYZX {
+            x: 0.0..=1.0,
+            y: 0.0..=1.0,
+            z: 0.0..=1.0,
+            resolution: 1.0,
+        };
+        let mut iter = range.points();
+        assert_eq!(iter.next(), Some((0.0, 0.0, 0.0)));
+        assert_eq!(iter.next(), Some((0.0, 1.0, 0.0)));
+        assert_eq!(iter.next(), Some((0.0, 0.0, 1.0)));
+        assert_eq!(iter.next(), Some((0.0, 1.0, 1.0)));
+        assert_eq!(iter.next(), Some((1.0, 0.0, 0.0)));
+        assert_eq!(iter.next(), Some((1.0, 1.0, 0.0)));
+        assert_eq!(iter.next(), Some((1.0, 0.0, 1.0)));
+        assert_eq!(iter.next(), Some((1.0, 1.0, 1.0)));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn test_range_zxy_iterator() {
+        let range = RangeZXY {
+            x: 0.0..=1.0,
+            y: 0.0..=1.0,
+            z: 0.0..=1.0,
+            resolution: 1.0,
+        };
+        let mut iter = range.points();
+        assert_eq!(iter.next(), Some((0.0, 0.0, 0.0)));
+        assert_eq!(iter.next(), Some((0.0, 0.0, 1.0)));
+        assert_eq!(iter.next(), Some((1.0, 0.0, 0.0)));
+        assert_eq!(iter.next(), Some((1.0, 0.0, 1.0)));
+        assert_eq!(iter.next(), Some((0.0, 1.0, 0.0)));
+        assert_eq!(iter.next(), Some((0.0, 1.0, 1.0)));
+        assert_eq!(iter.next(), Some((1.0, 1.0, 0.0)));
+        assert_eq!(iter.next(), Some((1.0, 1.0, 1.0)));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn test_range_zyx_iterator() {
+        let range = RangeZYX {
+            x: 0.0..=1.0,
+            y: 0.0..=1.0,
+            z: 0.0..=1.0,
+            resolution: 1.0,
+        };
+        let mut iter = range.points();
+        assert_eq!(iter.next(), Some((0.0, 0.0, 0.0)));
+        assert_eq!(iter.next(), Some((0.0, 0.0, 1.0)));
+        assert_eq!(iter.next(), Some((0.0, 1.0, 0.0)));
+        assert_eq!(iter.next(), Some((0.0, 1.0, 1.0)));
+        assert_eq!(iter.next(), Some((1.0, 0.0, 0.0)));
+        assert_eq!(iter.next(), Some((1.0, 0.0, 1.0)));
+        assert_eq!(iter.next(), Some((1.0, 1.0, 0.0)));
+        assert_eq!(iter.next(), Some((1.0, 1.0, 1.0)));
+        assert_eq!(iter.next(), None);
     }
 }

@@ -1,5 +1,6 @@
 use autd3::{driver::geometry::Complex, prelude::Point3};
 
+#[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
 use super::RmsTransducerRecord;
@@ -20,12 +21,15 @@ impl Cpu {
         records: Vec<RmsTransducerRecord>,
     ) -> Self {
         let transducer_positions = transducer_positions.collect::<Vec<_>>();
-        let dists = itertools::izip!(x.iter(), y.iter(), z.iter())
-            .map(|(&x, &y, &z)| Point3::new(x, y, z))
+        let dists = x
+            .iter()
+            .zip(y.iter())
+            .zip(z.iter())
+            .map(|((&x, &y), &z)| Point3::new(x, y, z))
             .map(|p| {
                 transducer_positions
                     .iter()
-                    .map(|tp| (p - tp).norm())
+                    .map(|tp| (p - *tp).norm())
                     .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();
@@ -37,18 +41,41 @@ impl Cpu {
     }
 
     pub(crate) fn compute(&mut self, idx: usize, wavenumber: f32) -> &Vec<f32> {
-        self.dists
-            .par_iter()
-            .map(|d| {
-                d.iter()
-                    .zip(self.records.iter())
-                    .map(|(dist, tr)| {
-                        Complex::from_polar(tr.amp[idx] / dist, wavenumber * dist + tr.phase[idx])
-                    })
-                    .sum::<Complex>()
-                    .norm()
-            })
-            .collect_into_vec(&mut self.buffer);
+        #[cfg(feature = "parallel")]
+        {
+            self.dists
+                .par_iter()
+                .map(|d| {
+                    d.iter()
+                        .zip(self.records.iter())
+                        .map(|(dist, tr)| {
+                            let r = tr.amp[idx] / dist;
+                            let theta = wavenumber * dist + tr.phase[idx];
+                            Complex::new(r * theta.cos(), r * theta.sin())
+                        })
+                        .sum::<Complex>()
+                        .norm()
+                })
+                .collect_into_vec(&mut self.buffer);
+        }
+        #[cfg(not(feature = "parallel"))]
+        {
+            self.buffer = self
+                .dists
+                .iter()
+                .map(|d| {
+                    d.iter()
+                        .zip(self.records.iter())
+                        .map(|(dist, tr)| {
+                            let r = tr.amp[idx] / dist;
+                            let theta = wavenumber * dist + tr.phase[idx];
+                            Complex::new(r * theta.cos(), r * theta.sin())
+                        })
+                        .sum::<Complex>()
+                        .norm()
+                })
+                .collect();
+        }
         &self.buffer
     }
 }
