@@ -4,6 +4,8 @@ mod sound_field;
 mod transducer;
 
 use autd3::prelude::DcSysTime;
+use autd3_core::firmware::ULTRASOUND_PERIOD_COUNT_BITS;
+
 #[cfg(feature = "polars")]
 use polars::{frame::DataFrame, prelude::Column};
 
@@ -12,8 +14,6 @@ pub use sound_field::{
     rms::{Rms, RmsRecordOption},
 };
 pub(crate) use transducer::TransducerRecord;
-
-use autd3::driver::firmware::v12_1::fpga::ULTRASOUND_PERIOD_COUNT_BITS;
 
 use crate::utils::aabb::Aabb;
 
