@@ -1,4 +1,7 @@
-use std::borrow::Cow;
+use std::{
+    borrow::Cow,
+    sync::{Arc, Condvar, Mutex},
+};
 
 use crate::EmulatorError;
 
@@ -63,8 +66,11 @@ impl Gpu {
     ) -> Result<Self, EmulatorError> {
         let stride = records[0].amp.len();
 
-        let target_pos = itertools::izip!(x.iter(), y.iter(), z.iter())
-            .map(|(&x, &y, &z)| Vec3 { x, y, z, _pad: 0. })
+        let target_pos = x
+            .iter()
+            .zip(y.iter())
+            .zip(z.iter())
+            .map(|((&x, &y), &z)| Vec3 { x, y, z, _pad: 0. })
             .collect::<Vec<_>>();
         let transducer_pos = transducer_positions.map(Vec3::from).collect::<Vec<_>>();
 
@@ -76,11 +82,12 @@ impl Gpu {
 
         let instance = wgpu::Instance::default();
 
-        let adapter =
-            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))?;
+        let adapter = crate::utils::executor::block_on(
+            instance.request_adapter(&wgpu::RequestAdapterOptions::default()),
+        )?;
 
         let (device, queue) =
-            pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+            crate::utils::executor::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
                 label: None,
                 required_features: wgpu::Features::PUSH_CONSTANTS,
                 required_limits: wgpu::Limits {
@@ -92,6 +99,7 @@ impl Gpu {
                 },
                 memory_hints: wgpu::MemoryHints::MemoryUsage,
                 trace: wgpu::Trace::Off,
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
             }))?;
 
         let cs_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -297,12 +305,24 @@ impl Gpu {
         self.queue.submit(Some(encoder.finish()));
 
         let buffer_slice = self.buf_staging_dst.slice(..);
-        let (sender, receiver) = flume::bounded(1);
-        buffer_slice.map_async(wgpu::MapMode::Read, move |r| sender.send(r).unwrap());
+        let pair = Arc::new((Mutex::new(false), Condvar::new()));
+        let pair2 = Arc::clone(&pair);
+        buffer_slice.map_async(wgpu::MapMode::Read, move |_| {
+            let (lock, cvar) = &*pair2;
+            let mut started = lock.lock().unwrap();
+            *started = true;
+            cvar.notify_one();
+        });
         self.device
-            .poll(wgpu::PollType::Wait)
+            .poll(wgpu::PollType::wait_indefinitely())
             .expect("failed to poll device");
-        receiver.recv()??;
+        let (lock, cvar) = &*pair;
+        let mut started = lock.lock().unwrap();
+        // GRCOV_EXCL_START
+        while !*started {
+            started = cvar.wait(started).unwrap();
+        }
+        // GRCOV_EXCL_STOP
         {
             let data = buffer_slice.get_mapped_range();
             self.buffer.copy_from_slice(bytemuck::cast_slice(&data));

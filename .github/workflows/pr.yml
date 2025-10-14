@@ -37,8 +37,6 @@ jobs:
           - os: ubuntu-latest
           - os: macos-latest
             features: "gpu"
-          - os: ubuntu-latest
-            features: "inplace"
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-build
@@ -49,6 +47,21 @@ jobs:
           tool: cargo-nextest
       - run: cargo make check --features "${{ matrix.features }}"
         shell: bash
+
+  test-for-capi:
+    needs: changed-files
+    if: ${{ needs.changed-files.outputs.src == 'true' }}
+    name: test-for-capi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-build
+        with:
+          components: "rustfmt, clippy"
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - run: cargo make build --no-default-features
 
   all-tests-passed:
     if: ${{ always() }}
@@ -76,6 +89,7 @@ jobs:
   auto-merge:
     needs:
       - all-tests-passed
+      - test-for-capi
       - build-docs
     permissions:
       pull-requests: write

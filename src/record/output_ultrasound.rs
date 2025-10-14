@@ -6,9 +6,8 @@ use crate::record::ULTRASOUND_PERIOD_COUNT;
 use super::Record;
 
 impl Record {
-    #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
-    fn output_ultrasound_inplace(&self, mut v: impl Iterator<Item = *mut f32>) {
+    pub fn output_ultrasound_inplace(&self, mut v: impl Iterator<Item = *mut f32>) {
         let cols = self.drive_cols();
         let rows = self.drive_rows();
 

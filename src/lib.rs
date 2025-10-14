@@ -56,7 +56,7 @@ pub(crate) struct RawRecord {
 struct NopSleeper;
 
 impl autd3_core::sleep::Sleeper for NopSleeper {
-    fn sleep(&self, _duration: Duration) {}
+    fn sleep(&self, _duration: Duration) {} // GRCOV_EXCL_LINE
 }
 
 /// A recorder for the sound field.
@@ -412,31 +412,27 @@ impl Emulator {
         self.geometry.iter().flat_map(|dev| dev.iter())
     }
 
-    #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
-    fn transducer_table_rows(&self) -> usize {
+    pub fn transducer_table_rows(&self) -> usize {
         self.geometry.num_transducers()
     }
 
-    #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
-    fn dev_indices_inplace(&self, dev_indices: &mut [u16]) {
+    pub fn dev_indices_inplace(&self, dev_indices: &mut [u16]) {
         self.transducers()
             .zip(dev_indices.iter_mut())
             .for_each(|(tr, dst)| *dst = tr.dev_idx() as u16);
     }
 
-    #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
-    fn tr_indices_inplace(&self, tr_indices: &mut [u8]) {
+    pub fn tr_indices_inplace(&self, tr_indices: &mut [u8]) {
         self.transducers()
             .zip(tr_indices.iter_mut())
             .for_each(|(tr, dst)| *dst = tr.idx() as u8);
     }
 
-    #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
-    fn tr_positions_inplace(&self, x: &mut [f32], y: &mut [f32], z: &mut [f32]) {
+    pub fn tr_positions_inplace(&self, x: &mut [f32], y: &mut [f32], z: &mut [f32]) {
         self.transducers()
             .zip(x.iter_mut())
             .zip(y.iter_mut())
@@ -448,9 +444,8 @@ impl Emulator {
             });
     }
 
-    #[cfg_attr(feature = "inplace", visibility::make(pub))]
     #[doc(hidden)]
-    fn tr_dir_inplace(&self, x: &mut [f32], y: &mut [f32], z: &mut [f32]) {
+    pub fn tr_dir_inplace(&self, x: &mut [f32], y: &mut [f32], z: &mut [f32]) {
         self.transducers()
             .zip(x.iter_mut())
             .zip(y.iter_mut())

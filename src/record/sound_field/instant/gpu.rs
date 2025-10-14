@@ -1,4 +1,9 @@
-use std::{borrow::Cow, collections::VecDeque, time::Duration};
+use std::{
+    borrow::Cow,
+    collections::VecDeque,
+    sync::{Arc, Condvar, Mutex},
+    time::Duration,
+};
 
 use crate::{
     EmulatorError,
@@ -8,6 +13,7 @@ use crate::{
 use autd3::prelude::Point3;
 
 use bytemuck::NoUninit;
+#[cfg(feature = "parallel")]
 use rayon::prelude::*;
 use wgpu::{Buffer, BufferAddress, util::DeviceExt};
 
@@ -75,8 +81,11 @@ impl<'a> Gpu<'a> {
         num_points_in_frame: usize,
         cache_size: isize,
     ) -> Result<Self, EmulatorError> {
-        let target_pos = itertools::izip!(x.iter(), y.iter(), z.iter())
-            .map(|(&x, &y, &z)| Vec3 { x, y, z, _pad: 0. })
+        let target_pos = x
+            .iter()
+            .zip(y.iter())
+            .zip(z.iter())
+            .map(|((&x, &y), &z)| Vec3 { x, y, z, _pad: 0. })
             .collect::<Vec<_>>();
         let transducer_pos = transducer_positions.map(Vec3::from).collect::<Vec<_>>();
 
@@ -90,10 +99,11 @@ impl<'a> Gpu<'a> {
 
         let instance = wgpu::Instance::default();
 
-        let adapter =
-            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))?;
+        let adapter = crate::utils::executor::block_on(
+            instance.request_adapter(&wgpu::RequestAdapterOptions::default()),
+        )?;
 
-        let (device, queue) = pollster::block_on(
+        let (device, queue) = crate::utils::executor::block_on(
             adapter.request_device(&wgpu::DeviceDescriptor {
                 label: None,
                 required_features: wgpu::Features::PUSH_CONSTANTS,
@@ -108,6 +118,7 @@ impl<'a> Gpu<'a> {
                 },
                 memory_hints: wgpu::MemoryHints::MemoryUsage,
                 trace: wgpu::Trace::Off,
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
             }),
         )?;
 
@@ -265,22 +276,44 @@ impl<'a> Gpu<'a> {
 
     pub(crate) fn init(&mut self, cache_size: isize, cursor: &mut isize, rem_frame: &mut usize) {
         if self.output_ultrasound_cache.is_empty() {
-            self.output_ultrasound_cache = self
-                .output_ultrasound
-                .par_iter_mut()
-                .map(|ut| {
-                    (0..cache_size)
-                        .flat_map(|i| {
-                            if *cursor + i >= 0 {
-                                ut._next(1)
-                                    .unwrap_or_else(|| vec![0.; ULTRASOUND_PERIOD_COUNT])
-                            } else {
-                                vec![0.; ULTRASOUND_PERIOD_COUNT]
-                            }
-                        })
-                        .collect()
-                })
-                .collect();
+            #[cfg(feature = "parallel")]
+            {
+                self.output_ultrasound_cache = self
+                    .output_ultrasound
+                    .par_iter_mut()
+                    .map(|ut| {
+                        (0..cache_size)
+                            .flat_map(|i| {
+                                if *cursor + i >= 0 {
+                                    ut._next(1)
+                                        .unwrap_or_else(|| vec![0.; ULTRASOUND_PERIOD_COUNT])
+                                } else {
+                                    vec![0.; ULTRASOUND_PERIOD_COUNT]
+                                }
+                            })
+                            .collect()
+                    })
+                    .collect();
+            }
+            #[cfg(not(feature = "parallel"))]
+            {
+                self.output_ultrasound_cache = self
+                    .output_ultrasound
+                    .iter_mut()
+                    .map(|ut| {
+                        (0..cache_size)
+                            .flat_map(|i| {
+                                if *cursor + i >= 0 {
+                                    ut._next(1)
+                                        .unwrap_or_else(|| vec![0.; ULTRASOUND_PERIOD_COUNT])
+                                } else {
+                                    vec![0.; ULTRASOUND_PERIOD_COUNT]
+                                }
+                            })
+                            .collect()
+                    })
+                    .collect();
+            }
             *cursor += cache_size;
             *rem_frame = self.frame_window_size;
             self.update_buf_output_ultrasound = true;
@@ -305,31 +338,62 @@ impl<'a> Gpu<'a> {
                 (c + self.frame_window_size as isize) as usize
             }
         };
-        self.output_ultrasound_cache
-            .iter_mut()
-            .zip(self.output_ultrasound.iter_mut())
-            .par_bridge()
-            .for_each(|(cache, output_ultrasound)| {
-                drop(cache.drain(0..ULTRASOUND_PERIOD_COUNT * n));
-                (0..n).for_each(|_| {
-                    cache.extend(
-                        output_ultrasound
-                            ._next(1)
-                            .unwrap_or_else(|| vec![0.; ULTRASOUND_PERIOD_COUNT]),
-                    );
-                })
-            });
+        #[cfg(feature = "parallel")]
+        {
+            self.output_ultrasound_cache
+                .iter_mut()
+                .zip(self.output_ultrasound.iter_mut())
+                .par_bridge()
+                .for_each(|(cache, output_ultrasound)| {
+                    drop(cache.drain(0..ULTRASOUND_PERIOD_COUNT * n));
+                    (0..n).for_each(|_| {
+                        cache.extend(
+                            output_ultrasound
+                                ._next(1)
+                                .unwrap_or_else(|| vec![0.; ULTRASOUND_PERIOD_COUNT]),
+                        );
+                    })
+                });
+        }
+        #[cfg(not(feature = "parallel"))]
+        {
+            self.output_ultrasound_cache
+                .iter_mut()
+                .zip(self.output_ultrasound.iter_mut())
+                .for_each(|(cache, output_ultrasound)| {
+                    drop(cache.drain(0..ULTRASOUND_PERIOD_COUNT * n));
+                    (0..n).for_each(|_| {
+                        cache.extend(
+                            output_ultrasound
+                                ._next(1)
+                                .unwrap_or_else(|| vec![0.; ULTRASOUND_PERIOD_COUNT]),
+                        );
+                    })
+                });
+        }
         *cursor += self.frame_window_size as isize;
     }
 
     fn copy_output_ultrasound(&self) -> Result<(), EmulatorError> {
         let buffer_slice = self.buf_staging_output_ultrasound.slice(..);
-        let (sender, receiver) = flume::bounded(1);
-        buffer_slice.map_async(wgpu::MapMode::Write, move |r| sender.send(r).unwrap());
+        let pair = Arc::new((Mutex::new(false), Condvar::new()));
+        let pair2 = Arc::clone(&pair);
+        buffer_slice.map_async(wgpu::MapMode::Write, move |_| {
+            let (lock, cvar) = &*pair2;
+            let mut started = lock.lock().unwrap();
+            *started = true;
+            cvar.notify_one();
+        });
         self.device
-            .poll(wgpu::PollType::Wait)
+            .poll(wgpu::PollType::wait_indefinitely())
             .expect("failed to poll device");
-        receiver.recv()??;
+        let (lock, cvar) = &*pair;
+        let mut started = lock.lock().unwrap();
+        // GRCOV_EXCL_START
+        while !*started {
+            started = cvar.wait(started).unwrap();
+        }
+        // GRCOV_EXCL_STOP
         let src = self
             .output_ultrasound_cache
             .iter()
@@ -399,12 +463,26 @@ impl<'a> Gpu<'a> {
             self.queue.submit(Some(encoder.finish()));
 
             let buffer_slice = self.buf_staging_dst.slice(..);
-            let (sender, receiver) = flume::bounded(1);
-            buffer_slice.map_async(wgpu::MapMode::Read, move |r| sender.send(r).unwrap());
+            let result =
+                std::sync::Arc::new((std::sync::Mutex::new(None), std::sync::Condvar::new()));
+            let result_clone = result.clone();
+            buffer_slice.map_async(wgpu::MapMode::Read, move |r| {
+                let (lock, cvar) = &*result_clone;
+                let mut pending = lock.lock().unwrap();
+                *pending = Some(r);
+                cvar.notify_one();
+            });
             self.device
-                .poll(wgpu::PollType::Wait)
+                .poll(wgpu::PollType::wait_indefinitely())
                 .expect("failed to poll device");
-            receiver.recv()??;
+            let (lock, cvar) = &*result;
+            let mut pending = lock.lock().unwrap();
+            // GRCOV_EXCL_START
+            while pending.is_none() {
+                pending = cvar.wait(pending).unwrap();
+            }
+            // GRCOV_EXCL_STOP
+            pending.take().unwrap()?;
             {
                 let data = buffer_slice.get_mapped_range();
                 self.cache[i].copy_from_slice(bytemuck::cast_slice(&data));
