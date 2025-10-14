@@ -20,12 +20,8 @@ pub use record::{Instant, InstantRecordOption, Record, Rms, RmsRecordOption};
 use std::time::Duration;
 
 use autd3::{
-    Controller,
-    driver::{
-        common::ULTRASOUND_PERIOD, ethercat::DcSysTime, firmware::driver::FixedSchedule,
-        firmware::driver::SenderOption,
-    },
-    firmware::V12_1,
+    controller::{Controller, SenderOption},
+    driver::{common::ULTRASOUND_PERIOD, ethercat::DcSysTime},
 };
 use autd3_core::{
     firmware::{Drive, Intensity, Phase},
@@ -38,10 +34,7 @@ use autd3_firmware_emulator::{
     fpga::emulator::SilencerEmulator,
 };
 
-use crate::{
-    record::ULTRASOUND_PERIOD_COUNT,
-    utils::{aabb::Aabb, device::clone_device},
-};
+use crate::utils::{aabb::Aabb, device::clone_device};
 
 pub(crate) struct RawTransducerRecord {
     pub pulse_width: Vec<u16>,
@@ -58,6 +51,12 @@ pub(crate) struct RawRecord {
     pub records: Vec<RawDeviceRecord>,
     pub start: DcSysTime,
     pub current: DcSysTime,
+}
+
+struct NopSleeper;
+
+impl autd3_core::sleep::Sleeper for NopSleeper {
+    fn sleep(&self, _duration: Duration) {}
 }
 
 /// A recorder for the sound field.
@@ -237,7 +236,7 @@ impl Recorder {
                                         .apply((d.intensity.0 as u16 * m as u16 / 255) as u8)
                                         as _,
                                 )
-                                .pulse_width(ULTRASOUND_PERIOD_COUNT as _)
+                                .pulse_width()
                                 .unwrap(),
                         );
                         tr_record
@@ -319,12 +318,12 @@ impl Emulator {
     /// ```
     pub fn record(
         &self,
-        f: impl FnOnce(&mut Controller<Recorder, V12_1>) -> Result<(), EmulatorError>,
+        f: impl FnOnce(&mut Controller<Recorder>) -> Result<(), EmulatorError>,
     ) -> Result<Record, EmulatorError> {
         self.record_from(DcSysTime::ZERO, f)
     }
 
-    fn collect_record(mut recorder: Controller<Recorder, V12_1>) -> Result<Record, EmulatorError> {
+    fn collect_record(mut recorder: Controller<Recorder>) -> Result<Record, EmulatorError> {
         let start = recorder.link().record.start;
         let end = recorder.link().record.current;
 
@@ -370,9 +369,9 @@ impl Emulator {
     pub fn record_from(
         &self,
         start_time: DcSysTime,
-        f: impl FnOnce(&mut Controller<Recorder, V12_1>) -> Result<(), EmulatorError>,
+        f: impl FnOnce(&mut Controller<Recorder>) -> Result<(), EmulatorError>,
     ) -> Result<Record, EmulatorError> {
-        let mut recorder = Controller::open_with_option(
+        let mut recorder = Controller::open_with(
             self.geometry.iter().map(clone_device),
             Recorder::new(start_time),
             SenderOption {
@@ -380,7 +379,7 @@ impl Emulator {
                 receive_interval: Duration::ZERO,
                 ..Default::default()
             },
-            FixedSchedule::default(),
+            NopSleeper,
         )?;
         f(&mut recorder)?;
         Self::collect_record(recorder)
@@ -392,11 +391,9 @@ impl Emulator {
     pub fn record_from_take(
         &self,
         start_time: DcSysTime,
-        f: impl FnOnce(
-            Controller<Recorder, V12_1>,
-        ) -> Result<Controller<Recorder, V12_1>, EmulatorError>,
+        f: impl FnOnce(Controller<Recorder>) -> Result<Controller<Recorder>, EmulatorError>,
     ) -> Result<Record, EmulatorError> {
-        let recorder = Controller::open_with_option(
+        let recorder = Controller::open_with(
             self.geometry.iter().map(clone_device),
             Recorder::new(start_time),
             SenderOption {
@@ -404,7 +401,7 @@ impl Emulator {
                 receive_interval: Duration::ZERO,
                 ..Default::default()
             },
-            FixedSchedule::default(),
+            NopSleeper,
         )?;
         let recorder = f(recorder)?;
         Self::collect_record(recorder)
@@ -501,7 +498,7 @@ pub trait RecorderControllerExt {
     fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError>;
 }
 
-impl RecorderControllerExt for Controller<Recorder, V12_1> {
+impl RecorderControllerExt for Controller<Recorder> {
     fn tick(&mut self, tick: Duration) -> Result<(), EmulatorError> {
         self.link_mut().tick(tick)
     }
