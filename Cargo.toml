@@ -3,7 +3,7 @@ name = "autd3-emulator"
 description = "autd3 emulator for calculating sound field, emulation of firmware, etc"
 readme = "README.md"
 keywords = ["autd"]
-version = "37.0.0-alpha.2"
+version = "37.0.0-alpha.3"
 authors = ["shun suzuki <suzuki@hapis.k.u-tokyo.ac.jp>"]
 edition = "2024"
 license = "MIT"
@@ -20,16 +20,16 @@ gpu = ["wgpu", "bytemuck"]
 parallel = ["rayon"]
 
 [dependencies]
-autd3 = { version = "37.0.0-alpha.2", default-features = false }
-autd3-core = { version = "37.0.0-alpha.2", default-features = false, features = ["link", "firmware"] }
-autd3-firmware-emulator = { version = "37.0.0-alpha.2", default-features = false }
+autd3 = { version = "37.0.0-alpha.3", default-features = false }
+autd3-core = { version = "37.0.0-alpha.3", default-features = false, features = ["link", "firmware"] }
+autd3-firmware-emulator = { version = "37.0.0-alpha.3", default-features = false }
 bytemuck = { version = "1.24.0", optional = true, default-features = false }
 polars = { version = "0.51.0", optional = true, features = ["dtype-u16", "dtype-u8"], default-features = false }
 rayon = { version = "1.10.0", optional = true, default-features = false }
 wgpu = { version = "27.0.1", optional = true, default-features = false, features = ["std", "dx12", "metal", "wgsl"] }
 
 [dev-dependencies]
-autd3 = { version = "37.0.0-alpha.2", default-features = false, features = ["gain", "modulation"] }
+autd3 = { version = "37.0.0-alpha.3", default-features = false, features = ["gain", "modulation"] }
 approx = { version = "0.5.1", default-features = false }
 polars = { version = "0.51.0", default-features = false, features = ["csv", "fmt"] }
 rand = { version = "0.9.1", default-features = false, features = ["thread_rng"] }
