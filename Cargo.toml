@@ -14,10 +14,11 @@ features = ["gpu"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = ["polars", "parallel"]
+default = ["use_nalgebra", "polars", "parallel"]
 polars = ["dep:polars"]
 gpu = ["wgpu", "bytemuck"]
 parallel = ["rayon"]
+use_nalgebra = ["autd3/use_nalgebra", "autd3-core/use_nalgebra"]
 
 [dependencies]
 autd3 = { version = "37.0.0", default-features = false }
