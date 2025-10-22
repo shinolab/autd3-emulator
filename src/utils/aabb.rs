@@ -53,8 +53,14 @@ pub(crate) fn aabb_max_dist(a: &Aabb, b: &Aabb) -> f32 {
 }
 
 pub(crate) fn aabb_min_dist(a: &Aabb, b: &Aabb) -> f32 {
+    #[cfg(not(feature = "use_nalgebra"))]
     let min = Vector3::from_iterator(a.min.iter().zip(b.min.iter()).map(|(a, b)| a.max(b)));
+    #[cfg(not(feature = "use_nalgebra"))]
     let max = Vector3::from_iterator(a.max.iter().zip(b.max.iter()).map(|(a, b)| a.min(b)));
+    #[cfg(feature = "use_nalgebra")]
+    let min = Vector3::from_iterator(a.min.iter().zip(b.min.iter()).map(|(a, b)| a.max(*b)));
+    #[cfg(feature = "use_nalgebra")]
+    let max = Vector3::from_iterator(a.max.iter().zip(b.max.iter()).map(|(a, b)| a.min(*b)));
     min.iter()
         .zip(max.iter())
         .filter(|(min, max)| min > max)
