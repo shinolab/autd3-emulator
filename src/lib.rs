@@ -219,13 +219,15 @@ impl Recorder {
                     let m = cpu.fpga().modulation();
                     let cur_seg = cpu.fpga().current_stm_segment();
                     let cur_idx = cpu.fpga().current_stm_idx();
-                    cpu.fpga().drives_at_inplace(
-                        cur_seg,
-                        cur_idx,
-                        phase_buf,
-                        output_mask_buf,
-                        drives_buf,
-                    );
+                    unsafe {
+                        cpu.fpga().drives_at_inplace(
+                            cur_seg,
+                            cur_idx,
+                            phase_buf.as_mut_ptr(),
+                            output_mask_buf.as_mut_ptr(),
+                            drives_buf.as_mut_ptr(),
+                        )
+                    };
                     dev.iter().zip(drives_buf).for_each(|(tr, d)| {
                         let tr_record = &mut self.record.records[tr.dev_idx()].records[tr.idx()];
                         tr_record.pulse_width.push(
@@ -244,7 +246,7 @@ impl Recorder {
                             .push(tr_record.silencer_phase.apply(d.phase.0))
                     });
                 });
-            t = t + ULTRASOUND_PERIOD;
+            t += ULTRASOUND_PERIOD;
             if t == end {
                 break;
             }
@@ -375,8 +377,8 @@ impl Emulator {
             self.geometry.iter().map(clone_device),
             Recorder::new(start_time),
             SenderOption {
-                send_interval: Duration::ZERO,
-                receive_interval: Duration::ZERO,
+                send_interval: None,
+                receive_interval: None,
                 ..Default::default()
             },
             NopSleeper,
@@ -397,8 +399,8 @@ impl Emulator {
             self.geometry.iter().map(clone_device),
             Recorder::new(start_time),
             SenderOption {
-                send_interval: Duration::ZERO,
-                receive_interval: Duration::ZERO,
+                send_interval: None,
+                receive_interval: None,
                 ..Default::default()
             },
             NopSleeper,
