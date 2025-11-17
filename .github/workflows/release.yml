@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     name: publish-src
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
