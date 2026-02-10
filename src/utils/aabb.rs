@@ -77,7 +77,7 @@ mod tests {
         core::geometry::Geometry,
         prelude::{AUTD3, EulerAngle, UnitQuaternion, rad},
     };
-    use rand::Rng;
+    use rand::RngExt;
 
     use crate::option::*;
 
