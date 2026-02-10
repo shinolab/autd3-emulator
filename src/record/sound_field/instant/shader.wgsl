@@ -25,7 +25,7 @@ struct Pc {
     _pad2: u32,
 }
 
-var<push_constant> pc: Pc;
+var<immediate> pc: Pc;
 
 const ULTRASOUND_FREQ: f32 = 40000;
 const ULTRASOUND_PERIOD_COUNT: f32 = 512;
