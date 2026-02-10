@@ -21,7 +21,7 @@ fn record_phase() -> Result<(), EmulatorError> {
         },
     ]);
 
-    let expect = DataFrame::new(
+    let expect = DataFrame::new_infer_height(
         [0, 25000, 50000]
             .iter()
             .zip([0, 1, 1])
@@ -95,7 +95,7 @@ fn record_pulse_width() -> Result<(), EmulatorError> {
         ((((i as f32) / 255.).asin() / PI) * 512.).round() as u8
     };
 
-    let expect = DataFrame::new(
+    let expect = DataFrame::new_infer_height(
         [0, 25000, 50000]
             .iter()
             .zip([100, 200, 200])

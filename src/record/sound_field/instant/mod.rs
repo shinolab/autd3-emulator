@@ -109,6 +109,7 @@ impl Instant<'_> {
         )?;
 
         Ok(DataFrame::new(
+            self.next_points_len(),
             time.iter()
                 .zip(v.iter())
                 .map(|(t, v)| Column::new(format!("p[Pa]@{t}[ns]").into(), v))

@@ -170,6 +170,8 @@ fn record_sound_field_resume(
                 sound_field.next(5 * ULTRASOUND_PERIOD)?,
             ],
             false,
+            true,
+            true
         )?
     );
 
@@ -356,10 +358,8 @@ fn record_sound_field_gpu_eq_cpu() -> Result<(), EmulatorError> {
     let gpu = sound_field.next(10 * ULTRASOUND_PERIOD)?;
 
     assert_eq!(cpu.shape(), gpu.shape());
-    cpu.get_columns()
-        .iter()
-        .zip(gpu.get_columns())
-        .try_for_each(|(cpu, gpu)| -> Result<(), EmulatorError> {
+    cpu.columns().iter().zip(gpu.columns()).try_for_each(
+        |(cpu, gpu)| -> Result<(), EmulatorError> {
             cpu.f32()?
                 .into_no_null_iter()
                 .zip(gpu.f32()?.into_no_null_iter())
@@ -367,7 +367,8 @@ fn record_sound_field_gpu_eq_cpu() -> Result<(), EmulatorError> {
                     approx::assert_abs_diff_eq!(cpu, gpu, epsilon = 0.1);
                 });
             Ok(())
-        })?;
+        },
+    )?;
 
     Ok(())
 }

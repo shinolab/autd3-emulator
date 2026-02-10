@@ -36,6 +36,7 @@ impl Record {
         let mut v = vec![vec![0.; self.drive_rows()]; self.output_cols()];
         self.output_ultrasound_inplace(v.iter_mut().map(|v| v.as_mut_ptr()));
         DataFrame::new(
+            self.drive_rows(),
             (0..self.output_cols())
                 .map(|i| i as u64)
                 .zip(v.iter())
