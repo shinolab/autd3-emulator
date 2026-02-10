@@ -106,9 +106,9 @@ impl<'a> Gpu<'a> {
         let (device, queue) = crate::utils::executor::block_on(
             adapter.request_device(&wgpu::DeviceDescriptor {
                 label: None,
-                required_features: wgpu::Features::PUSH_CONSTANTS,
+                required_features: wgpu::Features::IMMEDIATES,
                 required_limits: wgpu::Limits {
-                    max_push_constant_size: std::mem::size_of::<Pc>() as u32,
+                    max_immediate_size: std::mem::size_of::<Pc>() as u32,
                     max_storage_buffers_per_shader_stage: 5,
                     max_storage_buffer_binding_size: buf_output_ultrasound_size
                         .max(buf_target_pos_size)
@@ -240,10 +240,7 @@ impl<'a> Gpu<'a> {
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[&bind_group_layout],
-            push_constant_ranges: &[wgpu::PushConstantRange {
-                stages: wgpu::ShaderStages::COMPUTE,
-                range: 0..std::mem::size_of::<Pc>() as u32,
-            }],
+            immediate_size: std::mem::size_of::<Pc>() as u32,
         });
 
         let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
@@ -449,7 +446,7 @@ impl<'a> Gpu<'a> {
                 });
                 cpass.set_pipeline(&self.pipeline);
                 cpass.set_bind_group(0, &self.bind_group, &[]);
-                cpass.set_push_constants(0, bytemuck::bytes_of(&pc));
+                cpass.set_immediates(0, bytemuck::bytes_of(&pc));
                 cpass.dispatch_workgroups(((self.cache[0].len() - 1) / 64 + 1) as _, 1, 1);
             }
             encoder.copy_buffer_to_buffer(

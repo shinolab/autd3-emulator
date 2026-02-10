@@ -25,7 +25,7 @@ struct Pc {
     stride: u32,
 }
 
-var<push_constant> pc: Pc;
+var<immediate> pc: Pc;
 
 @compute
 @workgroup_size(64)
