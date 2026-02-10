@@ -33,7 +33,7 @@ wgpu = { version = "27.0.1", optional = true, default-features = false, features
 autd3 = { version = "38.0.1", default-features = false, features = ["gain", "modulation"] }
 approx = { version = "0.5.1", default-features = false }
 polars = { version = "0.52.0", default-features = false, features = ["csv", "fmt"] }
-rand = { version = "0.9.1", default-features = false, features = ["thread_rng"] }
+rand = { version = "0.10.0", default-features = false, features = ["thread_rng"] }
 rstest = { version = "0.26.1", default-features = false }
 textplots = { version = "0.8.7", default-features = false }
 itertools = { version = "0.14.0", default-features = false }
