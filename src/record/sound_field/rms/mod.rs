@@ -81,6 +81,7 @@ impl Rms {
         )?;
 
         Ok(DataFrame::new(
+            self.next_points_len(),
             time.iter()
                 .zip(v.iter())
                 .map(|(t, v)| Column::new(format!("rms[Pa]@{t}[ns]").into(), v))

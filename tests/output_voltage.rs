@@ -69,7 +69,7 @@ fn record_output_voltage() -> Result<(), EmulatorError> {
     let expect_3 = [vec![-12.; 192], vec![12.; 128], vec![-12.; 192]].concat();
     let expect_4 = vec![-12.; 512];
     let expect = [expect_1, expect_2, expect_3, expect_4].concat();
-    df.iter().zip(expect).for_each(|(c, expect)| {
+    df.columns().iter().zip(expect).for_each(|(c, expect)| {
         assert!(c.f32().unwrap().into_no_null_iter().all(|v| v == expect));
     });
 

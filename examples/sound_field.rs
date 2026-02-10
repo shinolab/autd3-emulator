@@ -49,6 +49,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 sound_field.next(Duration::from_millis(1))?,
             ],
             false,
+            true,
+            true,
         )?;
         CsvWriter::new(std::fs::File::create("sound_field_around_focus.csv")?)
             .include_header(true)
@@ -98,6 +100,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 sound_field.next(Duration::from_millis(5))?,
             ],
             false,
+            true,
+            true,
         )?;
         CsvWriter::new(std::fs::File::create("sound_field_stm.csv")?)
             .include_header(true)

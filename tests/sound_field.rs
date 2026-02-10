@@ -170,6 +170,8 @@ fn record_sound_field_resume(
                 sound_field.next(5 * ULTRASOUND_PERIOD)?,
             ],
             false,
+            true,
+            true
         )?
     );
 

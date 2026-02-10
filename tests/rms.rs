@@ -146,6 +146,8 @@ fn record_rms_resume(
                 rms.next(5 * ULTRASOUND_PERIOD)?,
             ],
             false,
+            true,
+            true
         )?
     );
 

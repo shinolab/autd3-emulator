@@ -82,6 +82,7 @@ impl Record {
         let mut phase = vec![vec![0; self.drive_rows()]; self.drive_cols()];
         self.phase_inplace(&mut time, phase.iter_mut().map(|v| v.as_mut_ptr()));
         DataFrame::new(
+            self.drive_rows(),
             time.iter()
                 .zip(phase.iter())
                 .map(|(t, p)| Column::new(format!("phase@{t}[ns]").into(), &p))
@@ -97,6 +98,7 @@ impl Record {
         let mut pulse_width = vec![vec![0; self.drive_rows()]; self.drive_cols()];
         self.pulse_width_inplace(&mut time, pulse_width.iter_mut().map(|v| v.as_mut_ptr()));
         DataFrame::new(
+            self.drive_rows(),
             time.iter()
                 .zip(pulse_width.iter())
                 .map(|(t, p)| Column::new(format!("pulse_width@{t}[ns]").into(), &p))
